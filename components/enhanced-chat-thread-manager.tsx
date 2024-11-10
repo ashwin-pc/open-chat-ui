@@ -19,18 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { ThemeToggle } from "./theme-toggle"
 
 interface Message {
   id: number
@@ -42,7 +32,9 @@ interface Branch {
   id: number
   name: string
   messages: Message[]
-  attachments: File[]  // Moving attachments to branch level
+  attachments: File[]
+  createdAt: Date
+  description?: string
 }
 
 interface ChatThread {
@@ -56,13 +48,15 @@ export function EnhancedChatThreadManagerComponent() {
   const [chatThreads, setChatThreads] = useState<ChatThread[]>([
     {
       id: 1,
-      name: 'New Chat',  // Changed to generic name
+      name: 'New Chat',
       branches: [
         {
           id: 1,
           name: 'Main',
-          messages: [], // Changed to empty array
-          attachments: []
+          messages: [],
+          attachments: [],
+          createdAt: new Date(),
+          description: 'Initial conversation branch'
         }
       ],
       currentBranchId: 1
@@ -71,7 +65,6 @@ export function EnhancedChatThreadManagerComponent() {
   const [currentThreadId, setCurrentThreadId] = useState(1)
   const [input, setInput] = useState('')
   const [isImmersive, setIsImmersive] = useState(false)
-  const [newThreadName, setNewThreadName] = useState('')
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true)
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null)
   const [editingInputBackup, setEditingInputBackup] = useState<string>('')
@@ -201,7 +194,9 @@ export function EnhancedChatThreadManagerComponent() {
       id: newBranchId, 
       name: newBranchName, 
       messages: newMessages,
-      attachments: [...currentBranch.attachments] // Copy attachments to new branch
+      attachments: [...currentBranch.attachments],
+      createdAt: new Date(),
+      description: `Branched from message: "${newMessages[newMessages.length - 1].content.slice(0, 50)}..."`
     }
     updateThread(currentThreadId, {
       ...currentThread,
@@ -231,25 +226,24 @@ export function EnhancedChatThreadManagerComponent() {
   }
 
   const createNewThread = () => {
-    if (newThreadName.trim()) {
-      const newThreadId = Math.max(...chatThreads.map(t => t.id)) + 1
-      const newThread: ChatThread = {
-        id: newThreadId,
-        name: 'New Chat',  // Changed to generic name
-        branches: [
-          {
-            id: 1,
-            name: 'Main',
-            messages: [], // Changed to empty array
-            attachments: []
-          }
-        ],
-        currentBranchId: 1
-      }
-      setChatThreads([...chatThreads, newThread])
-      setCurrentThreadId(newThreadId)
-      setNewThreadName('')
+    const newThreadId = Math.max(...chatThreads.map(t => t.id)) + 1
+    const newThread: ChatThread = {
+      id: newThreadId,
+      name: 'New Chat',  // Changed to generic name
+      branches: [
+        {
+          id: 1,
+          name: 'Main',
+          messages: [], // Changed to empty array
+          attachments: [],
+          createdAt: new Date(),
+          description: 'Initial conversation branch'
+        }
+      ],
+      currentBranchId: 1
     }
+    setChatThreads([...chatThreads, newThread])
+    setCurrentThreadId(newThreadId)
   }
 
   const deleteThread = (threadId: number) => {
@@ -362,44 +356,16 @@ export function EnhancedChatThreadManagerComponent() {
               </div>
             ))}
           </ScrollArea>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="w-full mt-4">
-                <Plus className="h-4 w-4 mr-2" />
-                New Thread
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Thread</DialogTitle>
-                <DialogDescription>
-                  Enter a name for your new chat thread.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input
-                    id="name"
-                    value={newThreadName}
-                    onChange={(e) => setNewThreadName(e.target.value)}
-                    className="col-span-3"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button onClick={createNewThread}>Create Thread</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <Button className="w-full mt-4" onClick={createNewThread}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Thread
+          </Button>
         </div>
       </div>
 
       {/* Main Chat Area */}
       <div className="flex-grow flex flex-col">
-        <Card className="flex-grow overflow-hidden">
+        <Card className="flex-grow overflow-hidden border-0">
           <CardHeader className="flex flex-row items-center justify-between p-2 md:p-4">
             <div className="flex items-center space-x-2 md:space-x-4">
               <Button variant="ghost" size="icon" onClick={() => setIsSidePanelOpen(!isSidePanelOpen)}>
@@ -407,21 +373,53 @@ export function EnhancedChatThreadManagerComponent() {
               </Button>
               <h2 className="text-lg md:text-2xl font-bold truncate">{currentThread.name}</h2>
             </div>
-            <Select
-              value={currentThread.currentBranchId.toString()}
-              onValueChange={(value) => updateThread(currentThreadId, { ...currentThread, currentBranchId: Number(value) })}
-            >
-              <SelectTrigger className="w-[120px] md:w-[180px]">
-                <SelectValue placeholder="Select branch" />
-              </SelectTrigger>
-              <SelectContent>
-                {currentThread.branches.map((branch) => (
-                  <SelectItem key={branch.id} value={branch.id.toString()}>
-                    {branch.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center space-x-2">
+              <ThemeToggle />
+              <Select
+                value={currentThread.currentBranchId.toString()}
+                onValueChange={(value) => updateThread(currentThreadId, { ...currentThread, currentBranchId: Number(value) })}
+              >
+                <SelectTrigger className="w-[200px] md:w-[250px]">
+                  <SelectValue>
+                    <div className="flex items-center space-x-2">
+                      <GitBranch className="h-4 w-4" />
+                      <span className="truncate">
+                        {currentBranch.name}
+                      </span>
+                    </div>
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {currentThread.branches.map((branch) => (
+                    <SelectItem 
+                      key={branch.id} 
+                      value={branch.id.toString()}
+                      className="py-2"
+                    >
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <GitBranch className="h-4 w-4" />
+                            <span className="font-medium">{branch.name}</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(branch.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                        {branch.description && (
+                          <p className="text-xs text-muted-foreground truncate max-w-[300px]">
+                            {branch.description}
+                          </p>
+                        )}
+                        <div className="text-xs text-muted-foreground">
+                          {branch.messages.length} messages
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent className="overflow-y-auto" style={{ height: 'calc(100vh - 200px)' }}>
             {currentBranch.attachments.length > 0 && (
