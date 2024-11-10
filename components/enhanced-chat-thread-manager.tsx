@@ -21,12 +21,8 @@ import {
 } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { ThemeToggle } from "./theme-toggle"
-
-interface Message {
-  id: number
-  content: string
-  sender: 'user' | 'bot'
-}
+import { sendMessage, getLatestResponse, abortConversation, createConversation } from '../lib/mockApi';
+import { BedrockModelNames, Message } from '../lib/types';
 
 interface Branch {
   id: number
@@ -69,6 +65,7 @@ export function EnhancedChatThreadManagerComponent() {
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null)
   const [editingInputBackup, setEditingInputBackup] = useState<string>('')
   const [isMobile, setIsMobile] = useState(false)
+  const [isWaitingForReply, setIsWaitingForReply] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -87,20 +84,18 @@ export function EnhancedChatThreadManagerComponent() {
     }
   }, [])
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (input.trim()) {
-      if (editingMessageId) {
+      if (editingMessageId !== null) {
         // This is an edit submission
-        const editIndex = currentBranch.messages.findIndex(m => m.id === editingMessageId)
         const newMessage: Message = { 
-          id: editingMessageId,
-          content: input, 
-          sender: 'user',
+          text: input, 
+          sender: 'Assistant',
         }
         
         // Keep messages up to the edit point and add the edited message
         const updatedMessages = [
-          ...currentBranch.messages.slice(0, editIndex),
+          ...currentBranch.messages.slice(0, editingMessageId),
           newMessage
         ]
         
@@ -111,71 +106,125 @@ export function EnhancedChatThreadManagerComponent() {
         setEditingInputBackup('')
         
         // Get bot response for the edited message
-        setTimeout(() => {
-          const botResponse = { 
-            id: updatedMessages.length + 1, 
-            content: "I'm a mock response to your edited message.", 
-            sender: 'bot' as const 
-          }
-          updateBranch(
-            currentThreadId, 
-            currentThread.currentBranchId, 
-            [...updatedMessages, botResponse]
-          )
-          scrollToBottom()
-        }, 1000)
+        const botResponse = await sendMessage(input, currentBranch.messages);
+        const newBotMessage: Message = { 
+          text: botResponse.latestResponse || "I'm a mock response to your edited message.", 
+          sender: 'Assistant',
+        };
+        updateBranch(
+          currentThreadId, 
+          currentThread.currentBranchId, 
+          [...updatedMessages, newBotMessage]
+        )
+        scrollToBottom()
       } else {
-        // This is a new message
-        const newMessage: Message = { 
-          id: currentBranch.messages.length + 1, 
-          content: input, 
-          sender: 'user',
-        }
-        
-        const updatedMessages = [...currentBranch.messages, newMessage]
-        updateBranch(currentThreadId, currentThread.currentBranchId, updatedMessages)
+        // First create the user message
+        const userMessage: Message = {
+          text: input,
+          sender: 'Human',
+        };
 
-        // Update thread name if this is the first message
+        const currentInput = input;
+
+        // Clear input immediately
+        setInput('');
+
+        // Create updated messages array with the user message
+        const updatedMessages = [...currentBranch.messages, userMessage];
+
+        // Update thread name if first message
         if (currentBranch.messages.length === 0) {
-          const title = input.split('\n')[0].slice(0, 30) + (input.length > 30 ? '...' : '');
+          const title = currentInput.split('\n')[0].slice(0, 30) + (currentInput.length > 30 ? '...' : '');
           updateThread(currentThreadId, {
             ...currentThread,
             name: title
-          })
+          });
         }
-        
-        // Get bot response
-        setTimeout(() => {
-          const botResponse = { 
-            id: updatedMessages.length + 1, 
-            content: "I'm a mock response from the chatbot.", 
-            sender: 'bot' as const 
-          }
-          updateBranch(
-            currentThreadId, 
-            currentThread.currentBranchId, 
-            [...updatedMessages, botResponse]
-          )
-          scrollToBottom()
-        }, 1000)
+
+        // Update branch once with the user message
+        updateBranch(
+          currentThreadId,
+          currentThread.currentBranchId,
+          updatedMessages
+        );
+
+        // Call API with updated messages
+        createConversation(
+          currentInput,
+          updatedMessages,
+          currentThreadId.toString(),
+          Date.now(),
+          BedrockModelNames.CLAUDE_V3_5_SONNET,
+          '',
+          (error) => console.error(error)
+        );
+
+        // Poll for response
+        pollForResponse(currentThreadId.toString(), Date.now(), updatedMessages);
       }
       
-      setInput('')
+      setInput('');
     }
   }
 
-  const handleRestart = (messageId: number) => {
-    const newMessages = currentBranch.messages.slice(0, currentBranch.messages.findIndex(m => m.id === messageId) + 1)
-    updateBranch(currentThreadId, currentThread.currentBranchId, newMessages)
-  }
+  const pollForResponse = async (
+    conversationId: string,
+    updatedTime: number,
+    currentMessages: Message[]
+  ) => {
+    setIsWaitingForReply(true);
+    const { status, latestResponse } = await getLatestResponse(conversationId, updatedTime);
+  
+    if (status === 'PENDING') {
+      setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 1000);
+    } else if (status === 'COMPLETE') {
+      const botResponse: Message = {
+        text: latestResponse,
+        sender: 'Assistant',
+      };
+  
+      // Append the bot response to the current messages
+      const updatedMessages = [...currentMessages, botResponse];
+  
+      updateBranch(currentThreadId, currentThread.currentBranchId, updatedMessages);
+  
+      scrollToBottom();
+      setIsWaitingForReply(false);
+    }
+  };
 
-  const handleEdit = (messageId: number) => {
-    const messageToEdit = currentBranch.messages.find(m => m.id === messageId)
-    if (messageToEdit && messageToEdit.sender === 'user') {
+  const handleRestart = async (index: number) => {
+    const newMessages = currentBranch.messages.slice(0, index + 1);
+    updateBranch(currentThreadId, currentThread.currentBranchId, newMessages);
+  
+    // Get a new response from the bot
+    const lastMessage = newMessages[newMessages.length - 1];
+    if (lastMessage.sender === 'Human') {
+      createConversation(
+        lastMessage.text,
+        newMessages,
+        currentThreadId.toString(),
+        Date.now(),
+        BedrockModelNames.CLAUDE_V3_5_SONNET,
+        '',
+        (error) => console.error(error)
+      );
+      pollForResponse(currentThreadId.toString(), Date.now(), newMessages);
+    }
+  };
+
+  // const abortCurrentConversation = async () => {
+  //   await abortConversation(currentThreadId.toString());
+  //   // Handle the abort in your UI as needed
+  // };
+
+  const handleEdit = (index: number) => {
+    const messageToEdit = currentBranch.messages[index]
+    if (messageToEdit && messageToEdit.sender === 'Human') {
       // Store the current input as backup in case of cancel
       setEditingInputBackup(input)
-      setInput(messageToEdit.content)
-      setEditingMessageId(messageId)
+      setInput(messageToEdit.text)
+      setEditingMessageId(index)
       textareaRef.current?.focus()
     }
   }
@@ -186,17 +235,17 @@ export function EnhancedChatThreadManagerComponent() {
     setEditingMessageId(null)
   }
 
-  const handleBranch = (messageId: number) => {
+  const handleBranch = (index: number) => {
     const newBranchId = Math.max(...currentThread.branches.map(b => b.id)) + 1
     const newBranchName = `Branch ${newBranchId}`
-    const newMessages = currentBranch.messages.slice(0, currentBranch.messages.findIndex(m => m.id === messageId) + 1)
+    const newMessages = currentBranch.messages.slice(0, index + 1)
     const newBranch: Branch = { 
       id: newBranchId, 
       name: newBranchName, 
       messages: newMessages,
       attachments: [...currentBranch.attachments],
       createdAt: new Date(),
-      description: `Branched from message: "${newMessages[newMessages.length - 1].content.slice(0, 50)}..."`
+      description: `Branched from message: "${newMessages[newMessages.length - 1].text.slice(0, 50)}..."`
     }
     updateThread(currentThreadId, {
       ...currentThread,
@@ -442,40 +491,40 @@ export function EnhancedChatThreadManagerComponent() {
                 </div>
               </div>
             )}
-            {currentBranch.messages.map((message) => {
-              const isAfterEditPoint = editingMessageId ? message.id > editingMessageId : false
+            {currentBranch.messages.map((message, index) => {
+              const isAfterEditPoint = editingMessageId !== null ? index > editingMessageId : false
               
               return (
-                <ContextMenu key={message.id}>
+                <ContextMenu key={index}>
                   <ContextMenuTrigger>
-                    <div className={`flex mb-4 ${message.sender === 'user' ? 'justify-end' : 'justify-start'} 
+                    <div className={`flex mb-4 ${message.sender === 'Human' ? 'justify-end' : 'justify-start'} 
                       ${isAfterEditPoint ? 'opacity-50' : ''}`}>
-                      <div className={`flex items-start ${message.sender === 'user' ? 'space-x-reverse space-x-2 flex-row-reverse' : 'space-x-2'}`}>
+                      <div className={`flex items-start ${message.sender === 'Human' ? 'space-x-reverse space-x-2 flex-row-reverse' : 'space-x-2'}`}>
                         <Avatar className="h-8 w-8">
-                          {message.sender === 'user' ? (
+                          {message.sender === 'Human' ? (
                             <AvatarFallback><UserAvatar /></AvatarFallback>
                           ) : (
                             <AvatarFallback><BotAvatar /></AvatarFallback>
                           )}
                         </Avatar>
-                        <div className={`rounded-lg p-3 ${message.sender === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-                          <p className="whitespace-pre-wrap">{message.content}</p>
+                        <div className={`rounded-lg p-3 ${message.sender === 'Human' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                          <p className="whitespace-pre-wrap">{message.text}</p>
                         </div>
                       </div>
                     </div>
                   </ContextMenuTrigger>
                   <ContextMenuContent>
-                    <ContextMenuItem onClick={() => handleRestart(message.id)}>
+                    <ContextMenuItem onClick={() => handleRestart(index)}>
                       <RotateCcw className="mr-2 h-4 w-4" />
                       Restart from here
                     </ContextMenuItem>
-                    {message.sender === 'user' && !editingMessageId && (
-                      <ContextMenuItem onClick={() => handleEdit(message.id)}>
+                    {message.sender === 'Human' && editingMessageId === null && (
+                      <ContextMenuItem onClick={() => handleEdit(index)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Edit message
                       </ContextMenuItem>
                     )}
-                    <ContextMenuItem onClick={() => handleBranch(message.id)}>
+                    <ContextMenuItem onClick={() => handleBranch(index)}>
                       <GitBranch className="mr-2 h-4 w-4" />
                       Branch from here
                     </ContextMenuItem>
@@ -483,6 +532,22 @@ export function EnhancedChatThreadManagerComponent() {
                 </ContextMenu>
               )
             })}
+            {isWaitingForReply && (
+              <div className="flex justify-start mb-4">
+                <div className="flex items-center space-x-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback><BotAvatar /></AvatarFallback>
+                  </Avatar>
+                  <div className="bg-muted rounded-lg p-3">
+                    <div className="flex space-x-2">
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </CardContent>
         </Card>
@@ -500,14 +565,23 @@ export function EnhancedChatThreadManagerComponent() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !isWaitingForReply) {
                     e.preventDefault()
                     handleSend()
                   }
                 }}
-                placeholder={editingMessageId ? "Edit your message..." : "Type your message..."}
+                placeholder={isWaitingForReply ? "Waiting for response..." : (editingMessageId ? "Edit your message..." : "Type your message...")}
                 className="absolute inset-0 resize-none h-full p-4"
+                disabled={isWaitingForReply}
               />
+              {isWaitingForReply && (
+                <div className="absolute right-2 top-2">
+                  <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                </div>
+              )}
             </div>
             <div className="flex justify-end space-x-2 mt-2">
               <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="h-8 w-8">
@@ -530,7 +604,12 @@ export function EnhancedChatThreadManagerComponent() {
                   <X className="h-4 w-4" />
                 </Button>
               )}
-              <Button onClick={handleSend} size="icon" className="h-8 w-8">
+              <Button 
+                onClick={handleSend} 
+                size="icon" 
+                className="h-8 w-8"
+                disabled={isWaitingForReply}
+              >
                 {editingMessageId ? <Edit className="h-4 w-4" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
