@@ -65,7 +65,8 @@ export function EnhancedChatThreadManagerComponent() {
   const [editingMessageId, setEditingMessageId] = useState<number | null>(null)
   const [editingInputBackup, setEditingInputBackup] = useState<string>('')
   const [isMobile, setIsMobile] = useState(false)
-  const [isWaitingForReply, setIsWaitingForReply] = useState(false);
+  const [partialResponse, setPartialResponse] = useState<string>('');
+  const [isPolling, setIsPolling] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -76,7 +77,7 @@ export function EnhancedChatThreadManagerComponent() {
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [])
-  
+
   const adjustTextareaHeight = useCallback(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
@@ -88,32 +89,32 @@ export function EnhancedChatThreadManagerComponent() {
     if (input.trim()) {
       if (editingMessageId !== null) {
         // This is an edit submission
-        const newMessage: Message = { 
-          text: input, 
+        const newMessage: Message = {
+          text: input,
           sender: 'Assistant',
         }
-        
+
         // Keep messages up to the edit point and add the edited message
         const updatedMessages = [
           ...currentBranch.messages.slice(0, editingMessageId),
           newMessage
         ]
-        
+
         updateBranch(currentThreadId, currentThread.currentBranchId, updatedMessages)
-        
+
         // Reset edit state
         setEditingMessageId(null)
         setEditingInputBackup('')
-        
+
         // Get bot response for the edited message
         const botResponse = await sendMessage(input, currentBranch.messages);
-        const newBotMessage: Message = { 
-          text: botResponse.latestResponse || "I'm a mock response to your edited message.", 
+        const newBotMessage: Message = {
+          text: botResponse.latestResponse || "I'm a mock response to your edited message.",
           sender: 'Assistant',
         };
         updateBranch(
-          currentThreadId, 
-          currentThread.currentBranchId, 
+          currentThreadId,
+          currentThread.currentBranchId,
           [...updatedMessages, newBotMessage]
         )
         scrollToBottom()
@@ -162,7 +163,7 @@ export function EnhancedChatThreadManagerComponent() {
         // Poll for response
         pollForResponse(currentThreadId.toString(), Date.now(), updatedMessages);
       }
-      
+
       setInput('');
     }
   }
@@ -172,9 +173,13 @@ export function EnhancedChatThreadManagerComponent() {
     updatedTime: number,
     currentMessages: Message[]
   ) => {
-    setIsWaitingForReply(true);
+    setIsPolling(true);
     const { status, latestResponse } = await getLatestResponse(conversationId, updatedTime);
-  
+
+    if (latestResponse) {
+      setPartialResponse(latestResponse);
+    }
+
     if (status === 'PENDING') {
       setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 1000);
     } else if (status === 'COMPLETE') {
@@ -182,21 +187,20 @@ export function EnhancedChatThreadManagerComponent() {
         text: latestResponse,
         sender: 'Assistant',
       };
-  
-      // Append the bot response to the current messages
+
       const updatedMessages = [...currentMessages, botResponse];
-  
       updateBranch(currentThreadId, currentThread.currentBranchId, updatedMessages);
-  
+
+      setPartialResponse('');
       scrollToBottom();
-      setIsWaitingForReply(false);
+      setIsPolling(false);
     }
   };
 
   const handleRestart = async (index: number) => {
     const newMessages = currentBranch.messages.slice(0, index + 1);
     updateBranch(currentThreadId, currentThread.currentBranchId, newMessages);
-  
+
     // Get a new response from the bot
     const lastMessage = newMessages[newMessages.length - 1];
     if (lastMessage.sender === 'Human') {
@@ -213,10 +217,11 @@ export function EnhancedChatThreadManagerComponent() {
     }
   };
 
-  // const abortCurrentConversation = async () => {
-  //   await abortConversation(currentThreadId.toString());
-  //   // Handle the abort in your UI as needed
-  // };
+  const handleAbort = async () => {
+    await abortConversation(currentThreadId.toString());
+    setIsPolling(false);
+    setPartialResponse('');
+  };
 
   const handleEdit = (index: number) => {
     const messageToEdit = currentBranch.messages[index]
@@ -228,7 +233,7 @@ export function EnhancedChatThreadManagerComponent() {
       textareaRef.current?.focus()
     }
   }
-  
+
   const handleCancelEdit = () => {
     setInput(editingInputBackup)
     setEditingInputBackup('')
@@ -239,9 +244,9 @@ export function EnhancedChatThreadManagerComponent() {
     const newBranchId = Math.max(...currentThread.branches.map(b => b.id)) + 1
     const newBranchName = `Branch ${newBranchId}`
     const newMessages = currentBranch.messages.slice(0, index + 1)
-    const newBranch: Branch = { 
-      id: newBranchId, 
-      name: newBranchName, 
+    const newBranch: Branch = {
+      id: newBranchId,
+      name: newBranchName,
       messages: newMessages,
       attachments: [...currentBranch.attachments],
       createdAt: new Date(),
@@ -255,21 +260,21 @@ export function EnhancedChatThreadManagerComponent() {
   }
 
   const updateBranch = (threadId: number, branchId: number, newMessages: Message[]) => {
-    setChatThreads(threads => threads.map(thread => 
-      thread.id === threadId 
+    setChatThreads(threads => threads.map(thread =>
+      thread.id === threadId
         ? {
-            ...thread,
-            branches: thread.branches.map(branch => 
-              branch.id === branchId ? { ...branch, messages: newMessages } : branch
-            )
-          }
+          ...thread,
+          branches: thread.branches.map(branch =>
+            branch.id === branchId ? { ...branch, messages: newMessages } : branch
+          )
+        }
         : thread
     ))
     scrollToBottom()
   }
 
   const updateThread = (threadId: number, updatedThread: ChatThread) => {
-    setChatThreads(threads => threads.map(thread => 
+    setChatThreads(threads => threads.map(thread =>
       thread.id === threadId ? updatedThread : thread
     ))
   }
@@ -313,35 +318,35 @@ export function EnhancedChatThreadManagerComponent() {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const newAttachments = Array.from(event.target.files)
-      setChatThreads(threads => threads.map(thread => 
-        thread.id === currentThreadId 
+      setChatThreads(threads => threads.map(thread =>
+        thread.id === currentThreadId
           ? {
-              ...thread,
-              branches: thread.branches.map(branch => 
-                branch.id === thread.currentBranchId 
-                  ? { ...branch, attachments: [...branch.attachments, ...newAttachments] }
-                  : branch
-              )
-            }
+            ...thread,
+            branches: thread.branches.map(branch =>
+              branch.id === thread.currentBranchId
+                ? { ...branch, attachments: [...branch.attachments, ...newAttachments] }
+                : branch
+            )
+          }
           : thread
       ))
     }
   }
 
   const removeAttachment = (fileName: string) => {
-    setChatThreads(threads => threads.map(thread => 
-      thread.id === currentThreadId 
+    setChatThreads(threads => threads.map(thread =>
+      thread.id === currentThreadId
         ? {
-            ...thread,
-            branches: thread.branches.map(branch => 
-              branch.id === thread.currentBranchId 
-                ? { 
-                    ...branch, 
-                    attachments: branch.attachments.filter(file => file.name !== fileName) 
-                  }
-                : branch
-            )
-          }
+          ...thread,
+          branches: thread.branches.map(branch =>
+            branch.id === thread.currentBranchId
+              ? {
+                ...branch,
+                attachments: branch.attachments.filter(file => file.name !== fileName)
+              }
+              : branch
+          )
+        }
         : thread
     ))
   }
@@ -360,7 +365,7 @@ export function EnhancedChatThreadManagerComponent() {
       setIsMobile(window.innerWidth < 768)
       setIsSidePanelOpen(window.innerWidth >= 768)
     }
-    
+
     checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
@@ -370,7 +375,7 @@ export function EnhancedChatThreadManagerComponent() {
     <div className="flex h-screen">
       {/* Mobile Overlay */}
       {isMobile && isSidePanelOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
           onClick={() => setIsSidePanelOpen(false)}
         />
@@ -440,8 +445,8 @@ export function EnhancedChatThreadManagerComponent() {
                 </SelectTrigger>
                 <SelectContent>
                   {currentThread.branches.map((branch) => (
-                    <SelectItem 
-                      key={branch.id} 
+                    <SelectItem
+                      key={branch.id}
                       value={branch.id.toString()}
                       className="py-2"
                     >
@@ -478,10 +483,10 @@ export function EnhancedChatThreadManagerComponent() {
                   {currentBranch.attachments.map((file, index) => (
                     <div key={index} className="flex items-center bg-background rounded-full px-3 py-1">
                       <span className="text-sm truncate max-w-[150px]">{file.name}</span>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => removeAttachment(file.name)} 
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeAttachment(file.name)}
                         className="h-6 w-6 ml-2"
                       >
                         <X className="h-4 w-4" />
@@ -493,7 +498,7 @@ export function EnhancedChatThreadManagerComponent() {
             )}
             {currentBranch.messages.map((message, index) => {
               const isAfterEditPoint = editingMessageId !== null ? index > editingMessageId : false
-              
+
               return (
                 <ContextMenu key={index}>
                   <ContextMenuTrigger>
@@ -532,7 +537,25 @@ export function EnhancedChatThreadManagerComponent() {
                 </ContextMenu>
               )
             })}
-            {isWaitingForReply && (
+            {/* Show partial response if available */}
+            {partialResponse && (
+              <div className="flex justify-start mb-4 relative group">
+                <div className="flex items-start space-x-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback><BotAvatar /></AvatarFallback>
+                  </Avatar>
+                  <div className="bg-muted rounded-lg p-3">
+                    <p className="whitespace-pre-wrap">{partialResponse}</p>
+                    <div className="h-4 w-4 absolute bottom-2 right-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Show typing indicator only when waiting and no partial response */}
+            {isPolling && !partialResponse && (
               <div className="flex justify-start mb-4">
                 <div className="flex items-center space-x-2">
                   <Avatar className="h-8 w-8">
@@ -565,16 +588,16 @@ export function EnhancedChatThreadManagerComponent() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !isWaitingForReply) {
+                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !isPolling) {
                     e.preventDefault()
                     handleSend()
                   }
                 }}
-                placeholder={isWaitingForReply ? "Waiting for response..." : (editingMessageId ? "Edit your message..." : "Type your message...")}
+                placeholder={isPolling ? "Waiting for response..." : (editingMessageId ? "Edit your message..." : "Type your message...")}
                 className="absolute inset-0 resize-none h-full p-4"
-                disabled={isWaitingForReply}
+                disabled={isPolling}
               />
-              {isWaitingForReply && (
+              {isPolling && (
                 <div className="absolute right-2 top-2">
                   <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -595,22 +618,22 @@ export function EnhancedChatThreadManagerComponent() {
                 multiple
               />
               {editingMessageId && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={handleCancelEdit}
                   className="h-8 w-8"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               )}
-              <Button 
-                onClick={handleSend} 
-                size="icon" 
+              <Button
+                onClick={isPolling ? handleAbort : handleSend}
+                size="icon"
                 className="h-8 w-8"
-                disabled={isWaitingForReply}
+                variant={isPolling ? "destructive" : "default"}
               >
-                {editingMessageId ? <Edit className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                {isPolling ? <X className="h-4 w-4" /> : editingMessageId ? <Edit className="h-4 w-4" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
           </div>
@@ -626,7 +649,7 @@ export function EnhancedChatThreadManagerComponent() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !isPolling) {
                       e.preventDefault()
                       handleSend()
                     }
@@ -635,6 +658,7 @@ export function EnhancedChatThreadManagerComponent() {
                   className="flex-grow resize-none pr-20 overflow-y-auto"
                   rows={1}
                   style={{ maxHeight: '20vh' }}
+                  disabled={isPolling}
                 />
                 <div className="absolute right-2 bottom-2 flex items-center space-x-2">
                   <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="h-8 w-8">
@@ -648,8 +672,13 @@ export function EnhancedChatThreadManagerComponent() {
                       <X className="h-4 w-4" />
                     </Button>
                   )}
-                  <Button onClick={handleSend} size="icon" className="h-8 w-8">
-                    {editingMessageId ? <Edit className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                  <Button
+                    onClick={isPolling ? handleAbort : handleSend}
+                    size="icon"
+                    className="h-8 w-8"
+                    variant={isPolling ? "destructive" : "default"}
+                  >
+                    {isPolling ? <X className="h-4 w-4" /> : editingMessageId ? <Edit className="h-4 w-4" /> : <Send className="h-4 w-4" />}
                   </Button>
                 </div>
               </div>
@@ -663,7 +692,7 @@ export function EnhancedChatThreadManagerComponent() {
 
 const BotAvatar = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" className="h-full w-full">
-    <circle cx="20" cy="20" r="20" fill="#7C3AED"/>
+    <circle cx="20" cy="20" r="20" fill="#7C3AED" />
     <path d="M10 15 L20 10 L30 15 L30 25 L20 30 L10 25Z" fill="#A78BFA" />
     <circle cx="20" cy="20" r="6" fill="#C4B5FD" />
     <path d="M17 18 L23 18 L20 22Z" fill="#7C3AED" />
@@ -675,12 +704,12 @@ const BotAvatar = () => (
 
 const UserAvatar = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" className="h-full w-full">
-    <circle cx="20" cy="20" r="20" fill="#2DD4BF"/>
-    <polygon points="20,5 30,15 25,30 15,30 10,15" fill="#14B8A6"/>
-    <circle cx="20" cy="18" r="7" fill="#5EEAD4"/>
-    <rect x="15" y="16" width="10" height="4" rx="2" fill="#99F6E4"/>
-    <circle cx="15" cy="15" r="2" fill="#CCFBF1"/>
-    <circle cx="25" cy="15" r="2" fill="#CCFBF1"/>
-    <path d="M15 22 Q20 25 25 22" stroke="#F0FDFA" fill="none" strokeWidth="1.5"/>
+    <circle cx="20" cy="20" r="20" fill="#2DD4BF" />
+    <polygon points="20,5 30,15 25,30 15,30 10,15" fill="#14B8A6" />
+    <circle cx="20" cy="18" r="7" fill="#5EEAD4" />
+    <rect x="15" y="16" width="10" height="4" rx="2" fill="#99F6E4" />
+    <circle cx="15" cy="15" r="2" fill="#CCFBF1" />
+    <circle cx="25" cy="15" r="2" fill="#CCFBF1" />
+    <path d="M15 22 Q20 25 25 22" stroke="#F0FDFA" fill="none" strokeWidth="1.5" />
   </svg>
 );

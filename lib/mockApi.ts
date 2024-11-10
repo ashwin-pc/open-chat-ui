@@ -9,6 +9,13 @@ const SIMULATED_DELAY = 3000;
 // Mock conversation storage
 let mockConversations: { [id: string]: Message[] } = {};
 
+// Add a new map to store ongoing conversations and their state
+const ongoingResponses = new Map<string, {
+  fullResponse: string;
+  currentPosition: number;
+  chunkSize: number;
+}>();
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const sendMessage = async (prompt: string, chatHistory: Array<Message>): Promise<any> => {
   await new Promise(resolve => setTimeout(resolve, SIMULATED_DELAY));
@@ -17,21 +24,33 @@ export const sendMessage = async (prompt: string, chatHistory: Array<Message>): 
 
 export const getLatestResponse = async (
   conversationId: string,
-  updatedTime: number
-): Promise<{
-  status: string;
-  latestResponse: string;
-}> => {
-  await new Promise(resolve => setTimeout(resolve, SIMULATED_DELAY));
+  timestamp: number
+): Promise<{ status: 'PENDING' | 'COMPLETE'; latestResponse: string }> => {
+  await new Promise(resolve => setTimeout(resolve, 100)); // Reduced delay for smoother updates
   
-  const conversation = mockConversations[conversationId] || [];
-  const lastMessage = conversation[conversation.length - 1];
+  const conversation = ongoingResponses.get(conversationId);
   
-  if (lastMessage && lastMessage.sender === 'Assistant') {
-    return { status: 'COMPLETE', latestResponse: lastMessage.text };
-  } else {
-    return { status: 'PENDING', latestResponse: 'Thinking...' };
+  if (!conversation) {
+    return { status: 'COMPLETE', latestResponse: '' };
   }
+
+  const { fullResponse, currentPosition, chunkSize } = conversation;
+  const newPosition = Math.min(currentPosition + chunkSize, fullResponse.length);
+  const currentResponse = fullResponse.slice(0, newPosition);
+  
+  ongoingResponses.set(conversationId, {
+    ...conversation,
+    currentPosition: newPosition
+  });
+
+  // Return PENDING status until we reach the end
+  const status = newPosition >= fullResponse.length ? 'COMPLETE' : 'PENDING';
+  
+  if (status === 'COMPLETE') {
+    ongoingResponses.delete(conversationId);
+  }
+
+  return { status, latestResponse: currentResponse };
 };
 
 export const abortConversation = async (conversationId: string): Promise<void> => {
@@ -59,6 +78,14 @@ export const createConversation = (
     };
     mockConversations[id] = [...mockConversations[id], newMessage];
   }, SIMULATED_DELAY);
+
+  const mockResponse = `Here is a detailed response that will be streamed word by word. This is simulating how a real LLM would generate text token by token. The response will grow longer with each polling request until it's complete.`;
+  
+  ongoingResponses.set(id, {
+    fullResponse: mockResponse,
+    currentPosition: 0,
+    chunkSize: 5 // Number of characters to reveal per poll
+  });
 };
 
 // Helper function to get all conversations (for UI testing)
