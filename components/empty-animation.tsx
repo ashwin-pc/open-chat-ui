@@ -1,5 +1,5 @@
+import { useTheme } from '@/app/contexts/theme-context';
 import React, { useEffect, useRef } from 'react';
-import { useTheme } from 'next-themes';
 
 // Add type definitions
 interface Particle {
