@@ -8,8 +8,6 @@ import {
   Minimize2,
   RotateCcw,
   Send,
-  Plus,
-  Trash2,
   PanelLeftOpen,
   PanelLeftClose,
   Paperclip,
@@ -20,63 +18,39 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { ThemeToggle } from './theme-toggle';
-import { sendMessage, getLatestResponse, abortConversation, createConversation } from '../lib/api';
-import { BedrockModelNames, Message } from '../lib/types';
-
-interface Branch {
-  id: number;
-  name: string;
-  messages: Message[];
-  attachments: File[];
-  createdAt: Date;
-  description?: string;
-}
-
-interface ChatThread {
-  id: number;
-  name: string;
-  branches: Branch[];
-  currentBranchId: number;
-}
+import { Branch, ChatThread, Message } from '../lib/types';
+import { SidePanel } from './side-panel';
+import { BranchSelector } from './branch-selector';
+import { useChatApi } from '@/app/hooks/use-chat-api';
+import { useChat } from '@/app/contexts/chat-context';
+import { useMessageInput } from '@/app/hooks/use-message-input';
 
 export function ChatApp() {
-  const [chatThreads, setChatThreads] = useState<ChatThread[]>([
-    {
-      id: 1,
-      name: 'New Chat',
-      branches: [
-        {
-          id: 1,
-          name: 'Main',
-          messages: [],
-          attachments: [],
-          createdAt: new Date(),
-          description: 'Initial conversation branch',
-        },
-      ],
-      currentBranchId: 1,
-    },
-  ]);
-  const [currentThreadId, setCurrentThreadId] = useState(1);
-  const [input, setInput] = useState('');
+  const { currentBranch, currentThread, setChatThreads, currentThreadId } = useChat();
+  const {
+    input,
+    setInput,
+    editingMessageId,
+    setEditingMessageId,
+    editingInputBackup,
+    setEditingInputBackup,
+    textareaRef,
+  } = useMessageInput();
   const [isImmersive, setIsImmersive] = useState(false);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
-  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
-  const [editingInputBackup, setEditingInputBackup] = useState<string>('');
   const [isMobile, setIsMobile] = useState(false);
-  const [partialResponse, setPartialResponse] = useState<string>('');
-  const [isPolling, setIsPolling] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
-
-  const currentThread = chatThreads.find((t) => t.id === currentThreadId) || chatThreads[0];
-  const currentBranch =
-    currentThread.branches.find((b) => b.id === currentThread.currentBranchId) || currentThread.branches[0];
+  const { isPolling, partialResponse, handleNewMessage, handleEditMessage, handleRestartFromMessage, handleAbort } =
+    useChatApi({
+      currentThreadId,
+      onUpdateMessages: (newMessages) => {
+        updateBranch(currentThreadId, currentThread.currentBranchId, newMessages);
+        scrollToBottom();
+      },
+    });
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -92,129 +66,25 @@ export function ChatApp() {
   const handleSend = async () => {
     if (input.trim()) {
       if (editingMessageId !== null) {
-        // This is an edit submission
-        const newMessage: Message = {
-          text: input,
-          sender: 'Assistant',
-        };
-
-        // Keep messages up to the edit point and add the edited message
-        const updatedMessages = [...currentBranch.messages.slice(0, editingMessageId), newMessage];
-
-        updateBranch(currentThreadId, currentThread.currentBranchId, updatedMessages);
-
-        // Reset edit state
+        await handleEditMessage(input, currentBranch.messages, editingMessageId);
         setEditingMessageId(null);
         setEditingInputBackup('');
-
-        // Get bot response for the edited message
-        const botResponse = await sendMessage(input, currentBranch.messages);
-        const newBotMessage: Message = {
-          text: botResponse.latestResponse || "I'm a mock response to your edited message.",
-          sender: 'Assistant',
-        };
-        updateBranch(currentThreadId, currentThread.currentBranchId, [...updatedMessages, newBotMessage]);
-        scrollToBottom();
       } else {
-        const userMessage: Message = {
-          text: input,
-          sender: 'Human',
-        };
-
-        const currentInput = input;
-        const timestamp = Date.now(); // Create single timestamp for both calls
-
-        setInput('');
-
-        const updatedMessages = [...currentBranch.messages, userMessage];
-
         if (currentBranch.messages.length === 0) {
-          const title = currentInput.split('\n')[0].slice(0, 30) + (currentInput.length > 30 ? '...' : '');
+          const title = input.split('\n')[0].slice(0, 30) + (input.length > 30 ? '...' : '');
           updateThread(currentThreadId, {
             ...currentThread,
             name: title,
           });
         }
-
-        updateBranch(currentThreadId, currentThread.currentBranchId, updatedMessages);
-
-        createConversation(
-          currentInput,
-          updatedMessages,
-          currentThreadId.toString(),
-          timestamp, // Use consistent timestamp
-          BedrockModelNames.CLAUDE_V3_5_SONNET,
-          '',
-          (error) => console.error(error),
-        );
-
-        // Wait for 1 second before starting to poll
-        setTimeout(() => {
-          pollForResponse(currentThreadId.toString(), timestamp, updatedMessages);
-        }, 1000);
+        await handleNewMessage(input, currentBranch.messages);
       }
-
       setInput('');
     }
   };
 
-  const pollForResponse = async (conversationId: string, updatedTime: number, currentMessages: Message[]) => {
-    // Clear any existing timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
-    setIsPolling(true);
-    const { status, latestResponse } = await getLatestResponse(conversationId, updatedTime);
-
-    if (latestResponse) {
-      setPartialResponse(latestResponse);
-    }
-
-    if (status === 'PENDING') {
-      timeoutRef.current = setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 1000);
-    } else if (status === 'COMPLETE') {
-      const botResponse: Message = {
-        text: latestResponse,
-        sender: 'Assistant',
-      };
-
-      const updatedMessages = [...currentMessages, botResponse];
-      updateBranch(currentThreadId, currentThread.currentBranchId, updatedMessages);
-
-      setPartialResponse('');
-      scrollToBottom();
-      setIsPolling(false);
-    }
-  };
-
   const handleRestart = async (index: number) => {
-    const newMessages = currentBranch.messages.slice(0, index + 1);
-    updateBranch(currentThreadId, currentThread.currentBranchId, newMessages);
-
-    // Get a new response from the bot
-    const lastMessage = newMessages[newMessages.length - 1];
-    if (lastMessage.sender === 'Human') {
-      createConversation(
-        lastMessage.text,
-        newMessages,
-        currentThreadId.toString(),
-        Date.now(),
-        BedrockModelNames.CLAUDE_V3_5_SONNET,
-        '',
-        (error) => console.error(error),
-      );
-      pollForResponse(currentThreadId.toString(), Date.now(), newMessages);
-    }
-  };
-
-  const handleAbort = async () => {
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    await abortConversation(currentThreadId.toString());
-    setIsPolling(false);
-    setPartialResponse('');
+    handleRestartFromMessage(currentBranch.messages, index);
   };
 
   const handleEdit = (index: number) => {
@@ -271,34 +141,6 @@ export function ChatApp() {
 
   const updateThread = (threadId: number, updatedThread: ChatThread) => {
     setChatThreads((threads) => threads.map((thread) => (thread.id === threadId ? updatedThread : thread)));
-  };
-
-  const createNewThread = () => {
-    const newThreadId = Math.max(...chatThreads.map((t) => t.id)) + 1;
-    const newThread: ChatThread = {
-      id: newThreadId,
-      name: 'New Chat', // Changed to generic name
-      branches: [
-        {
-          id: 1,
-          name: 'Main',
-          messages: [], // Changed to empty array
-          attachments: [],
-          createdAt: new Date(),
-          description: 'Initial conversation branch',
-        },
-      ],
-      currentBranchId: 1,
-    };
-    setChatThreads([...chatThreads, newThread]);
-    setCurrentThreadId(newThreadId);
-  };
-
-  const deleteThread = (threadId: number) => {
-    setChatThreads((threads) => threads.filter((t) => t.id !== threadId));
-    if (currentThreadId === threadId) {
-      setCurrentThreadId(chatThreads[0].id);
-    }
   };
 
   const toggleImmersive = () => {
@@ -388,38 +230,7 @@ export function ChatApp() {
       )}
 
       {/* Side Panel */}
-      <div
-        className={`
-        ${isSidePanelOpen ? 'translate-x-0' : '-translate-x-full'}
-        ${isMobile ? 'fixed inset-y-0 z-50' : 'relative'} 
-        bg-background border-r w-[280px] transition-transform duration-300
-      `}
-      >
-        <div className="p-4">
-          <h2 className="text-lg font-semibold mb-4">Chat Threads</h2>
-          <ScrollArea className="h-[calc(100vh-8rem)]">
-            {chatThreads.map((thread) => (
-              <div key={thread.id} className="flex items-center justify-between mb-2">
-                <button
-                  className={`text-left truncate flex-grow ${currentThreadId === thread.id ? 'font-bold' : ''}`}
-                  onClick={() => setCurrentThreadId(thread.id)}
-                >
-                  {thread.name}
-                </button>
-                {chatThreads.length > 1 && (
-                  <Button variant="ghost" size="icon" onClick={() => deleteThread(thread.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-          </ScrollArea>
-          <Button className="w-full mt-4" onClick={createNewThread}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Thread
-          </Button>
-        </div>
-      </div>
+      <SidePanel isSidePanelOpen={isSidePanelOpen} isMobile={isMobile} />
 
       {/* Main Chat Area */}
       <div className="flex-grow flex flex-col">
@@ -433,42 +244,13 @@ export function ChatApp() {
             </div>
             <div className="flex items-center space-x-2">
               <ThemeToggle />
-              <Select
-                value={currentThread.currentBranchId.toString()}
-                onValueChange={(value) =>
-                  updateThread(currentThreadId, { ...currentThread, currentBranchId: Number(value) })
+              <BranchSelector
+                currentBranchId={currentThread.currentBranchId}
+                branches={currentThread.branches}
+                onBranchChange={(branchId) =>
+                  updateThread(currentThreadId, { ...currentThread, currentBranchId: branchId })
                 }
-              >
-                <SelectTrigger className="w-[200px] md:w-[250px]">
-                  <SelectValue>
-                    <div className="flex items-center space-x-2">
-                      <GitBranch className="h-4 w-4" />
-                      <span className="truncate">{currentBranch.name}</span>
-                    </div>
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {currentThread.branches.map((branch) => (
-                    <SelectItem key={branch.id} value={branch.id.toString()} className="py-2">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <GitBranch className="h-4 w-4" />
-                            <span className="font-medium">{branch.name}</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {new Date(branch.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                        {branch.description && (
-                          <p className="text-xs text-muted-foreground truncate max-w-[300px]">{branch.description}</p>
-                        )}
-                        <div className="text-xs text-muted-foreground">{branch.messages.length} messages</div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              />
             </div>
           </CardHeader>
           <CardContent className="overflow-y-auto" style={{ height: 'calc(100vh - 200px)' }}>
