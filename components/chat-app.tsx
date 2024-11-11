@@ -13,6 +13,8 @@ import { useChat } from '@/app/contexts/chat-context';
 import { useMessageInput } from '@/app/hooks/use-message-input';
 import { ChatInput } from './chat-input';
 import { MessageList } from './message-list';
+import { useHotkeys } from '@/app/hooks/use-hotkeys';
+import { ShortcutsDialog } from './shortcuts-dialog';
 
 export function ChatApp() {
   const { currentBranch, currentThread, setChatThreads, currentThreadId } = useChat();
@@ -28,6 +30,7 @@ export function ChatApp() {
   const [isImmersive, setIsImmersive] = useState(false);
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -39,6 +42,42 @@ export function ChatApp() {
         scrollToBottom();
       },
     });
+
+  useHotkeys('shortcuts-dialog', {
+    key: 'cmd+/',
+    description: 'Toggle shortcuts dialog',
+    scope: 'Global',
+    callback: () => setIsShortcutsOpen((prev) => !prev),
+  });
+
+  useHotkeys('send-message', {
+    key: 'cmd+enter',
+    description: 'Send message',
+    scope: 'Chat',
+    callback: () => {
+      if (input?.trim() && !isPolling) {
+        handleSend();
+      }
+    },
+  });
+
+  useHotkeys('cancel-edit', {
+    key: 'esc',
+    description: 'Cancel edit',
+    scope: 'Chat',
+    callback: () => {
+      if (editingMessageId) {
+        handleCancelEdit();
+      }
+    },
+  });
+
+  useHotkeys('new-branch', {
+    key: 'cmd+b',
+    description: 'Create new branch',
+    scope: 'Chat',
+    callback: () => handleBranch(currentBranch.messages.length - 1),
+  });
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -231,6 +270,7 @@ export function ChatApp() {
               <h2 className="text-lg md:text-2xl font-bold truncate">{currentThread.name}</h2>
             </div>
             <div className="flex items-center space-x-2">
+              <ShortcutsDialog open={isShortcutsOpen} onOpenChange={setIsShortcutsOpen} />
               <ThemeToggle />
               <BranchSelector
                 currentBranchId={currentThread.currentBranchId}
@@ -251,8 +291,6 @@ export function ChatApp() {
               onEdit={handleEdit}
               onBranch={handleBranch}
               messagesEndRef={messagesEndRef}
-              BotAvatar={BotAvatar}
-              UserAvatar={UserAvatar}
             />
           </CardContent>
         </Card>
@@ -276,27 +314,3 @@ export function ChatApp() {
     </div>
   );
 }
-
-const BotAvatar = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" className="h-full w-full">
-    <circle cx="20" cy="20" r="20" fill="#7C3AED" />
-    <path d="M10 15 L20 10 L30 15 L30 25 L20 30 L10 25Z" fill="#A78BFA" />
-    <circle cx="20" cy="20" r="6" fill="#C4B5FD" />
-    <path d="M17 18 L23 18 L20 22Z" fill="#7C3AED" />
-    <circle cx="16" cy="17" r="2" fill="#EDE9FE" />
-    <circle cx="24" cy="17" r="2" fill="#EDE9FE" />
-    <path d="M15 24 Q20 28 25 24" stroke="#DDD6FE" fill="none" strokeWidth="1.5" />
-  </svg>
-);
-
-const UserAvatar = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" className="h-full w-full">
-    <circle cx="20" cy="20" r="20" fill="#2DD4BF" />
-    <polygon points="20,5 30,15 25,30 15,30 10,15" fill="#14B8A6" />
-    <circle cx="20" cy="18" r="7" fill="#5EEAD4" />
-    <rect x="15" y="16" width="10" height="4" rx="2" fill="#99F6E4" />
-    <circle cx="15" cy="15" r="2" fill="#CCFBF1" />
-    <circle cx="25" cy="15" r="2" fill="#CCFBF1" />
-    <path d="M15 22 Q20 25 25 22" stroke="#F0FDFA" fill="none" strokeWidth="1.5" />
-  </svg>
-);

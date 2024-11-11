@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { useHotkeys } from '../hooks/use-hotkeys';
 
 type Theme = 'light' | 'dark';
 
@@ -13,6 +14,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light');
+  useHotkeys('toggle-theme', {
+    key: 'cmd+.',
+    description: 'Toggle theme',
+    scope: 'Global',
+    callback: () => setTheme(theme === 'dark' ? 'light' : 'dark'),
+  });
 
   useEffect(() => {
     // Initialize theme from system preference or localStorage

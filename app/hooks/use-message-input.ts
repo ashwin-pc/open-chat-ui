@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useHotkeys } from './use-hotkeys';
 
 export function useMessageInput() {
   const [input, setInput] = useState('');
@@ -6,6 +7,13 @@ export function useMessageInput() {
   const [editingInputBackup, setEditingInputBackup] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useHotkeys('focus-chat-input', {
+    key: 'cmd+k',
+    description: 'Focus chat input',
+    scope: 'Global',
+    callback: () => textareaRef.current?.focus(),
+  });
 
   const handleCancelEdit = () => {
     setEditingMessageId(null);

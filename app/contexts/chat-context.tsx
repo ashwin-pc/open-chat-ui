@@ -1,6 +1,7 @@
 // contexts/ChatContext.tsx
 import { createContext, useContext, useState, ReactNode } from 'react';
 import { Message, ChatThread, Branch } from '../../lib/types';
+import { useHotkeys } from '../hooks/use-hotkeys';
 
 interface ChatContextType {
   chatThreads: ChatThread[];
@@ -33,6 +34,53 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     },
   ]);
   const [currentThreadId, setCurrentThreadId] = useState(1);
+
+  useHotkeys('new-thread', {
+    key: '/',
+    description: 'Create new thread',
+    scope: 'Global',
+    callback: () => {
+      const newThread = {
+        id: Date.now(),
+        name: 'New Chat',
+        branches: [
+          {
+            id: 1,
+            name: 'Main',
+            messages: [],
+            attachments: [],
+            createdAt: new Date(),
+            description: 'Initial conversation branch',
+          },
+        ],
+        currentBranchId: 1,
+      };
+      setChatThreads((prev) => [...prev, newThread]);
+      setCurrentThreadId(newThread.id);
+    },
+  });
+
+  useHotkeys('next-thread', {
+    key: 'cmd+]',
+    description: 'Next thread',
+    scope: 'Global',
+    callback: () => {
+      const currentIndex = chatThreads.findIndex((t) => t.id === currentThreadId);
+      const nextIndex = (currentIndex + 1) % chatThreads.length;
+      setCurrentThreadId(chatThreads[nextIndex].id);
+    },
+  });
+
+  useHotkeys('previous-thread', {
+    key: 'cmd+[',
+    description: 'Previous thread',
+    scope: 'Global',
+    callback: () => {
+      const currentIndex = chatThreads.findIndex((t) => t.id === currentThreadId);
+      const prevIndex = (currentIndex - 1 + chatThreads.length) % chatThreads.length;
+      setCurrentThreadId(chatThreads[prevIndex].id);
+    },
+  });
 
   const currentThread = chatThreads.find((t) => t.id === currentThreadId) || chatThreads[0];
   const currentBranch =

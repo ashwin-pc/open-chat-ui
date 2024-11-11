@@ -3,6 +3,7 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { FileAttachmentList } from './file-attachment-list';
 import { Branch } from '@/lib/types';
+import { useEffect } from 'react';
 
 interface ChatInputProps {
   isImmersive: boolean;
@@ -40,6 +41,14 @@ export function ChatInput({
   const containerClassName = isImmersive
     ? 'fixed inset-0 bg-background/80 backdrop-blur-sm transition-all duration-300 opacity-100 z-50'
     : 'bg-background relative before:absolute before:inset-x-0 before:top-[-20px] before:h-[20px] before:bg-gradient-to-b before:from-transparent before:to-background before:z-10';
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 100);
+
+    return () => clearTimeout(timeout);
+  }, [textareaRef]);
 
   return (
     <div className={containerClassName}>

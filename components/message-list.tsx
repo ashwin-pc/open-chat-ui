@@ -21,8 +21,6 @@ interface MessageListProps {
   onEdit: (index: number) => void;
   onBranch: (index: number) => void;
   messagesEndRef: React.RefObject<HTMLDivElement>;
-  BotAvatar: React.FC;
-  UserAvatar: React.FC;
 }
 
 function Welcome() {
@@ -33,7 +31,12 @@ function Welcome() {
       </Suspense>
       <h2 className="text-2xl font-semibold tracking-tight">Welcome to Diya</h2>
       <p className="text-muted-foreground max-w-sm">
-        Start a conversation by typing a message below. You can also attach files to enhance your discussion.
+        Start a conversation by typing a message below. Press{' '}
+        <kbd className="px-2 py-0.5 bg-muted rounded text-xs font-mono">⌘+Enter</kbd> or{' '}
+        <kbd className="px-2 py-0.5 bg-muted rounded text-xs font-mono">Ctrl+Enter</kbd> to send your message. You can
+        also attach files to enhance your discussion. Press{' '}
+        <kbd className="px-2 py-0.5 bg-muted rounded text-xs font-mono">⌘/</kbd> or{' '}
+        <kbd className="px-2 py-0.5 bg-muted rounded text-xs font-mono">Ctrl+/</kbd> to view all shortcuts.
       </p>
     </div>
   );
@@ -48,8 +51,6 @@ export function MessageList({
   onEdit,
   onBranch,
   messagesEndRef,
-  BotAvatar,
-  UserAvatar,
 }: MessageListProps) {
   return (
     <>
@@ -149,3 +150,27 @@ export function MessageList({
     </>
   );
 }
+
+const BotAvatar = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" className="h-full w-full">
+    <circle cx="20" cy="20" r="20" fill="#7C3AED" />
+    <path d="M10 15 L20 10 L30 15 L30 25 L20 30 L10 25Z" fill="#A78BFA" />
+    <circle cx="20" cy="20" r="6" fill="#C4B5FD" />
+    <path d="M17 18 L23 18 L20 22Z" fill="#7C3AED" />
+    <circle cx="16" cy="17" r="2" fill="#EDE9FE" />
+    <circle cx="24" cy="17" r="2" fill="#EDE9FE" />
+    <path d="M15 24 Q20 28 25 24" stroke="#DDD6FE" fill="none" strokeWidth="1.5" />
+  </svg>
+);
+
+const UserAvatar = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" className="h-full w-full">
+    <circle cx="20" cy="20" r="20" fill="#2DD4BF" />
+    <polygon points="20,5 30,15 25,30 15,30 10,15" fill="#14B8A6" />
+    <circle cx="20" cy="18" r="7" fill="#5EEAD4" />
+    <rect x="15" y="16" width="10" height="4" rx="2" fill="#99F6E4" />
+    <circle cx="15" cy="15" r="2" fill="#CCFBF1" />
+    <circle cx="25" cy="15" r="2" fill="#CCFBF1" />
+    <path d="M15 22 Q20 25 25 22" stroke="#F0FDFA" fill="none" strokeWidth="1.5" />
+  </svg>
+);
