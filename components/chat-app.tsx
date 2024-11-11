@@ -222,8 +222,8 @@ export function ChatApp() {
 
       {/* Main Chat Area */}
       <div className="flex-grow flex flex-col">
-        <Card className="flex-grow overflow-hidden border-0">
-          <CardHeader className="flex flex-row items-center justify-between p-2 md:p-4">
+        <Card className="flex-grow overflow-hidden border-0 flex flex-col">
+          <CardHeader className="flex flex-row items-center justify-between p-2 md:p-4 shrink-0">
             <div className="flex items-center space-x-2 md:space-x-4">
               <Button variant="ghost" size="icon" onClick={() => setIsSidePanelOpen(!isSidePanelOpen)}>
                 {isSidePanelOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
@@ -241,7 +241,7 @@ export function ChatApp() {
               />
             </div>
           </CardHeader>
-          <CardContent className="overflow-y-auto" style={{ height: 'calc(100vh - 200px)' }}>
+          <CardContent className="overflow-y-auto grow">
             <MessageList
               messages={currentBranch.messages}
               editingMessageId={editingMessageId}

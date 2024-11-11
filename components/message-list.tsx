@@ -2,6 +2,15 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from '@/components/ui/context-menu';
 import { Edit, GitBranch, RotateCcw } from 'lucide-react';
 import { Message } from '@/lib/types';
+import React, { Suspense } from 'react';
+
+// Lazy load the EmptyAnimation component
+const EmptyAnimation = React.lazy(() => import('./empty-animation'));
+
+// Simple loading fallback
+const LoadingFallback = () => (
+  <div className="w-full h-full min-h-[200px] bg-background/50 backdrop-blur-sm animate-pulse" />
+);
 
 interface MessageListProps {
   messages: Message[];
@@ -14,6 +23,20 @@ interface MessageListProps {
   messagesEndRef: React.RefObject<HTMLDivElement>;
   BotAvatar: React.FC;
   UserAvatar: React.FC;
+}
+
+function Welcome() {
+  return (
+    <div className="flex flex-col items-center justify-center h-full space-y-4 text-center animate-fade-in">
+      <Suspense fallback={<LoadingFallback />}>
+        <EmptyAnimation />
+      </Suspense>
+      <h2 className="text-2xl font-semibold tracking-tight">Welcome to Diya</h2>
+      <p className="text-muted-foreground max-w-sm">
+        Start a conversation by typing a message below. You can also attach files to enhance your discussion.
+      </p>
+    </div>
+  );
 }
 
 export function MessageList({
@@ -30,52 +53,58 @@ export function MessageList({
 }: MessageListProps) {
   return (
     <>
-      {messages.map((message, index) => {
-        const isAfterEditPoint = editingMessageId !== null ? index > editingMessageId : false;
-        return (
-          <ContextMenu key={index}>
-            <ContextMenuTrigger>
-              <div
-                className={`flex mb-4 ${message.sender === 'Human' ? 'justify-end' : 'justify-start'} 
-                ${isAfterEditPoint ? 'opacity-50' : ''}`}
-              >
-                <div
-                  className={`flex items-start ${
-                    message.sender === 'Human' ? 'space-x-reverse space-x-2 flex-row-reverse' : 'space-x-2'
-                  }`}
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>{message.sender === 'Human' ? <UserAvatar /> : <BotAvatar />}</AvatarFallback>
-                  </Avatar>
+      {messages.length === 0 && !partialResponse && !isPolling ? (
+        <Welcome />
+      ) : (
+        <>
+          {messages.map((message, index) => {
+            const isAfterEditPoint = editingMessageId !== null ? index > editingMessageId : false;
+            return (
+              <ContextMenu key={index}>
+                <ContextMenuTrigger>
                   <div
-                    className={`rounded-lg p-3 ${
-                      message.sender === 'Human' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                    }`}
+                    className={`flex mb-4 ${message.sender === 'Human' ? 'justify-end' : 'justify-start'} 
+                ${isAfterEditPoint ? 'opacity-50' : ''}`}
                   >
-                    <p className="whitespace-pre-wrap">{message.text}</p>
+                    <div
+                      className={`flex items-start ${
+                        message.sender === 'Human' ? 'space-x-reverse space-x-2 flex-row-reverse' : 'space-x-2'
+                      }`}
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback>{message.sender === 'Human' ? <UserAvatar /> : <BotAvatar />}</AvatarFallback>
+                      </Avatar>
+                      <div
+                        className={`rounded-lg p-3 ${
+                          message.sender === 'Human' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                        }`}
+                      >
+                        <p className="whitespace-pre-wrap">{message.text}</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-            </ContextMenuTrigger>
-            <ContextMenuContent>
-              <ContextMenuItem onClick={() => onRestart(index)}>
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Restart from here
-              </ContextMenuItem>
-              {message.sender === 'Human' && editingMessageId === null && (
-                <ContextMenuItem onClick={() => onEdit(index)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit message
-                </ContextMenuItem>
-              )}
-              <ContextMenuItem onClick={() => onBranch(index)}>
-                <GitBranch className="mr-2 h-4 w-4" />
-                Branch from here
-              </ContextMenuItem>
-            </ContextMenuContent>
-          </ContextMenu>
-        );
-      })}
+                </ContextMenuTrigger>
+                <ContextMenuContent>
+                  <ContextMenuItem onClick={() => onRestart(index)}>
+                    <RotateCcw className="mr-2 h-4 w-4" />
+                    Restart from here
+                  </ContextMenuItem>
+                  {message.sender === 'Human' && editingMessageId === null && (
+                    <ContextMenuItem onClick={() => onEdit(index)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit message
+                    </ContextMenuItem>
+                  )}
+                  <ContextMenuItem onClick={() => onBranch(index)}>
+                    <GitBranch className="mr-2 h-4 w-4" />
+                    Branch from here
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
+            );
+          })}
+        </>
+      )}
 
       {/* Partial response */}
       {partialResponse && (

@@ -39,7 +39,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const containerClassName = isImmersive
     ? 'fixed inset-0 bg-background/80 backdrop-blur-sm transition-all duration-300 opacity-100 z-50'
-    : 'bg-background';
+    : 'bg-background relative before:absolute before:inset-x-0 before:top-[-20px] before:h-[20px] before:bg-gradient-to-b before:from-transparent before:to-background before:z-10';
 
   return (
     <div className={containerClassName}>
