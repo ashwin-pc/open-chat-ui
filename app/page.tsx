@@ -1,7 +1,7 @@
-import { EnhancedChatThreadManagerComponent } from "@/components/enhanced-chat-thread-manager";
+import { ChatApp } from "@/components/chat-app";
 
 export default function Home() {
   return (
-    <EnhancedChatThreadManagerComponent />
+    <ChatApp />
   );
 }

@@ -1,46 +1,48 @@
-'use client'
+'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react'
-import { Edit, GitBranch, Maximize2, Minimize2, RotateCcw, Send, Plus, Trash2, PanelLeftOpen, PanelLeftClose, Paperclip, X } from 'lucide-react'
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { ThemeToggle } from "./theme-toggle"
-import { sendMessage, getLatestResponse, abortConversation, createConversation } from '../lib/mockApi';
+  Edit,
+  GitBranch,
+  Maximize2,
+  Minimize2,
+  RotateCcw,
+  Send,
+  Plus,
+  Trash2,
+  PanelLeftOpen,
+  PanelLeftClose,
+  Paperclip,
+  X,
+} from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ThemeToggle } from './theme-toggle';
+import { sendMessage, getLatestResponse, abortConversation, createConversation } from '../lib/api';
 import { BedrockModelNames, Message } from '../lib/types';
 
 interface Branch {
-  id: number
-  name: string
-  messages: Message[]
-  attachments: File[]
-  createdAt: Date
-  description?: string
+  id: number;
+  name: string;
+  messages: Message[];
+  attachments: File[];
+  createdAt: Date;
+  description?: string;
 }
 
 interface ChatThread {
-  id: number
-  name: string
-  branches: Branch[]
-  currentBranchId: number
+  id: number;
+  name: string;
+  branches: Branch[];
+  currentBranchId: number;
 }
 
-export function EnhancedChatThreadManagerComponent() {
+export function ChatApp() {
   const [chatThreads, setChatThreads] = useState<ChatThread[]>([
     {
       id: 1,
@@ -52,38 +54,40 @@ export function EnhancedChatThreadManagerComponent() {
           messages: [],
           attachments: [],
           createdAt: new Date(),
-          description: 'Initial conversation branch'
-        }
+          description: 'Initial conversation branch',
+        },
       ],
-      currentBranchId: 1
-    }
-  ])
-  const [currentThreadId, setCurrentThreadId] = useState(1)
-  const [input, setInput] = useState('')
-  const [isImmersive, setIsImmersive] = useState(false)
-  const [isSidePanelOpen, setIsSidePanelOpen] = useState(true)
-  const [editingMessageId, setEditingMessageId] = useState<number | null>(null)
-  const [editingInputBackup, setEditingInputBackup] = useState<string>('')
-  const [isMobile, setIsMobile] = useState(false)
+      currentBranchId: 1,
+    },
+  ]);
+  const [currentThreadId, setCurrentThreadId] = useState(1);
+  const [input, setInput] = useState('');
+  const [isImmersive, setIsImmersive] = useState(false);
+  const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
+  const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+  const [editingInputBackup, setEditingInputBackup] = useState<string>('');
+  const [isMobile, setIsMobile] = useState(false);
   const [partialResponse, setPartialResponse] = useState<string>('');
   const [isPolling, setIsPolling] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout>();
 
-  const currentThread = chatThreads.find(t => t.id === currentThreadId) || chatThreads[0]
-  const currentBranch = currentThread.branches.find(b => b.id === currentThread.currentBranchId) || currentThread.branches[0]
+  const currentThread = chatThreads.find((t) => t.id === currentThreadId) || chatThreads[0];
+  const currentBranch =
+    currentThread.branches.find((b) => b.id === currentThread.currentBranchId) || currentThread.branches[0];
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [])
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   const adjustTextareaHeight = useCallback(() => {
     if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
-  }, [])
+  }, []);
 
   const handleSend = async () => {
     if (input.trim()) {
@@ -92,19 +96,16 @@ export function EnhancedChatThreadManagerComponent() {
         const newMessage: Message = {
           text: input,
           sender: 'Assistant',
-        }
+        };
 
         // Keep messages up to the edit point and add the edited message
-        const updatedMessages = [
-          ...currentBranch.messages.slice(0, editingMessageId),
-          newMessage
-        ]
+        const updatedMessages = [...currentBranch.messages.slice(0, editingMessageId), newMessage];
 
-        updateBranch(currentThreadId, currentThread.currentBranchId, updatedMessages)
+        updateBranch(currentThreadId, currentThread.currentBranchId, updatedMessages);
 
         // Reset edit state
-        setEditingMessageId(null)
-        setEditingInputBackup('')
+        setEditingMessageId(null);
+        setEditingInputBackup('');
 
         // Get bot response for the edited message
         const botResponse = await sendMessage(input, currentBranch.messages);
@@ -112,67 +113,57 @@ export function EnhancedChatThreadManagerComponent() {
           text: botResponse.latestResponse || "I'm a mock response to your edited message.",
           sender: 'Assistant',
         };
-        updateBranch(
-          currentThreadId,
-          currentThread.currentBranchId,
-          [...updatedMessages, newBotMessage]
-        )
-        scrollToBottom()
+        updateBranch(currentThreadId, currentThread.currentBranchId, [...updatedMessages, newBotMessage]);
+        scrollToBottom();
       } else {
-        // First create the user message
         const userMessage: Message = {
           text: input,
           sender: 'Human',
         };
 
         const currentInput = input;
+        const timestamp = Date.now(); // Create single timestamp for both calls
 
-        // Clear input immediately
         setInput('');
 
-        // Create updated messages array with the user message
         const updatedMessages = [...currentBranch.messages, userMessage];
 
-        // Update thread name if first message
         if (currentBranch.messages.length === 0) {
           const title = currentInput.split('\n')[0].slice(0, 30) + (currentInput.length > 30 ? '...' : '');
           updateThread(currentThreadId, {
             ...currentThread,
-            name: title
+            name: title,
           });
         }
 
-        // Update branch once with the user message
-        updateBranch(
-          currentThreadId,
-          currentThread.currentBranchId,
-          updatedMessages
-        );
+        updateBranch(currentThreadId, currentThread.currentBranchId, updatedMessages);
 
-        // Call API with updated messages
         createConversation(
           currentInput,
           updatedMessages,
           currentThreadId.toString(),
-          Date.now(),
+          timestamp, // Use consistent timestamp
           BedrockModelNames.CLAUDE_V3_5_SONNET,
           '',
-          (error) => console.error(error)
+          (error) => console.error(error),
         );
 
-        // Poll for response
-        pollForResponse(currentThreadId.toString(), Date.now(), updatedMessages);
+        // Wait for 1 second before starting to poll
+        setTimeout(() => {
+          pollForResponse(currentThreadId.toString(), timestamp, updatedMessages);
+        }, 1000);
       }
 
       setInput('');
     }
-  }
+  };
 
-  const pollForResponse = async (
-    conversationId: string,
-    updatedTime: number,
-    currentMessages: Message[]
-  ) => {
+  const pollForResponse = async (conversationId: string, updatedTime: number, currentMessages: Message[]) => {
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
     setIsPolling(true);
     const { status, latestResponse } = await getLatestResponse(conversationId, updatedTime);
 
@@ -181,7 +172,7 @@ export function EnhancedChatThreadManagerComponent() {
     }
 
     if (status === 'PENDING') {
-      setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 1000);
+      timeoutRef.current = setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 1000);
     } else if (status === 'COMPLETE') {
       const botResponse: Message = {
         text: latestResponse,
@@ -211,79 +202,82 @@ export function EnhancedChatThreadManagerComponent() {
         Date.now(),
         BedrockModelNames.CLAUDE_V3_5_SONNET,
         '',
-        (error) => console.error(error)
+        (error) => console.error(error),
       );
       pollForResponse(currentThreadId.toString(), Date.now(), newMessages);
     }
   };
 
   const handleAbort = async () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
     await abortConversation(currentThreadId.toString());
     setIsPolling(false);
     setPartialResponse('');
   };
 
   const handleEdit = (index: number) => {
-    const messageToEdit = currentBranch.messages[index]
+    const messageToEdit = currentBranch.messages[index];
     if (messageToEdit && messageToEdit.sender === 'Human') {
       // Store the current input as backup in case of cancel
-      setEditingInputBackup(input)
-      setInput(messageToEdit.text)
-      setEditingMessageId(index)
-      textareaRef.current?.focus()
+      setEditingInputBackup(input);
+      setInput(messageToEdit.text);
+      setEditingMessageId(index);
+      textareaRef.current?.focus();
     }
-  }
+  };
 
   const handleCancelEdit = () => {
-    setInput(editingInputBackup)
-    setEditingInputBackup('')
-    setEditingMessageId(null)
-  }
+    setInput(editingInputBackup);
+    setEditingInputBackup('');
+    setEditingMessageId(null);
+  };
 
   const handleBranch = (index: number) => {
-    const newBranchId = Math.max(...currentThread.branches.map(b => b.id)) + 1
-    const newBranchName = `Branch ${newBranchId}`
-    const newMessages = currentBranch.messages.slice(0, index + 1)
+    const newBranchId = Math.max(...currentThread.branches.map((b) => b.id)) + 1;
+    const newBranchName = `Branch ${newBranchId}`;
+    const newMessages = currentBranch.messages.slice(0, index + 1);
     const newBranch: Branch = {
       id: newBranchId,
       name: newBranchName,
       messages: newMessages,
       attachments: [...currentBranch.attachments],
       createdAt: new Date(),
-      description: `Branched from message: "${newMessages[newMessages.length - 1].text.slice(0, 50)}..."`
-    }
+      description: `Branched from message: "${newMessages[newMessages.length - 1].text.slice(0, 50)}..."`,
+    };
     updateThread(currentThreadId, {
       ...currentThread,
       branches: [...currentThread.branches, newBranch],
-      currentBranchId: newBranchId
-    })
-  }
+      currentBranchId: newBranchId,
+    });
+  };
 
   const updateBranch = (threadId: number, branchId: number, newMessages: Message[]) => {
-    setChatThreads(threads => threads.map(thread =>
-      thread.id === threadId
-        ? {
-          ...thread,
-          branches: thread.branches.map(branch =>
-            branch.id === branchId ? { ...branch, messages: newMessages } : branch
-          )
-        }
-        : thread
-    ))
-    scrollToBottom()
-  }
+    setChatThreads((threads) =>
+      threads.map((thread) =>
+        thread.id === threadId
+          ? {
+              ...thread,
+              branches: thread.branches.map((branch) =>
+                branch.id === branchId ? { ...branch, messages: newMessages } : branch,
+              ),
+            }
+          : thread,
+      ),
+    );
+    scrollToBottom();
+  };
 
   const updateThread = (threadId: number, updatedThread: ChatThread) => {
-    setChatThreads(threads => threads.map(thread =>
-      thread.id === threadId ? updatedThread : thread
-    ))
-  }
+    setChatThreads((threads) => threads.map((thread) => (thread.id === threadId ? updatedThread : thread)));
+  };
 
   const createNewThread = () => {
-    const newThreadId = Math.max(...chatThreads.map(t => t.id)) + 1
+    const newThreadId = Math.max(...chatThreads.map((t) => t.id)) + 1;
     const newThread: ChatThread = {
       id: newThreadId,
-      name: 'New Chat',  // Changed to generic name
+      name: 'New Chat', // Changed to generic name
       branches: [
         {
           id: 1,
@@ -291,85 +285,97 @@ export function EnhancedChatThreadManagerComponent() {
           messages: [], // Changed to empty array
           attachments: [],
           createdAt: new Date(),
-          description: 'Initial conversation branch'
-        }
+          description: 'Initial conversation branch',
+        },
       ],
-      currentBranchId: 1
-    }
-    setChatThreads([...chatThreads, newThread])
-    setCurrentThreadId(newThreadId)
-  }
+      currentBranchId: 1,
+    };
+    setChatThreads([...chatThreads, newThread]);
+    setCurrentThreadId(newThreadId);
+  };
 
   const deleteThread = (threadId: number) => {
-    setChatThreads(threads => threads.filter(t => t.id !== threadId))
+    setChatThreads((threads) => threads.filter((t) => t.id !== threadId));
     if (currentThreadId === threadId) {
-      setCurrentThreadId(chatThreads[0].id)
+      setCurrentThreadId(chatThreads[0].id);
     }
-  }
+  };
 
   const toggleImmersive = () => {
-    setIsImmersive(!isImmersive)
+    setIsImmersive(!isImmersive);
     setTimeout(() => {
-      textareaRef.current?.focus()
-      adjustTextareaHeight()
-    }, 0)
-  }
+      textareaRef.current?.focus();
+      adjustTextareaHeight();
+    }, 0);
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
-      const newAttachments = Array.from(event.target.files)
-      setChatThreads(threads => threads.map(thread =>
-        thread.id === currentThreadId
-          ? {
-            ...thread,
-            branches: thread.branches.map(branch =>
-              branch.id === thread.currentBranchId
-                ? { ...branch, attachments: [...branch.attachments, ...newAttachments] }
-                : branch
-            )
-          }
-          : thread
-      ))
+      const newAttachments = Array.from(event.target.files);
+      setChatThreads((threads) =>
+        threads.map((thread) =>
+          thread.id === currentThreadId
+            ? {
+                ...thread,
+                branches: thread.branches.map((branch) =>
+                  branch.id === thread.currentBranchId
+                    ? { ...branch, attachments: [...branch.attachments, ...newAttachments] }
+                    : branch,
+                ),
+              }
+            : thread,
+        ),
+      );
     }
-  }
+  };
 
   const removeAttachment = (fileName: string) => {
-    setChatThreads(threads => threads.map(thread =>
-      thread.id === currentThreadId
-        ? {
-          ...thread,
-          branches: thread.branches.map(branch =>
-            branch.id === thread.currentBranchId
-              ? {
-                ...branch,
-                attachments: branch.attachments.filter(file => file.name !== fileName)
-              }
-              : branch
-          )
-        }
-        : thread
-    ))
-  }
+    setChatThreads((threads) =>
+      threads.map((thread) =>
+        thread.id === currentThreadId
+          ? {
+              ...thread,
+              branches: thread.branches.map((branch) =>
+                branch.id === thread.currentBranchId
+                  ? {
+                      ...branch,
+                      attachments: branch.attachments.filter((file) => file.name !== fileName),
+                    }
+                  : branch,
+              ),
+            }
+          : thread,
+      ),
+    );
+  };
 
   useEffect(() => {
-    adjustTextareaHeight()
-    window.addEventListener('resize', adjustTextareaHeight)
+    adjustTextareaHeight();
+    window.addEventListener('resize', adjustTextareaHeight);
 
     return () => {
-      window.removeEventListener('resize', adjustTextareaHeight)
-    }
-  }, [input, adjustTextareaHeight])
+      window.removeEventListener('resize', adjustTextareaHeight);
+    };
+  }, [input, adjustTextareaHeight]);
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768)
-      setIsSidePanelOpen(window.innerWidth >= 768)
-    }
+      setIsMobile(window.innerWidth < 768);
+      setIsSidePanelOpen(window.innerWidth >= 768);
+    };
 
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex h-screen">
@@ -382,11 +388,13 @@ export function EnhancedChatThreadManagerComponent() {
       )}
 
       {/* Side Panel */}
-      <div className={`
+      <div
+        className={`
         ${isSidePanelOpen ? 'translate-x-0' : '-translate-x-full'}
         ${isMobile ? 'fixed inset-y-0 z-50' : 'relative'} 
         bg-background border-r w-[280px] transition-transform duration-300
-      `}>
+      `}
+      >
         <div className="p-4">
           <h2 className="text-lg font-semibold mb-4">Chat Threads</h2>
           <ScrollArea className="h-[calc(100vh-8rem)]">
@@ -399,11 +407,7 @@ export function EnhancedChatThreadManagerComponent() {
                   {thread.name}
                 </button>
                 {chatThreads.length > 1 && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => deleteThread(thread.id)}
-                  >
+                  <Button variant="ghost" size="icon" onClick={() => deleteThread(thread.id)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 )}
@@ -431,25 +435,21 @@ export function EnhancedChatThreadManagerComponent() {
               <ThemeToggle />
               <Select
                 value={currentThread.currentBranchId.toString()}
-                onValueChange={(value) => updateThread(currentThreadId, { ...currentThread, currentBranchId: Number(value) })}
+                onValueChange={(value) =>
+                  updateThread(currentThreadId, { ...currentThread, currentBranchId: Number(value) })
+                }
               >
                 <SelectTrigger className="w-[200px] md:w-[250px]">
                   <SelectValue>
                     <div className="flex items-center space-x-2">
                       <GitBranch className="h-4 w-4" />
-                      <span className="truncate">
-                        {currentBranch.name}
-                      </span>
+                      <span className="truncate">{currentBranch.name}</span>
                     </div>
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {currentThread.branches.map((branch) => (
-                    <SelectItem
-                      key={branch.id}
-                      value={branch.id.toString()}
-                      className="py-2"
-                    >
+                    <SelectItem key={branch.id} value={branch.id.toString()} className="py-2">
                       <div className="flex flex-col gap-1">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
@@ -461,13 +461,9 @@ export function EnhancedChatThreadManagerComponent() {
                           </span>
                         </div>
                         {branch.description && (
-                          <p className="text-xs text-muted-foreground truncate max-w-[300px]">
-                            {branch.description}
-                          </p>
+                          <p className="text-xs text-muted-foreground truncate max-w-[300px]">{branch.description}</p>
                         )}
-                        <div className="text-xs text-muted-foreground">
-                          {branch.messages.length} messages
-                        </div>
+                        <div className="text-xs text-muted-foreground">{branch.messages.length} messages</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -497,22 +493,36 @@ export function EnhancedChatThreadManagerComponent() {
               </div>
             )}
             {currentBranch.messages.map((message, index) => {
-              const isAfterEditPoint = editingMessageId !== null ? index > editingMessageId : false
+              const isAfterEditPoint = editingMessageId !== null ? index > editingMessageId : false;
 
               return (
                 <ContextMenu key={index}>
                   <ContextMenuTrigger>
-                    <div className={`flex mb-4 ${message.sender === 'Human' ? 'justify-end' : 'justify-start'} 
-                      ${isAfterEditPoint ? 'opacity-50' : ''}`}>
-                      <div className={`flex items-start ${message.sender === 'Human' ? 'space-x-reverse space-x-2 flex-row-reverse' : 'space-x-2'}`}>
+                    <div
+                      className={`flex mb-4 ${message.sender === 'Human' ? 'justify-end' : 'justify-start'} 
+                      ${isAfterEditPoint ? 'opacity-50' : ''}`}
+                    >
+                      <div
+                        className={`flex items-start ${
+                          message.sender === 'Human' ? 'space-x-reverse space-x-2 flex-row-reverse' : 'space-x-2'
+                        }`}
+                      >
                         <Avatar className="h-8 w-8">
                           {message.sender === 'Human' ? (
-                            <AvatarFallback><UserAvatar /></AvatarFallback>
+                            <AvatarFallback>
+                              <UserAvatar />
+                            </AvatarFallback>
                           ) : (
-                            <AvatarFallback><BotAvatar /></AvatarFallback>
+                            <AvatarFallback>
+                              <BotAvatar />
+                            </AvatarFallback>
                           )}
                         </Avatar>
-                        <div className={`rounded-lg p-3 ${message.sender === 'Human' ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+                        <div
+                          className={`rounded-lg p-3 ${
+                            message.sender === 'Human' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                          }`}
+                        >
                           <p className="whitespace-pre-wrap">{message.text}</p>
                         </div>
                       </div>
@@ -535,14 +545,16 @@ export function EnhancedChatThreadManagerComponent() {
                     </ContextMenuItem>
                   </ContextMenuContent>
                 </ContextMenu>
-              )
+              );
             })}
             {/* Show partial response if available */}
             {partialResponse && (
               <div className="flex justify-start mb-4 relative group">
                 <div className="flex items-start space-x-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback><BotAvatar /></AvatarFallback>
+                    <AvatarFallback>
+                      <BotAvatar />
+                    </AvatarFallback>
                   </Avatar>
                   <div className="bg-muted rounded-lg p-3">
                     <p className="whitespace-pre-wrap">{partialResponse}</p>
@@ -559,13 +571,24 @@ export function EnhancedChatThreadManagerComponent() {
               <div className="flex justify-start mb-4">
                 <div className="flex items-center space-x-2">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback><BotAvatar /></AvatarFallback>
+                    <AvatarFallback>
+                      <BotAvatar />
+                    </AvatarFallback>
                   </Avatar>
                   <div className="bg-muted rounded-lg p-3">
                     <div className="flex space-x-2">
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      <div
+                        className="w-2 h-2 bg-primary rounded-full animate-bounce"
+                        style={{ animationDelay: '0ms' }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-primary rounded-full animate-bounce"
+                        style={{ animationDelay: '150ms' }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-primary rounded-full animate-bounce"
+                        style={{ animationDelay: '300ms' }}
+                      ></div>
                     </div>
                   </div>
                 </div>
@@ -574,7 +597,11 @@ export function EnhancedChatThreadManagerComponent() {
             <div ref={messagesEndRef} />
           </CardContent>
         </Card>
-        <div className={`fixed inset-0 bg-background/80 backdrop-blur-sm transition-all duration-300 ${isImmersive ? 'opacity-100 z-50' : 'opacity-0 -z-10'}`}>
+        <div
+          className={`fixed inset-0 bg-background/80 backdrop-blur-sm transition-all duration-300 ${
+            isImmersive ? 'opacity-100 z-50' : 'opacity-0 -z-10'
+          }`}
+        >
           <div className="container mx-auto p-2 md:p-4 h-full flex flex-col">
             <div className="flex justify-end mb-2">
               <Button variant="ghost" size="icon" onClick={toggleImmersive} className="h-8 w-8">
@@ -589,19 +616,41 @@ export function EnhancedChatThreadManagerComponent() {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
                   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !isPolling) {
-                    e.preventDefault()
-                    handleSend()
+                    e.preventDefault();
+                    handleSend();
                   }
                 }}
-                placeholder={isPolling ? "Waiting for response..." : (editingMessageId ? "Edit your message..." : "Type your message...")}
+                placeholder={
+                  isPolling
+                    ? 'Waiting for response...'
+                    : editingMessageId
+                    ? 'Edit your message...'
+                    : 'Type your message...'
+                }
                 className="absolute inset-0 resize-none h-full p-4"
                 disabled={isPolling}
               />
               {isPolling && (
                 <div className="absolute right-2 top-2">
-                  <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin h-5 w-5 text-primary"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                 </div>
               )}
@@ -610,20 +659,9 @@ export function EnhancedChatThreadManagerComponent() {
               <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="h-8 w-8">
                 <Paperclip className="h-4 w-4" />
               </Button>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                className="hidden"
-                multiple
-              />
+              <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" multiple />
               {editingMessageId && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleCancelEdit}
-                  className="h-8 w-8"
-                >
+                <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="h-8 w-8">
                   <X className="h-4 w-4" />
                 </Button>
               )}
@@ -631,9 +669,15 @@ export function EnhancedChatThreadManagerComponent() {
                 onClick={isPolling ? handleAbort : handleSend}
                 size="icon"
                 className="h-8 w-8"
-                variant={isPolling ? "destructive" : "default"}
+                variant={isPolling ? 'destructive' : 'default'}
               >
-                {isPolling ? <X className="h-4 w-4" /> : editingMessageId ? <Edit className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                {isPolling ? (
+                  <X className="h-4 w-4" />
+                ) : editingMessageId ? (
+                  <Edit className="h-4 w-4" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </div>
@@ -650,11 +694,11 @@ export function EnhancedChatThreadManagerComponent() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
                     if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !isPolling) {
-                      e.preventDefault()
-                      handleSend()
+                      e.preventDefault();
+                      handleSend();
                     }
                   }}
-                  placeholder={editingMessageId ? "Edit your message..." : "Type your message..."}
+                  placeholder={editingMessageId ? 'Edit your message...' : 'Type your message...'}
                   className="flex-grow resize-none pr-20 overflow-y-auto"
                   rows={1}
                   style={{ maxHeight: '20vh' }}
@@ -676,9 +720,15 @@ export function EnhancedChatThreadManagerComponent() {
                     onClick={isPolling ? handleAbort : handleSend}
                     size="icon"
                     className="h-8 w-8"
-                    variant={isPolling ? "destructive" : "default"}
+                    variant={isPolling ? 'destructive' : 'default'}
                   >
-                    {isPolling ? <X className="h-4 w-4" /> : editingMessageId ? <Edit className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+                    {isPolling ? (
+                      <X className="h-4 w-4" />
+                    ) : editingMessageId ? (
+                      <Edit className="h-4 w-4" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
               </div>
@@ -687,7 +737,7 @@ export function EnhancedChatThreadManagerComponent() {
         )}
       </div>
     </div>
-  )
+  );
 }
 
 const BotAvatar = () => (
