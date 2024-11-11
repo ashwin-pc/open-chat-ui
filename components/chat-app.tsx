@@ -1,23 +1,9 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import {
-  Edit,
-  GitBranch,
-  Maximize2,
-  Minimize2,
-  RotateCcw,
-  Send,
-  PanelLeftOpen,
-  PanelLeftClose,
-  Paperclip,
-  X,
-} from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { ThemeToggle } from './theme-toggle';
 import { Branch, ChatThread, Message } from '../lib/types';
 import { SidePanel } from './side-panel';
@@ -25,6 +11,8 @@ import { BranchSelector } from './branch-selector';
 import { useChatApi } from '@/app/hooks/use-chat-api';
 import { useChat } from '@/app/contexts/chat-context';
 import { useMessageInput } from '@/app/hooks/use-message-input';
+import { ChatInput } from './chat-input';
+import { MessageList } from './message-list';
 
 export function ChatApp() {
   const { currentBranch, currentThread, setChatThreads, currentThreadId } = useChat();
@@ -254,269 +242,36 @@ export function ChatApp() {
             </div>
           </CardHeader>
           <CardContent className="overflow-y-auto" style={{ height: 'calc(100vh - 200px)' }}>
-            {currentBranch.attachments.length > 0 && (
-              <div className="mb-4 p-3 bg-muted rounded-lg">
-                <h3 className="font-semibold mb-2">Conversation Attachments:</h3>
-                <div className="flex flex-wrap gap-2">
-                  {currentBranch.attachments.map((file, index) => (
-                    <div key={index} className="flex items-center bg-background rounded-full px-3 py-1">
-                      <span className="text-sm truncate max-w-[150px]">{file.name}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeAttachment(file.name)}
-                        className="h-6 w-6 ml-2"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {currentBranch.messages.map((message, index) => {
-              const isAfterEditPoint = editingMessageId !== null ? index > editingMessageId : false;
-
-              return (
-                <ContextMenu key={index}>
-                  <ContextMenuTrigger>
-                    <div
-                      className={`flex mb-4 ${message.sender === 'Human' ? 'justify-end' : 'justify-start'} 
-                      ${isAfterEditPoint ? 'opacity-50' : ''}`}
-                    >
-                      <div
-                        className={`flex items-start ${
-                          message.sender === 'Human' ? 'space-x-reverse space-x-2 flex-row-reverse' : 'space-x-2'
-                        }`}
-                      >
-                        <Avatar className="h-8 w-8">
-                          {message.sender === 'Human' ? (
-                            <AvatarFallback>
-                              <UserAvatar />
-                            </AvatarFallback>
-                          ) : (
-                            <AvatarFallback>
-                              <BotAvatar />
-                            </AvatarFallback>
-                          )}
-                        </Avatar>
-                        <div
-                          className={`rounded-lg p-3 ${
-                            message.sender === 'Human' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                          }`}
-                        >
-                          <p className="whitespace-pre-wrap">{message.text}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </ContextMenuTrigger>
-                  <ContextMenuContent>
-                    <ContextMenuItem onClick={() => handleRestart(index)}>
-                      <RotateCcw className="mr-2 h-4 w-4" />
-                      Restart from here
-                    </ContextMenuItem>
-                    {message.sender === 'Human' && editingMessageId === null && (
-                      <ContextMenuItem onClick={() => handleEdit(index)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit message
-                      </ContextMenuItem>
-                    )}
-                    <ContextMenuItem onClick={() => handleBranch(index)}>
-                      <GitBranch className="mr-2 h-4 w-4" />
-                      Branch from here
-                    </ContextMenuItem>
-                  </ContextMenuContent>
-                </ContextMenu>
-              );
-            })}
-            {/* Show partial response if available */}
-            {partialResponse && (
-              <div className="flex justify-start mb-4 relative group">
-                <div className="flex items-start space-x-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>
-                      <BotAvatar />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="bg-muted rounded-lg p-3">
-                    <p className="whitespace-pre-wrap">{partialResponse}</p>
-                    <div className="h-4 w-4 absolute bottom-2 right-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Show typing indicator only when waiting and no partial response */}
-            {isPolling && !partialResponse && (
-              <div className="flex justify-start mb-4">
-                <div className="flex items-center space-x-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback>
-                      <BotAvatar />
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="bg-muted rounded-lg p-3">
-                    <div className="flex space-x-2">
-                      <div
-                        className="w-2 h-2 bg-primary rounded-full animate-bounce"
-                        style={{ animationDelay: '0ms' }}
-                      ></div>
-                      <div
-                        className="w-2 h-2 bg-primary rounded-full animate-bounce"
-                        style={{ animationDelay: '150ms' }}
-                      ></div>
-                      <div
-                        className="w-2 h-2 bg-primary rounded-full animate-bounce"
-                        style={{ animationDelay: '300ms' }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
+            <MessageList
+              messages={currentBranch.messages}
+              editingMessageId={editingMessageId}
+              partialResponse={partialResponse}
+              isPolling={isPolling}
+              onRestart={handleRestart}
+              onEdit={handleEdit}
+              onBranch={handleBranch}
+              messagesEndRef={messagesEndRef}
+              BotAvatar={BotAvatar}
+              UserAvatar={UserAvatar}
+            />
           </CardContent>
         </Card>
-        <div
-          className={`fixed inset-0 bg-background/80 backdrop-blur-sm transition-all duration-300 ${
-            isImmersive ? 'opacity-100 z-50' : 'opacity-0 -z-10'
-          }`}
-        >
-          <div className="container mx-auto p-2 md:p-4 h-full flex flex-col">
-            <div className="flex justify-end mb-2">
-              <Button variant="ghost" size="icon" onClick={toggleImmersive} className="h-8 w-8">
-                <Minimize2 className="h-4 w-4" />
-                <span className="sr-only">Minimize</span>
-              </Button>
-            </div>
-            <div className="relative flex-grow">
-              <Textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !isPolling) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                placeholder={
-                  isPolling
-                    ? 'Waiting for response...'
-                    : editingMessageId
-                    ? 'Edit your message...'
-                    : 'Type your message...'
-                }
-                className="absolute inset-0 resize-none h-full p-4"
-                disabled={isPolling}
-              />
-              {isPolling && (
-                <div className="absolute right-2 top-2">
-                  <svg
-                    className="animate-spin h-5 w-5 text-primary"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                </div>
-              )}
-            </div>
-            <div className="flex justify-end space-x-2 mt-2">
-              <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="h-8 w-8">
-                <Paperclip className="h-4 w-4" />
-              </Button>
-              <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" multiple />
-              {editingMessageId && (
-                <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="h-8 w-8">
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-              <Button
-                onClick={isPolling ? handleAbort : handleSend}
-                size="icon"
-                className="h-8 w-8"
-                variant={isPolling ? 'destructive' : 'default'}
-              >
-                {isPolling ? (
-                  <X className="h-4 w-4" />
-                ) : editingMessageId ? (
-                  <Edit className="h-4 w-4" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Non-immersive input area */}
-        {!isImmersive && (
-          <div className="bg-background">
-            <div className="container mx-auto p-2 md:p-4">
-              <div className="relative flex">
-                <Textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !isPolling) {
-                      e.preventDefault();
-                      handleSend();
-                    }
-                  }}
-                  placeholder={editingMessageId ? 'Edit your message...' : 'Type your message...'}
-                  className="flex-grow resize-none pr-20 overflow-y-auto"
-                  rows={1}
-                  style={{ maxHeight: '20vh' }}
-                  disabled={isPolling}
-                />
-                <div className="absolute right-2 bottom-2 flex items-center space-x-2">
-                  <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="h-8 w-8">
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" onClick={toggleImmersive} className="h-8 w-8">
-                    <Maximize2 className="h-4 w-4" />
-                  </Button>
-                  {editingMessageId && (
-                    <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="h-8 w-8">
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button
-                    onClick={isPolling ? handleAbort : handleSend}
-                    size="icon"
-                    className="h-8 w-8"
-                    variant={isPolling ? 'destructive' : 'default'}
-                  >
-                    {isPolling ? (
-                      <X className="h-4 w-4" />
-                    ) : editingMessageId ? (
-                      <Edit className="h-4 w-4" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <ChatInput
+          isImmersive={isImmersive}
+          toggleImmersive={toggleImmersive}
+          input={input}
+          setInput={setInput}
+          handleSend={handleSend}
+          isPolling={isPolling}
+          handleAbort={handleAbort}
+          editingMessageId={editingMessageId}
+          handleCancelEdit={handleCancelEdit}
+          textareaRef={textareaRef}
+          fileInputRef={fileInputRef}
+          handleFileUpload={handleFileUpload}
+          currentBranch={currentBranch}
+          removeAttachment={removeAttachment}
+        />
       </div>
     </div>
   );
