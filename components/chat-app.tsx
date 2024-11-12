@@ -5,7 +5,6 @@ import { PanelLeftOpen, PanelLeftClose } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ThemeToggle } from './theme-toggle';
-import { Branch, ChatThread, Message } from '../lib/types';
 import { SidePanel } from './side-panel';
 import { BranchSelector } from './branch-selector';
 import { useChatApi } from '@/app/hooks/use-chat-api';
@@ -17,7 +16,7 @@ import { useHotkeys } from '@/app/hooks/use-hotkeys';
 import { ShortcutsDialog } from './shortcuts-dialog';
 
 export function ChatApp() {
-  const { currentBranch, currentThread, setChatThreads, currentThreadId } = useChat();
+  const { currentBranch, currentThread, actions, currentThreadId } = useChat();
   const {
     input,
     setInput,
@@ -38,7 +37,9 @@ export function ChatApp() {
     useChatApi({
       currentThreadId,
       onUpdateMessages: (newMessages) => {
-        updateBranch(currentThreadId, currentThread.currentBranchId, newMessages);
+        actions.updateBranch(currentThreadId, currentThread.currentBranchId, {
+          messages: newMessages,
+        });
         scrollToBottom();
       },
     });
@@ -99,8 +100,7 @@ export function ChatApp() {
       } else {
         if (currentBranch.messages.length === 0) {
           const title = input.split('\n')[0].slice(0, 30) + (input.length > 30 ? '...' : '');
-          updateThread(currentThreadId, {
-            ...currentThread,
+          actions.updateThread(currentThreadId, {
             name: title,
           });
         }
@@ -132,42 +132,8 @@ export function ChatApp() {
   };
 
   const handleBranch = (index: number) => {
-    const newBranchId = Math.max(...currentThread.branches.map((b) => b.id)) + 1;
-    const newBranchName = `Branch ${newBranchId}`;
     const newMessages = currentBranch.messages.slice(0, index + 1);
-    const newBranch: Branch = {
-      id: newBranchId,
-      name: newBranchName,
-      messages: newMessages,
-      attachments: [...currentBranch.attachments],
-      createdAt: new Date(),
-      description: `Branched from message: "${newMessages[newMessages.length - 1].text.slice(0, 50)}..."`,
-    };
-    updateThread(currentThreadId, {
-      ...currentThread,
-      branches: [...currentThread.branches, newBranch],
-      currentBranchId: newBranchId,
-    });
-  };
-
-  const updateBranch = (threadId: number, branchId: number, newMessages: Message[]) => {
-    setChatThreads((threads) =>
-      threads.map((thread) =>
-        thread.id === threadId
-          ? {
-              ...thread,
-              branches: thread.branches.map((branch) =>
-                branch.id === branchId ? { ...branch, messages: newMessages } : branch,
-              ),
-            }
-          : thread,
-      ),
-    );
-    scrollToBottom();
-  };
-
-  const updateThread = (threadId: number, updatedThread: ChatThread) => {
-    setChatThreads((threads) => threads.map((thread) => (thread.id === threadId ? updatedThread : thread)));
+    actions.createBranch(currentThreadId, newMessages, currentBranch.attachments);
   };
 
   const toggleImmersive = () => {
@@ -181,41 +147,12 @@ export function ChatApp() {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const newAttachments = Array.from(event.target.files);
-      setChatThreads((threads) =>
-        threads.map((thread) =>
-          thread.id === currentThreadId
-            ? {
-                ...thread,
-                branches: thread.branches.map((branch) =>
-                  branch.id === thread.currentBranchId
-                    ? { ...branch, attachments: [...branch.attachments, ...newAttachments] }
-                    : branch,
-                ),
-              }
-            : thread,
-        ),
-      );
+      actions.addAttachments(currentThreadId, currentThread.currentBranchId, newAttachments);
     }
   };
 
-  const removeAttachment = (fileName: string) => {
-    setChatThreads((threads) =>
-      threads.map((thread) =>
-        thread.id === currentThreadId
-          ? {
-              ...thread,
-              branches: thread.branches.map((branch) =>
-                branch.id === thread.currentBranchId
-                  ? {
-                      ...branch,
-                      attachments: branch.attachments.filter((file) => file.name !== fileName),
-                    }
-                  : branch,
-              ),
-            }
-          : thread,
-      ),
-    );
+  const handleRemoveAttachment = (fileName: string) => {
+    actions.removeAttachment(currentThreadId, currentThread.currentBranchId, fileName);
   };
 
   useEffect(() => {
@@ -275,9 +212,7 @@ export function ChatApp() {
               <BranchSelector
                 currentBranchId={currentThread.currentBranchId}
                 branches={currentThread.branches}
-                onBranchChange={(branchId) =>
-                  updateThread(currentThreadId, { ...currentThread, currentBranchId: branchId })
-                }
+                onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
               />
             </div>
           </CardHeader>
@@ -308,7 +243,7 @@ export function ChatApp() {
           fileInputRef={fileInputRef}
           handleFileUpload={handleFileUpload}
           currentBranch={currentBranch}
-          removeAttachment={removeAttachment}
+          removeAttachment={handleRemoveAttachment}
         />
       </div>
     </div>

@@ -9,37 +9,7 @@ interface SidePanelProps {
 }
 
 export function SidePanel({ isSidePanelOpen, isMobile }: SidePanelProps) {
-  const { chatThreads, currentThreadId, setCurrentThreadId, setChatThreads } = useChat();
-
-  const createNewThread = () => {
-    const newThread = {
-      id: Date.now(),
-      name: 'New Chat',
-      branches: [
-        {
-          id: 1,
-          name: 'Main',
-          messages: [],
-          attachments: [],
-          createdAt: new Date(),
-          description: 'Initial conversation branch',
-        },
-      ],
-      currentBranchId: 1,
-    };
-    setChatThreads([...chatThreads, newThread]);
-    setCurrentThreadId(newThread.id);
-  };
-
-  const deleteThread = (id: number) => {
-    if (chatThreads.length > 1) {
-      const newThreads = chatThreads.filter((thread) => thread.id !== id);
-      setChatThreads(newThreads);
-      if (currentThreadId === id) {
-        setCurrentThreadId(newThreads[0].id);
-      }
-    }
-  };
+  const { chatThreads, currentThreadId, actions } = useChat();
 
   return (
     <div
@@ -56,19 +26,19 @@ export function SidePanel({ isSidePanelOpen, isMobile }: SidePanelProps) {
             <div key={thread.id} className="flex items-center justify-between mb-2">
               <button
                 className={`text-left truncate flex-grow ${currentThreadId === thread.id ? 'font-bold' : ''}`}
-                onClick={() => setCurrentThreadId(thread.id)}
+                onClick={() => actions.switchThread(thread.id)}
               >
                 {thread.name}
               </button>
               {chatThreads.length > 1 && (
-                <Button variant="ghost" size="icon" onClick={() => deleteThread(thread.id)}>
+                <Button variant="ghost" size="icon" onClick={() => actions.deleteThread(thread.id)}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
             </div>
           ))}
         </ScrollArea>
-        <Button className="w-full mt-4" onClick={createNewThread}>
+        <Button className="w-full mt-4" onClick={actions.createThread}>
           <Plus className="h-4 w-4 mr-2" />
           New Thread
         </Button>
