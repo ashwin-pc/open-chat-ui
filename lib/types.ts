@@ -19,10 +19,11 @@ export type Branch = {
   attachments: File[];
   createdAt: Date;
   description?: string;
+  model?: BedrockModelNames;
 };
 
 export interface ChatThread {
-  id: number;
+  id: string;
   name: string;
   branches: Branch[];
   currentBranchId: number;

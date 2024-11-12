@@ -1,23 +1,25 @@
 // contexts/ChatContext.tsx
 import { createContext, useContext, useState, ReactNode, useMemo } from 'react';
-import { Message, ChatThread, Branch } from '../../lib/types';
+import { v4 as uuidv4 } from 'uuid';
+import { Message, ChatThread, Branch, BedrockModelNames } from '../../lib/types';
 import { useHotkeys } from '../hooks/use-hotkeys';
 
 interface ChatContextType {
   chatThreads: ChatThread[];
-  currentThreadId: number;
+  currentThreadId: string;
   currentThread: ChatThread;
   currentBranch: Branch;
   actions: {
     createThread: () => void;
-    deleteThread: (threadId: number) => void;
-    updateThread: (threadId: number, updates: Partial<ChatThread>) => void;
-    createBranch: (threadId: number, messages: Message[], attachments: File[]) => void;
-    updateBranch: (threadId: number, branchId: number, updates: Partial<Branch>) => void;
-    switchBranch: (threadId: number, branchId: number) => void;
-    switchThread: (threadId: number) => void;
-    addAttachments: (threadId: number, branchId: number, files: File[]) => void;
-    removeAttachment: (threadId: number, branchId: number, fileName: string) => void;
+    deleteThread: (threadId: string) => void;
+    updateThread: (threadId: string, updates: Partial<ChatThread>) => void;
+    createBranch: (threadId: string, messages: Message[], attachments: File[]) => void;
+    updateBranch: (threadId: string, branchId: number, updates: Partial<Branch>) => void;
+    switchBranch: (threadId: string, branchId: number) => void;
+    switchThread: (threadId: string) => void;
+    addAttachments: (threadId: string, branchId: number, files: File[]) => void;
+    removeAttachment: (threadId: string, branchId: number, fileName: string) => void;
+    updateBranchModel: (threadId: string, branchId: number, model: BedrockModelNames) => void;
   };
 }
 
@@ -26,7 +28,7 @@ const ChatContext = createContext<ChatContextType | undefined>(undefined);
 export function ChatProvider({ children }: { children: ReactNode }) {
   const [chatThreads, setChatThreads] = useState<ChatThread[]>([
     {
-      id: 1,
+      id: uuidv4(),
       name: 'New Chat',
       branches: [
         {
@@ -41,7 +43,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       currentBranchId: 1,
     },
   ]);
-  const [currentThreadId, setCurrentThreadId] = useState(1);
+  const [currentThreadId, setCurrentThreadId] = useState(chatThreads[0].id);
 
   useHotkeys('new-thread', {
     key: '/',
@@ -91,7 +93,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         } else {
           // Create new thread only if no empty thread exists
           const newThread = {
-            id: Date.now(),
+            id: uuidv4(),
             name: 'New Chat',
             branches: [
               {
@@ -110,7 +112,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         }
       },
 
-      deleteThread: (threadId: number) => {
+      deleteThread: (threadId: string) => {
         if (chatThreads.length > 1) {
           const newThreads = chatThreads.filter((t) => t.id !== threadId);
           setChatThreads(newThreads);
@@ -120,13 +122,13 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         }
       },
 
-      updateThread: (threadId: number, updates: Partial<ChatThread>) => {
+      updateThread: (threadId: string, updates: Partial<ChatThread>) => {
         setChatThreads((threads) =>
           threads.map((thread) => (thread.id === threadId ? { ...thread, ...updates } : thread)),
         );
       },
 
-      createBranch: (threadId: number, messages: Message[], attachments: File[]) => {
+      createBranch: (threadId: string, messages: Message[], attachments: File[]) => {
         const thread = chatThreads.find((t) => t.id === threadId);
         if (!thread) return;
 
@@ -153,7 +155,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         );
       },
 
-      updateBranch: (threadId: number, branchId: number, updates: Partial<Branch>) => {
+      updateBranch: (threadId: string, branchId: number, updates: Partial<Branch>) => {
         setChatThreads((threads) =>
           threads.map((thread) =>
             thread.id === threadId
@@ -168,17 +170,17 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         );
       },
 
-      switchBranch: (threadId: number, branchId: number) => {
+      switchBranch: (threadId: string, branchId: number) => {
         setChatThreads((threads) =>
           threads.map((thread) => (thread.id === threadId ? { ...thread, currentBranchId: branchId } : thread)),
         );
       },
 
-      switchThread: (threadId: number) => {
+      switchThread: (threadId: string) => {
         setCurrentThreadId(threadId);
       },
 
-      addAttachments: (threadId: number, branchId: number, files: File[]) => {
+      addAttachments: (threadId: string, branchId: number, files: File[]) => {
         setChatThreads((threads) =>
           threads.map((thread) =>
             thread.id === threadId
@@ -193,7 +195,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         );
       },
 
-      removeAttachment: (threadId: number, branchId: number, fileName: string) => {
+      removeAttachment: (threadId: string, branchId: number, fileName: string) => {
         setChatThreads((threads) =>
           threads.map((thread) =>
             thread.id === threadId
@@ -207,6 +209,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
                         }
                       : branch,
                   ),
+                }
+              : thread,
+          ),
+        );
+      },
+
+      updateBranchModel: (threadId: string, branchId: number, model: BedrockModelNames) => {
+        setChatThreads((threads) =>
+          threads.map((thread) =>
+            thread.id === threadId
+              ? {
+                  ...thread,
+                  branches: thread.branches.map((branch) => (branch.id === branchId ? { ...branch, model } : branch)),
                 }
               : thread,
           ),

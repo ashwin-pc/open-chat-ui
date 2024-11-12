@@ -14,6 +14,7 @@ import { ChatInput } from './chat-input';
 import { MessageList } from './message-list';
 import { useHotkeys } from '@/app/hooks/use-hotkeys';
 import { ShortcutsDialog } from './shortcuts-dialog';
+import { BedrockModelNames } from '@/lib/types';
 
 export function ChatApp() {
   const { currentBranch, currentThread, actions, currentThreadId } = useChat();
@@ -80,6 +81,13 @@ export function ChatApp() {
     callback: () => handleBranch(currentBranch.messages.length - 1),
   });
 
+  useHotkeys('toggle-immersive', {
+    key: 'cmd+i',
+    description: 'Toggle immersive mode',
+    scope: 'Chat',
+    callback: () => setIsImmersive((prev) => !prev),
+  });
+
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
@@ -104,7 +112,11 @@ export function ChatApp() {
             name: title,
           });
         }
-        await handleNewMessage(input, currentBranch.messages);
+        await handleNewMessage(
+          input,
+          currentBranch.messages,
+          currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
+        );
       }
       setInput('');
     }
@@ -153,6 +165,10 @@ export function ChatApp() {
 
   const handleRemoveAttachment = (fileName: string) => {
     actions.removeAttachment(currentThreadId, currentThread.currentBranchId, fileName);
+  };
+
+  const handleModelChange = (model: BedrockModelNames) => {
+    actions.updateBranchModel(currentThreadId, currentThread.currentBranchId, model);
   };
 
   useEffect(() => {
@@ -226,6 +242,7 @@ export function ChatApp() {
               onEdit={handleEdit}
               onBranch={handleBranch}
               messagesEndRef={messagesEndRef}
+              threadId={currentThread.id}
             />
           </CardContent>
         </Card>
@@ -244,6 +261,8 @@ export function ChatApp() {
           handleFileUpload={handleFileUpload}
           currentBranch={currentBranch}
           removeAttachment={handleRemoveAttachment}
+          selectedModel={currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2}
+          onModelChange={handleModelChange}
         />
       </div>
     </div>

@@ -3,13 +3,18 @@ import { BedrockModelNames, Message } from '@/lib/types';
 import { sendMessage, getLatestResponse, abortConversation, createConversation } from '@/lib/api';
 
 interface UseChatApiProps {
-  currentThreadId: string | number;
+  currentThreadId: string;
   onUpdateMessages: (messages: Message[]) => void;
+}
+
+export interface PartialResponse {
+  threadId: string;
+  text: string;
 }
 
 export function useChatApi({ currentThreadId, onUpdateMessages }: UseChatApiProps) {
   const [isPolling, setIsPolling] = useState(false);
-  const [partialResponse, setPartialResponse] = useState<string>('');
+  const [partialResponse, setPartialResponse] = useState<PartialResponse>();
   const timeoutRef = useRef<NodeJS.Timeout>();
 
   const pollForResponse = async (conversationId: string, updatedTime: number, currentMessages: Message[]) => {
@@ -22,7 +27,10 @@ export function useChatApi({ currentThreadId, onUpdateMessages }: UseChatApiProp
     const { status, latestResponse } = await getLatestResponse(conversationId, updatedTime);
 
     if (latestResponse) {
-      setPartialResponse(latestResponse);
+      setPartialResponse({
+        threadId: conversationId,
+        text: latestResponse,
+      });
     }
 
     if (status === 'PENDING') {
@@ -36,12 +44,12 @@ export function useChatApi({ currentThreadId, onUpdateMessages }: UseChatApiProp
       const updatedMessages = [...currentMessages, botResponse];
       onUpdateMessages(updatedMessages);
 
-      setPartialResponse('');
+      setPartialResponse(undefined);
       setIsPolling(false);
     }
   };
 
-  const handleNewMessage = async (input: string, currentMessages: Message[]) => {
+  const handleNewMessage = async (input: string, currentMessages: Message[], model: BedrockModelNames) => {
     const userMessage: Message = {
       text: input,
       sender: 'Human',
@@ -51,14 +59,8 @@ export function useChatApi({ currentThreadId, onUpdateMessages }: UseChatApiProp
     const updatedMessages = [...currentMessages, userMessage];
     onUpdateMessages(updatedMessages);
 
-    createConversation(
-      input,
-      updatedMessages,
-      currentThreadId.toString(),
-      timestamp,
-      BedrockModelNames.CLAUDE_V3_5_SONNET,
-      '',
-      (error) => console.error(error),
+    createConversation(input, updatedMessages, currentThreadId.toString(), timestamp, model, '', (error) =>
+      console.error(error),
     );
 
     // Wait for 1 second before starting to poll
@@ -111,7 +113,7 @@ export function useChatApi({ currentThreadId, onUpdateMessages }: UseChatApiProp
     }
     await abortConversation(currentThreadId.toString());
     setIsPolling(false);
-    setPartialResponse('');
+    setPartialResponse(undefined);
   };
 
   return {

@@ -2,8 +2,9 @@ import { Minimize2, Paperclip, Maximize2, X, Edit, Send } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { FileAttachmentList } from './file-attachment-list';
-import { Branch } from '@/lib/types';
+import { Branch, BedrockModelNames, BedrockModelDisplayNames } from '@/lib/types';
 import { useEffect } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 interface ChatInputProps {
   isImmersive: boolean;
@@ -20,6 +21,8 @@ interface ChatInputProps {
   handleFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   currentBranch: Branch;
   removeAttachment: (filename: string) => void;
+  selectedModel: BedrockModelNames;
+  onModelChange: (model: BedrockModelNames) => void;
 }
 
 export function ChatInput({
@@ -37,6 +40,8 @@ export function ChatInput({
   handleFileUpload,
   currentBranch,
   removeAttachment,
+  selectedModel,
+  onModelChange,
 }: ChatInputProps) {
   const containerClassName = isImmersive
     ? 'fixed inset-0 bg-background/80 backdrop-blur-sm transition-all duration-300 opacity-100 z-50'
@@ -96,46 +101,61 @@ export function ChatInput({
             disabled={isPolling}
           />
 
-          {/* Actions container */}
-          <div className={`flex items-center space-x-2 ${isImmersive ? 'justify-end' : 'absolute right-2 bottom-2'}`}>
-            <div className="relative">
-              <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="h-8 w-8">
-                <Paperclip className="h-4 w-4" />
-              </Button>
-              {currentBranch.attachments.length > 0 && (
-                <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                  {currentBranch.attachments.length}
-                </div>
+          {/* Model selector and actions container */}
+          <div className={`flex items-center justify-between ${isImmersive ? 'mt-2' : 'absolute right-2 bottom-2'}`}>
+            <Select value={selectedModel} onValueChange={(value: BedrockModelNames) => onModelChange(value)}>
+              <SelectTrigger className="w-[200px] h-8">
+                <SelectValue placeholder="Select model">{BedrockModelDisplayNames[selectedModel]}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(BedrockModelDisplayNames).map(([model, displayName]) => (
+                  <SelectItem key={model} value={model}>
+                    {displayName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <div className="flex items-center space-x-2">
+              <div className="relative">
+                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="h-8 w-8">
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+                {currentBranch.attachments.length > 0 && (
+                  <div className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                    {currentBranch.attachments.length}
+                  </div>
+                )}
+              </div>
+              <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" multiple />
+
+              {!isImmersive && (
+                <Button variant="ghost" size="icon" onClick={toggleImmersive} className="h-8 w-8">
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
               )}
+
+              {editingMessageId && (
+                <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="h-8 w-8">
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+
+              <Button
+                onClick={isPolling ? handleAbort : handleSend}
+                size="icon"
+                className="h-8 w-8"
+                variant={isPolling ? 'destructive' : 'default'}
+              >
+                {isPolling ? (
+                  <X className="h-4 w-4" />
+                ) : editingMessageId ? (
+                  <Edit className="h-4 w-4" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
             </div>
-            <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" multiple />
-
-            {!isImmersive && (
-              <Button variant="ghost" size="icon" onClick={toggleImmersive} className="h-8 w-8">
-                <Maximize2 className="h-4 w-4" />
-              </Button>
-            )}
-
-            {editingMessageId && (
-              <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="h-8 w-8">
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-
-            <Button
-              onClick={isPolling ? handleAbort : handleSend}
-              size="icon"
-              className="h-8 w-8"
-              variant={isPolling ? 'destructive' : 'default'}
-            >
-              {isPolling ? (
-                <X className="h-4 w-4" />
-              ) : editingMessageId ? (
-                <Edit className="h-4 w-4" />
-              ) : (
-                <Send className="h-4 w-4" />
-              )}
-            </Button>
           </div>
         </div>
       </div>

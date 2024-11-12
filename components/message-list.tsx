@@ -3,6 +3,7 @@ import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } 
 import { Edit, GitBranch, RotateCcw } from 'lucide-react';
 import { Message } from '@/lib/types';
 import React, { Suspense } from 'react';
+import { PartialResponse } from '@/app/hooks/use-chat-api';
 
 // Lazy load the EmptyAnimation component
 const EmptyAnimation = React.lazy(() => import('./empty-animation'));
@@ -15,8 +16,9 @@ const LoadingFallback = () => (
 interface MessageListProps {
   messages: Message[];
   editingMessageId: number | null;
-  partialResponse: string;
+  partialResponse?: PartialResponse;
   isPolling: boolean;
+  threadId: string;
   onRestart: (index: number) => void;
   onEdit: (index: number) => void;
   onBranch: (index: number) => void;
@@ -47,6 +49,7 @@ export function MessageList({
   editingMessageId,
   partialResponse,
   isPolling,
+  threadId,
   onRestart,
   onEdit,
   onBranch,
@@ -107,8 +110,8 @@ export function MessageList({
         </>
       )}
 
-      {/* Partial response */}
-      {partialResponse && (
+      {/* Only show partial response if this is the current thread */}
+      {partialResponse?.threadId === threadId && (
         <div className="flex justify-start mb-4 relative group">
           <div className="flex items-start space-x-2">
             <Avatar className="h-8 w-8">
@@ -117,7 +120,7 @@ export function MessageList({
               </AvatarFallback>
             </Avatar>
             <div className="bg-muted rounded-lg p-3">
-              <p className="whitespace-pre-wrap">{partialResponse}</p>
+              <p className="whitespace-pre-wrap">{partialResponse.text}</p>
               <div className="h-4 w-4 absolute bottom-2 right-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
               </div>
@@ -126,8 +129,8 @@ export function MessageList({
         </div>
       )}
 
-      {/* Loading indicator */}
-      {isPolling && !partialResponse && (
+      {/* Only show loading indicator if this is the current thread */}
+      {partialResponse?.threadId === threadId && isPolling && partialResponse.text === '' && (
         <div className="flex justify-start mb-4">
           <div className="flex items-center space-x-2">
             <Avatar className="h-8 w-8">
