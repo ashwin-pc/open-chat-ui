@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from '@/components/ui/context-menu';
 import { Edit, GitBranch, RotateCcw } from 'lucide-react';
 import { Message } from '@/lib/types';
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect, useRef } from 'react';
 import { PartialResponse } from '@/app/hooks/use-chat-api';
 
 // Lazy load the EmptyAnimation component
@@ -22,7 +22,6 @@ interface MessageListProps {
   onRestart: (index: number) => void;
   onEdit: (index: number) => void;
   onBranch: (index: number) => void;
-  messagesEndRef: React.RefObject<HTMLDivElement>;
 }
 
 function Welcome() {
@@ -53,8 +52,18 @@ export function MessageList({
   onRestart,
   onEdit,
   onBranch,
-  messagesEndRef,
 }: MessageListProps) {
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Scroll when messages change or partial response updates
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, partialResponse?.text]);
+
   return (
     <>
       {messages.length === 0 && !partialResponse && !isPolling ? (

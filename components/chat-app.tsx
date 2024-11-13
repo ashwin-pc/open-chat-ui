@@ -31,7 +31,6 @@ export function ChatApp() {
   const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const { isPolling, partialResponse, handleNewMessage, handleEditMessage, handleRestartFromMessage, handleAbort } =
@@ -41,7 +40,6 @@ export function ChatApp() {
         actions.updateBranch(currentThreadId, currentThread.currentBranchId, {
           messages: newMessages,
         });
-        scrollToBottom();
       },
     });
 
@@ -87,10 +85,6 @@ export function ChatApp() {
     scope: 'Chat',
     callback: () => setIsImmersive((prev) => !prev),
   });
-
-  const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
 
   const adjustTextareaHeight = useCallback(() => {
     if (textareaRef.current) {
@@ -241,7 +235,6 @@ export function ChatApp() {
               onRestart={handleRestart}
               onEdit={handleEdit}
               onBranch={handleBranch}
-              messagesEndRef={messagesEndRef}
               threadId={currentThread.id}
             />
           </CardContent>
