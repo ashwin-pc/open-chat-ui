@@ -1,20 +1,18 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { PanelLeftOpen, PanelLeftClose } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ThemeToggle } from './theme-toggle';
 import { SidePanel } from './side-panel';
 import { BranchSelector } from './branch-selector';
-import { useChatApi } from '@/app/hooks/use-chat-api';
-import { useChat } from '@/app/contexts/chat-context';
-import { useMessageInput } from '@/app/hooks/use-message-input';
+import { useChatApi } from '@/hooks/use-chat-api';
+import { useChat } from '@/contexts/chat-context';
+import { useMessageInput } from '@/hooks/use-message-input';
 import { ChatInput } from './chat-input';
 import { MessageList } from './message-list';
-import { useHotkeys } from '@/app/hooks/use-hotkeys';
+import { useHotkeys } from '@/hooks/use-hotkeys';
 import { ShortcutsDialog } from './shortcuts-dialog';
 import { BedrockModelNames } from '@/lib/types';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from './ui/sidebar';
 
 export function ChatApp() {
   const { currentBranch, currentThread, actions, currentThreadId } = useChat();
@@ -28,8 +26,6 @@ export function ChatApp() {
     textareaRef,
   } = useMessageInput();
   const [isImmersive, setIsImmersive] = useState(false);
-  const [isSidePanelOpen, setIsSidePanelOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -84,13 +80,6 @@ export function ChatApp() {
     description: 'Toggle immersive mode',
     scope: 'Chat',
     callback: () => setIsImmersive((prev) => !prev),
-  });
-
-  useHotkeys('toggle-sidebar', {
-    key: 'cmd+\\',
-    description: 'Toggle sidebar',
-    scope: 'Global',
-    callback: () => setIsSidePanelOpen((prev) => !prev),
   });
 
   const adjustTextareaHeight = useCallback(() => {
@@ -182,17 +171,6 @@ export function ChatApp() {
   }, [input, adjustTextareaHeight]);
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-      setIsSidePanelOpen(window.innerWidth >= 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
-  useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -201,29 +179,17 @@ export function ChatApp() {
   }, []);
 
   return (
-    <div className="flex h-screen">
-      {/* Mobile Overlay */}
-      {isMobile && isSidePanelOpen && (
-        <div
-          className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
-          onClick={() => setIsSidePanelOpen(false)}
-        />
-      )}
-
-      {/* Side Panel */}
-      <SidePanel isSidePanelOpen={isSidePanelOpen} isMobile={isMobile} />
-
-      {/* Main Chat Area */}
-      <div className="flex-grow flex flex-col">
-        <Card className="flex-grow overflow-hidden border-0 flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between p-2 md:p-4 shrink-0">
+    <SidebarProvider>
+      <SidePanel />
+      <SidebarInset>
+        <div className="flex h-screen flex-col">
+          {/* Main Chat Area */}
+          <header className="flex flex-row items-center justify-between p-2 md:p-4 shrink-0">
             <div className="flex items-center space-x-2 md:space-x-4">
-              <Button variant="ghost" size="icon" onClick={() => setIsSidePanelOpen(!isSidePanelOpen)}>
-                {isSidePanelOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
-              </Button>
+              <SidebarTrigger />
               <h2 className="text-lg md:text-2xl font-bold truncate">{currentThread.name}</h2>
             </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 md:space-x-4">
               <ShortcutsDialog open={isShortcutsOpen} onOpenChange={setIsShortcutsOpen} />
               <ThemeToggle />
               <BranchSelector
@@ -232,8 +198,8 @@ export function ChatApp() {
                 onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
               />
             </div>
-          </CardHeader>
-          <CardContent className="overflow-y-auto grow">
+          </header>
+          <div className="flex-grow flex flex-col p-2 md:p-4">
             <MessageList
               messages={currentBranch.messages}
               editingMessageId={editingMessageId}
@@ -244,27 +210,29 @@ export function ChatApp() {
               onBranch={handleBranch}
               threadId={currentThread.id}
             />
-          </CardContent>
-        </Card>
-        <ChatInput
-          isImmersive={isImmersive}
-          toggleImmersive={toggleImmersive}
-          input={input}
-          setInput={setInput}
-          handleSend={handleSend}
-          isPolling={isPolling}
-          handleAbort={handleAbort}
-          editingMessageId={editingMessageId}
-          handleCancelEdit={handleCancelEdit}
-          textareaRef={textareaRef}
-          fileInputRef={fileInputRef}
-          handleFileUpload={handleFileUpload}
-          currentBranch={currentBranch}
-          removeAttachment={handleRemoveAttachment}
-          selectedModel={currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2}
-          onModelChange={handleModelChange}
-        />
-      </div>
-    </div>
+          </div>
+          <div className="flex flex-col">
+            <ChatInput
+              isImmersive={isImmersive}
+              toggleImmersive={toggleImmersive}
+              input={input}
+              setInput={setInput}
+              handleSend={handleSend}
+              isPolling={isPolling}
+              handleAbort={handleAbort}
+              editingMessageId={editingMessageId}
+              handleCancelEdit={handleCancelEdit}
+              textareaRef={textareaRef}
+              fileInputRef={fileInputRef}
+              handleFileUpload={handleFileUpload}
+              currentBranch={currentBranch}
+              removeAttachment={handleRemoveAttachment}
+              selectedModel={currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2}
+              onModelChange={handleModelChange}
+            />
+          </div>
+        </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

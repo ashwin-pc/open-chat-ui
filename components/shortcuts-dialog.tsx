@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Keyboard } from 'lucide-react';
-import { useHotkeyList } from '@/app/hooks/use-hotkeys';
+import { useHotkeyList } from '@/hooks/use-hotkeys';
 import { groupBy } from '@/lib/utils';
 
 interface ShortcutsDialogProps {

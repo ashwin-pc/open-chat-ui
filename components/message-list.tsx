@@ -3,7 +3,7 @@ import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } 
 import { Edit, GitBranch, RotateCcw } from 'lucide-react';
 import { Message } from '@/lib/types';
 import React, { Suspense, useEffect, useRef } from 'react';
-import { PartialResponse } from '@/app/hooks/use-chat-api';
+import { PartialResponse } from '@/hooks/use-chat-api';
 
 // Lazy load the EmptyAnimation component
 const EmptyAnimation = React.lazy(() => import('./empty-animation'));

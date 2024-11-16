@@ -1,48 +1,83 @@
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Trash2 } from 'lucide-react';
-import { useChat } from '@/app/contexts/chat-context';
+import { Plus, Trash2, MessageSquare } from 'lucide-react';
+import { useChat } from '@/contexts/chat-context';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarGroup,
+  useSidebar,
+  SidebarFooter,
+} from '@/components/ui/sidebar';
+import { useHotkeys } from '@/hooks/use-hotkeys';
 
-interface SidePanelProps {
-  isSidePanelOpen: boolean;
-  isMobile: boolean;
-}
-
-export function SidePanel({ isSidePanelOpen, isMobile }: SidePanelProps) {
+export function SidePanel() {
   const { chatThreads, currentThreadId, actions } = useChat();
+  const { toggleSidebar } = useSidebar();
+  useHotkeys('toggle-sidebar', {
+    key: 'cmd+\\',
+    description: 'Toggle sidebar',
+    scope: 'Global',
+    callback: () => toggleSidebar(),
+  });
 
   return (
-    <div
-      className={`
-      ${isSidePanelOpen ? 'translate-x-0' : '-translate-x-full'}
-      ${isMobile ? 'fixed inset-y-0 z-50' : 'relative'} 
-      bg-background border-r w-[280px] transition-transform duration-300
-    `}
-    >
-      <div className="p-4">
-        <h2 className="text-lg font-semibold mb-4">Chat Threads</h2>
-        <ScrollArea className="h-[calc(100vh-8rem)]">
-          {chatThreads.map((thread) => (
-            <div key={thread.id} className="flex items-center justify-between mb-2">
-              <button
-                className={`text-left truncate flex-grow ${currentThreadId === thread.id ? 'font-bold' : ''}`}
-                onClick={() => actions.switchThread(thread.id)}
-              >
-                {thread.name}
-              </button>
-              {chatThreads.length > 1 && (
-                <Button variant="ghost" size="icon" onClick={() => actions.deleteThread(thread.id)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          ))}
-        </ScrollArea>
-        <Button className="w-full mt-4" onClick={actions.createThread}>
+    <Sidebar>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton size="lg">
+              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                <MessageSquare className="size-4" />
+              </div>
+              <div className="flex flex-col gap-0.5 leading-none">
+                <span className="font-semibold">Chat Threads</span>
+                <span className="text-xs text-muted-foreground">{chatThreads.length} conversations</span>
+              </div>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarMenu>
+            {chatThreads.map((thread) => (
+              <SidebarMenuItem key={thread.id}>
+                <SidebarMenuButton
+                  isActive={currentThreadId === thread.id}
+                  onClick={() => actions.switchThread(thread.id)}
+                >
+                  {thread.name}
+                  {chatThreads.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="ml-auto"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        actions.deleteThread(thread.id);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter>
+        <Button className="w-full" variant="outline" onClick={actions.createThread}>
           <Plus className="h-4 w-4 mr-2" />
           New Thread
         </Button>
-      </div>
-    </div>
+      </SidebarFooter>
+    </Sidebar>
   );
 }

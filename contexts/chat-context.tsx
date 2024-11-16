@@ -1,7 +1,7 @@
 // contexts/ChatContext.tsx
 import { createContext, useContext, useState, ReactNode, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Message, ChatThread, Branch, BedrockModelNames } from '../../lib/types';
+import { Message, ChatThread, Branch, BedrockModelNames } from '../lib/types';
 import { useHotkeys } from '../hooks/use-hotkeys';
 
 interface ChatContextType {

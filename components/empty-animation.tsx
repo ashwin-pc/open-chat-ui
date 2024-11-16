@@ -1,4 +1,4 @@
-import { useTheme } from '@/app/contexts/theme-context';
+import { useTheme } from '@/contexts/theme-context';
 import React, { useEffect, useRef } from 'react';
 
 // Add type definitions
