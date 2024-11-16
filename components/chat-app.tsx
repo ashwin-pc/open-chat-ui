@@ -86,6 +86,13 @@ export function ChatApp() {
     callback: () => setIsImmersive((prev) => !prev),
   });
 
+  useHotkeys('toggle-sidebar', {
+    key: 'cmd+\\',
+    description: 'Toggle sidebar',
+    scope: 'Global',
+    callback: () => setIsSidePanelOpen((prev) => !prev),
+  });
+
   const adjustTextareaHeight = useCallback(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
