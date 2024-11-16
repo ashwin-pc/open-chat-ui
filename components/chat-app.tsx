@@ -11,10 +11,15 @@ import { ChatInput } from './chat-input';
 import { MessageList } from './message-list';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { ShortcutsDialog } from './shortcuts-dialog';
-import { BedrockModelNames } from '@/lib/types';
+import { BedrockModelNames, ChatApiInterface } from '@/lib/types';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from './ui/sidebar';
+import { ThemeProvider } from '@/contexts/theme-context';
 
-export function ChatApp() {
+interface ChatAppProps {
+  apiClient: ChatApiInterface;
+}
+
+export function ChatApp({ apiClient }: ChatAppProps) {
   const { currentBranch, currentThread, actions, currentThreadId } = useChat();
   const {
     input,
@@ -32,6 +37,7 @@ export function ChatApp() {
   const { isPolling, partialResponse, handleNewMessage, handleEditMessage, handleRestartFromMessage, handleAbort } =
     useChatApi({
       currentThreadId,
+      apiClient, // Pass the API client to the hook
       onUpdateMessages: (newMessages) => {
         actions.updateBranch(currentThreadId, currentThread.currentBranchId, {
           messages: newMessages,
@@ -179,60 +185,62 @@ export function ChatApp() {
   }, []);
 
   return (
-    <SidebarProvider>
-      <SidePanel />
-      <SidebarInset>
-        <div className="flex h-screen flex-col">
-          {/* Main Chat Area */}
-          <header className="flex flex-row items-center justify-between p-2 md:p-4 shrink-0">
-            <div className="flex items-center space-x-2 md:space-x-4">
-              <SidebarTrigger />
-              <h2 className="text-lg md:text-2xl font-bold truncate">{currentThread.name}</h2>
-            </div>
-            <div className="flex items-center space-x-2 md:space-x-4">
-              <ShortcutsDialog open={isShortcutsOpen} onOpenChange={setIsShortcutsOpen} />
-              <ThemeToggle />
-              <BranchSelector
-                currentBranchId={currentThread.currentBranchId}
-                branches={currentThread.branches}
-                onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
+    <ThemeProvider>
+      <SidebarProvider>
+        <SidePanel />
+        <SidebarInset>
+          <div className="flex h-screen flex-col">
+            {/* Main Chat Area */}
+            <header className="flex flex-row items-center justify-between p-2 md:p-4 shrink-0">
+              <div className="flex items-center space-x-2 md:space-x-4">
+                <SidebarTrigger />
+                <h2 className="text-lg md:text-2xl font-bold truncate">{currentThread.name}</h2>
+              </div>
+              <div className="flex items-center space-x-2 md:space-x-4">
+                <ShortcutsDialog open={isShortcutsOpen} onOpenChange={setIsShortcutsOpen} />
+                <ThemeToggle />
+                <BranchSelector
+                  currentBranchId={currentThread.currentBranchId}
+                  branches={currentThread.branches}
+                  onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
+                />
+              </div>
+            </header>
+            <div className="flex-grow flex flex-col p-2 md:p-4">
+              <MessageList
+                messages={currentBranch.messages}
+                editingMessageId={editingMessageId}
+                partialResponse={partialResponse}
+                isPolling={isPolling}
+                onRestart={handleRestart}
+                onEdit={handleEdit}
+                onBranch={handleBranch}
+                threadId={currentThread.id}
               />
             </div>
-          </header>
-          <div className="flex-grow flex flex-col p-2 md:p-4">
-            <MessageList
-              messages={currentBranch.messages}
-              editingMessageId={editingMessageId}
-              partialResponse={partialResponse}
-              isPolling={isPolling}
-              onRestart={handleRestart}
-              onEdit={handleEdit}
-              onBranch={handleBranch}
-              threadId={currentThread.id}
-            />
+            <div className="flex flex-col">
+              <ChatInput
+                isImmersive={isImmersive}
+                toggleImmersive={toggleImmersive}
+                input={input}
+                setInput={setInput}
+                handleSend={handleSend}
+                isPolling={isPolling}
+                handleAbort={handleAbort}
+                editingMessageId={editingMessageId}
+                handleCancelEdit={handleCancelEdit}
+                textareaRef={textareaRef}
+                fileInputRef={fileInputRef}
+                handleFileUpload={handleFileUpload}
+                currentBranch={currentBranch}
+                removeAttachment={handleRemoveAttachment}
+                selectedModel={currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2}
+                onModelChange={handleModelChange}
+              />
+            </div>
           </div>
-          <div className="flex flex-col">
-            <ChatInput
-              isImmersive={isImmersive}
-              toggleImmersive={toggleImmersive}
-              input={input}
-              setInput={setInput}
-              handleSend={handleSend}
-              isPolling={isPolling}
-              handleAbort={handleAbort}
-              editingMessageId={editingMessageId}
-              handleCancelEdit={handleCancelEdit}
-              textareaRef={textareaRef}
-              fileInputRef={fileInputRef}
-              handleFileUpload={handleFileUpload}
-              currentBranch={currentBranch}
-              removeAttachment={handleRemoveAttachment}
-              selectedModel={currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2}
-              onModelChange={handleModelChange}
-            />
-          </div>
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </SidebarInset>
+      </SidebarProvider>
+    </ThemeProvider>
   );
 }

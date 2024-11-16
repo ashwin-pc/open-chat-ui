@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
-import { BedrockModelNames, Message } from '@/lib/types';
-import { sendMessage, getLatestResponse, abortConversation, createConversation } from '@/lib/api';
+import { BedrockModelNames, ChatApiInterface, Message } from '@/lib/types';
 
 interface UseChatApiProps {
   currentThreadId: string;
+  apiClient: ChatApiInterface;
   onUpdateMessages: (messages: Message[]) => void;
 }
 
@@ -12,7 +12,7 @@ export interface PartialResponse {
   text: string;
 }
 
-export function useChatApi({ currentThreadId, onUpdateMessages }: UseChatApiProps) {
+export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: UseChatApiProps) {
   const [isPolling, setIsPolling] = useState(false);
   const [partialResponse, setPartialResponse] = useState<PartialResponse>();
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -24,7 +24,7 @@ export function useChatApi({ currentThreadId, onUpdateMessages }: UseChatApiProp
     }
 
     setIsPolling(true);
-    const { status, latestResponse } = await getLatestResponse(conversationId, updatedTime);
+    const { status, latestResponse } = await apiClient.getLatestResponse(conversationId, updatedTime);
 
     if (latestResponse) {
       setPartialResponse({
@@ -59,7 +59,7 @@ export function useChatApi({ currentThreadId, onUpdateMessages }: UseChatApiProp
     const updatedMessages = [...currentMessages, userMessage];
     onUpdateMessages(updatedMessages);
 
-    createConversation(input, updatedMessages, currentThreadId.toString(), timestamp, model, '', (error) =>
+    apiClient.createConversation(input, updatedMessages, currentThreadId.toString(), timestamp, model, '', (error) =>
       console.error(error),
     );
 
@@ -80,7 +80,7 @@ export function useChatApi({ currentThreadId, onUpdateMessages }: UseChatApiProp
     onUpdateMessages(updatedMessages);
 
     // Get bot response for the edited message
-    const botResponse = await sendMessage(input, currentMessages);
+    const botResponse = await apiClient.sendMessage(input, currentMessages);
     const newBotMessage: Message = {
       text: botResponse.latestResponse || "I'm a mock response to your edited message.",
       sender: 'Assistant',
@@ -94,7 +94,7 @@ export function useChatApi({ currentThreadId, onUpdateMessages }: UseChatApiProp
 
     const lastMessage = newMessages[newMessages.length - 1];
     if (lastMessage.sender === 'Human') {
-      createConversation(
+      apiClient.createConversation(
         lastMessage.text,
         newMessages,
         currentThreadId.toString(),
@@ -111,7 +111,7 @@ export function useChatApi({ currentThreadId, onUpdateMessages }: UseChatApiProp
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    await abortConversation(currentThreadId.toString());
+    await apiClient.abortConversation(currentThreadId.toString());
     setIsPolling(false);
     setPartialResponse(undefined);
   };

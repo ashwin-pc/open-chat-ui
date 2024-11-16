@@ -2,14 +2,12 @@
 
 import { ChatApp } from '@/components/chat-app';
 import { ChatProvider } from '../contexts/chat-context';
-import { ThemeProvider } from '../contexts/theme-context';
+import * as apiClient from '@/lib/api';
 
 export default function Home() {
   return (
-    <ThemeProvider>
-      <ChatProvider>
-        <ChatApp />
-      </ChatProvider>
-    </ThemeProvider>
+    <ChatProvider>
+      <ChatApp apiClient={apiClient} />
+    </ChatProvider>
   );
 }

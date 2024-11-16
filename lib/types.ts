@@ -37,3 +37,25 @@ export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {
   [BedrockModelNames.CLAUDE_V3_SONNET]: 'Claude 3 Sonnet (meh..)',
   [BedrockModelNames.CLAUDE_V3_HAIKU]: 'Claude 3 Haiku (ugh..)',
 };
+
+export interface ChatApiInterface {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  sendMessage: (prompt: string, chatHistory: Array<Message>) => Promise<any>;
+  getLatestResponse: (
+    conversationId: string,
+    timestamp: number,
+  ) => Promise<{
+    status: 'PENDING' | 'COMPLETE';
+    latestResponse: string;
+  }>;
+  abortConversation: (conversationId: string) => Promise<void>;
+  createConversation: (
+    message: string,
+    chatHistory: Array<Message>,
+    id: string,
+    updatedTime: number,
+    model: BedrockModelNames,
+    systemContext: string,
+    onError: (error: string) => void,
+  ) => void;
+}
