@@ -45,7 +45,7 @@ export interface ChatApiInterface {
     conversationId: string,
     timestamp: number,
   ) => Promise<{
-    status: 'PENDING' | 'COMPLETE';
+    status: string;
     latestResponse: string;
   }>;
   abortConversation: (conversationId: string) => Promise<void>;

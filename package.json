@@ -1,14 +1,29 @@
 {
-  "name": "chat_ui",
-  "version": "0.1.0",
-  "private": true,
+  "name": "open-chat-ui",
+  "version": "0.1.2",
+  "private": false,
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "build-lib": "tsup index.ts --format cjs,esm --dts --tsconfig tsconfig.build.json",
+    "watch-lib": "tsup index.ts --format cjs,esm --dts --tsconfig tsconfig.build.json --watch",
+    "prepublishOnly": "npm run build-lib"
   },
   "dependencies": {
+    "next": "14.2.16",
+    "tailwind-merge": "^2.5.4",
+    "tailwindcss-animate": "^1.0.7",
+    "uuid": "^11.0.3"
+  },
+  "peerDependencies": {
+    "react": "^18",
+    "react-dom": "^18",
     "@radix-ui/react-avatar": "^1.1.1",
     "@radix-ui/react-context-menu": "^2.2.2",
     "@radix-ui/react-dialog": "^1.1.2",
@@ -20,14 +35,7 @@
     "@radix-ui/react-tooltip": "^1.1.4",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.456.0",
-    "next": "14.2.16",
-    "next-themes": "^0.4.3",
-    "react": "^18",
-    "react-dom": "^18",
-    "tailwind-merge": "^2.5.4",
-    "tailwindcss-animate": "^1.0.7",
-    "uuid": "^11.0.3"
+    "lucide-react": "^0.456.0"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -38,6 +46,18 @@
     "eslint-config-next": "14.2.16",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./styles.css": "./dist/index.css"
   }
 }
