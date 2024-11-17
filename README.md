@@ -2,6 +2,8 @@
 
 A React-based chat interface component library with support for threaded conversations, file attachments, and AI model integration.
 
+![](./docs/images/UI.png)
+
 ## Features
 
 - Threaded conversations with branching support
