@@ -30,7 +30,7 @@ function Welcome() {
       <Suspense fallback={<LoadingFallback />}>
         <EmptyAnimation />
       </Suspense>
-      <h2 className="text-2xl font-semibold tracking-tight">Welcome to Diya</h2>
+      <h2 className="text-2xl font-semibold tracking-tight">Hi there!</h2>
       <p className="text-muted-foreground max-w-sm">
         Start a conversation by typing a message below. Press{' '}
         <kbd className="px-2 py-0.5 bg-muted rounded text-xs font-mono">⌘+Enter</kbd> or{' '}

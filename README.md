@@ -16,19 +16,20 @@ A React-based chat interface component library with support for threaded convers
 ## Installation
 
 ```bash
-npm install open-chat
+npm install open-chat-ui
 ```
 
 ## Usage
 
 ```tsx
-import { ChatApp, ChatProvider, ThemeProvider } from 'open-chat-ui';
+import { ChatApp, ChatProvider } from 'open-chat-ui';
+import { apiClient } from './chat-api'; 
 import 'open-chat-ui/style.css';
 
 function App() {
   return (
       <ChatProvider>
-        <ChatApp />
+        <ChatApp apiClient={apiClient} />
       </ChatProvider>
   );
 }
@@ -133,4 +134,4 @@ This project is licensed under the MIT License.
 
 ## Contributing
 
-We welcome all contributions!
+Welcome all contributions!
