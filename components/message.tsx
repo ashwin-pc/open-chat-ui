@@ -5,6 +5,25 @@ import { Button } from '@/components/ui/button';
 import { Edit, GitBranch, RotateCcw, Copy } from 'lucide-react';
 import { useCallback } from 'react';
 import { toast } from 'sonner';
+import ReactMarkdown, { Components } from 'react-markdown';
+import { Roles } from '@/lib/types';
+import { CodeBlock } from './code-block';
+
+const components: Partial<Components> = {
+  code({ className, children, ...props }) {
+    const match = /language-(\w+)/.exec(className || '');
+    return match ? (
+      <CodeBlock language={match[1]} value={String(children).replace(/\n$/, '')} />
+    ) : (
+      <code className={className} {...props}>
+        {children}
+      </code>
+    );
+  },
+  pre({ children }) {
+    return <>{children}</>;
+  },
+};
 
 interface MessageProps {
   message: {
@@ -20,6 +39,7 @@ interface MessageProps {
 
 export function Message({ message, index, editingMessageId, onRestart, onEdit, onBranch }: MessageProps) {
   const isAfterEditPoint = editingMessageId !== null && index > editingMessageId;
+  const isHuman = message.sender === Roles.HUMAN;
 
   const copyToClipboard = useCallback(async () => {
     await navigator.clipboard.writeText(message.text);
@@ -78,24 +98,31 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
     <ContextMenu>
       <ContextMenuTrigger>
         <div
-          className={`flex mb-4 ${message.sender === 'Human' ? 'justify-end' : 'justify-start'} 
+          className={`flex mb-4 ${isHuman ? 'justify-end' : 'justify-start'} 
           ${isAfterEditPoint ? 'opacity-50' : ''}`}
         >
           <div
             className={`flex items-start relative group ${
-              message.sender === 'Human' ? 'space-x-reverse space-x-2 flex-row-reverse' : 'space-x-2'
+              isHuman ? 'space-x-reverse space-x-2 flex-row-reverse' : 'space-x-2'
             }`}
           >
             <Avatar className="h-8 w-8">
-              <AvatarFallback>{message.sender === 'Human' ? <UserAvatar /> : <BotAvatar />}</AvatarFallback>
+              <AvatarFallback>{isHuman ? <UserAvatar /> : <BotAvatar />}</AvatarFallback>
             </Avatar>
 
-            <div
-              className={`rounded-lg p-3 ${
-                message.sender === 'Human' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-              }`}
-            >
-              <p className="whitespace-pre-wrap break-words">{message.text}</p>
+            <div className={`rounded-lg p-3 ${isHuman ? 'bg-muted' : 'bg-transparent'}`}>
+              <div
+                className={`
+                  prose max-w-none
+                  prose-headings:mb-2 prose-headings:mt-4 prose-headings:font-semibold
+                  prose-p:my-1 prose-p:leading-relaxed
+                  prose-a:text-primary hover:prose-a:opacity-80
+                  prose-ul:my-1 prose-ol:my-1 prose-li:my-0
+                  prose-img:rounded-lg
+                  dark:prose-invert`}
+              >
+                <ReactMarkdown components={components}>{message.text}</ReactMarkdown>
+              </div>
             </div>
             <ActionButtons />
           </div>
@@ -103,7 +130,7 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
       </ContextMenuTrigger>
 
       <ContextMenuContent>
-        {message.sender === 'Human' ? (
+        {isHuman ? (
           <>
             <ContextMenuItem onClick={() => onEdit(index)}>
               <Edit className="mr-2 h-4 w-4" />
