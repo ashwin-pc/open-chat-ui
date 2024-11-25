@@ -3,14 +3,17 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { FileAttachmentList } from './file-attachment-list';
 import { Branch, BedrockModelNames, BedrockModelDisplayNames } from '@/lib/types';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import { Input } from './ui/input';
+import { toast } from 'sonner';
 
 interface ChatInputProps {
   isImmersive: boolean;
   toggleImmersive: () => void;
   input: string;
-  setInput: (value: string) => void;
+  setInput: React.Dispatch<React.SetStateAction<string>>;
   handleSend: () => void;
   isPolling: boolean;
   handleAbort: () => void;
@@ -46,6 +49,24 @@ export function ChatInput({
   const containerClassName = isImmersive
     ? 'fixed inset-0 bg-background/80 backdrop-blur-sm transition-all duration-300 opacity-100 z-50'
     : 'bg-background relative before:absolute before:inset-x-0 before:top-[-20px] before:h-[20px] before:bg-gradient-to-b before:from-transparent before:to-background before:z-10';
+
+  // Add constant for text length threshold (e.g., 5000 characters)
+  const TEXT_LENGTH_THRESHOLD = 5000;
+
+  const [showPasteDialog, setShowPasteDialog] = useState(false);
+  const [pastedContent, setPastedContent] = useState('');
+  const [fileName, setFileName] = useState('pasted-content.txt');
+
+  // Handle paste event
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedText = e.clipboardData.getData('text');
+
+    if (pastedText.length > TEXT_LENGTH_THRESHOLD) {
+      e.preventDefault();
+      setPastedContent(pastedText);
+      setShowPasteDialog(true);
+    }
+  };
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -97,6 +118,7 @@ export function ChatInput({
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
+              onPaste={handlePaste}
               onKeyDown={(e) => {
                 if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !isPolling) {
                   e.preventDefault();
@@ -143,6 +165,58 @@ export function ChatInput({
           </div>
         </div>
       </div>
+      <Dialog open={showPasteDialog} onOpenChange={setShowPasteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Large Text Detected</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Would you like to paste this as text or save it as a file? ({(pastedContent.length / 1000).toFixed(1)}KB)
+            </p>
+            <p className="text-sm text-muted-foreground ">
+              It will be added to the begining of this message in the conversation with the file name like <br />
+              <pre className="">
+                {`<file name="`}
+                {fileName}
+                {`">
+  {content}
+</file>`}
+              </pre>
+            </p>
+            <div className="space-y-2">
+              <Input placeholder="File name" value={fileName} onChange={(e) => setFileName(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setInput((prev) => prev + pastedContent);
+                setShowPasteDialog(false);
+                toast.success('Content pasted as text');
+              }}
+            >
+              Paste as Text
+            </Button>
+            <Button
+              onClick={() => {
+                const file = new File([pastedContent], fileName, {
+                  type: 'text/plain',
+                });
+                const fakeEvent = {
+                  target: { files: [file] },
+                } as unknown as React.ChangeEvent<HTMLInputElement>;
+                handleFileUpload(fakeEvent);
+                setShowPasteDialog(false);
+                toast.success('File created successfully');
+              }}
+            >
+              Save as File
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
