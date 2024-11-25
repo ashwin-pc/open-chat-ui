@@ -53,15 +53,31 @@ export function MessageList({
   onBranch,
 }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastMessageRef = useRef<string>('');
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Scroll when messages change or partial response updates
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, partialResponse?.text]);
+    // Scroll only when:
+    // 1. A new message is added (messages.length changes)
+    // 2. Partial response completes (partialResponse becomes null after being present)
+    // 3. First message starts streaming (partialResponse begins)
+    if (
+      messages.length > 0 &&
+      (lastMessageRef.current !== messages[messages.length - 1]?.text ||
+        (!partialResponse && isPolling) ||
+        (messages.length === 0 && partialResponse?.text))
+    ) {
+      scrollToBottom();
+    }
+
+    // Update last message reference
+    if (messages.length > 0) {
+      lastMessageRef.current = messages[messages.length - 1].text;
+    }
+  }, [messages, partialResponse, isPolling]);
 
   return (
     <>
@@ -94,7 +110,7 @@ export function MessageList({
                 <BotAvatar />
               </AvatarFallback>
             </Avatar>
-            <div className="bg-muted rounded-lg p-3">
+            <div className="bg-trasnparent rounded-lg p-3">
               <p className="whitespace-pre-wrap break-words">{partialResponse.text}</p>
               <div className="h-4 w-4 absolute bottom-2 right-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
