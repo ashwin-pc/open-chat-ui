@@ -7,8 +7,13 @@ export enum BedrockModelNames {
   CLAUDE_V3_HAIKU = 'us.anthropic.claude-3-haiku-20240307-v1:0',
 }
 
+export enum Roles {
+  HUMAN = 'Human',
+  ASSISTANT = 'Assistant',
+}
+
 export type Message = {
-  sender: 'Human' | 'Assistant';
+  sender: Roles;
   text: string;
 };
 

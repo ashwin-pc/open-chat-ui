@@ -1,9 +1,8 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from '@/components/ui/context-menu';
-import { Edit, GitBranch, RotateCcw } from 'lucide-react';
-import { Message } from '@/lib/types';
+import { Message as MessageType } from '@/lib/types';
 import React, { Suspense, useEffect, useRef } from 'react';
 import { PartialResponse } from '@/hooks/use-chat-api';
+import { BotAvatar, Message } from './message';
 
 // Lazy load the EmptyAnimation component
 const EmptyAnimation = React.lazy(() => import('./empty-animation'));
@@ -14,7 +13,7 @@ const LoadingFallback = () => (
 );
 
 interface MessageListProps {
-  messages: Message[];
+  messages: MessageType[];
   editingMessageId: number | null;
   partialResponse?: PartialResponse;
   isPolling: boolean;
@@ -71,49 +70,16 @@ export function MessageList({
       ) : (
         <>
           {messages.map((message, index) => {
-            const isAfterEditPoint = editingMessageId !== null ? index > editingMessageId : false;
             return (
-              <ContextMenu key={index}>
-                <ContextMenuTrigger>
-                  <div
-                    className={`flex mb-4 ${message.sender === 'Human' ? 'justify-end' : 'justify-start'} 
-                ${isAfterEditPoint ? 'opacity-50' : ''}`}
-                  >
-                    <div
-                      className={`flex items-start ${
-                        message.sender === 'Human' ? 'space-x-reverse space-x-2 flex-row-reverse' : 'space-x-2'
-                      }`}
-                    >
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback>{message.sender === 'Human' ? <UserAvatar /> : <BotAvatar />}</AvatarFallback>
-                      </Avatar>
-                      <div
-                        className={`rounded-lg p-3 ${
-                          message.sender === 'Human' ? 'bg-primary text-primary-foreground' : 'bg-muted'
-                        }`}
-                      >
-                        <p className="whitespace-pre-wrap">{message.text}</p>
-                      </div>
-                    </div>
-                  </div>
-                </ContextMenuTrigger>
-                <ContextMenuContent>
-                  <ContextMenuItem onClick={() => onRestart(index)}>
-                    <RotateCcw className="mr-2 h-4 w-4" />
-                    Restart from here
-                  </ContextMenuItem>
-                  {message.sender === 'Human' && editingMessageId === null && (
-                    <ContextMenuItem onClick={() => onEdit(index)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Edit message
-                    </ContextMenuItem>
-                  )}
-                  <ContextMenuItem onClick={() => onBranch(index)}>
-                    <GitBranch className="mr-2 h-4 w-4" />
-                    Branch from here
-                  </ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
+              <Message
+                key={index}
+                message={message}
+                index={index}
+                editingMessageId={editingMessageId}
+                onRestart={onRestart}
+                onEdit={onEdit}
+                onBranch={onBranch}
+              />
             );
           })}
         </>
@@ -129,7 +95,7 @@ export function MessageList({
               </AvatarFallback>
             </Avatar>
             <div className="bg-muted rounded-lg p-3">
-              <p className="whitespace-pre-wrap">{partialResponse.text}</p>
+              <p className="whitespace-pre-wrap break-words">{partialResponse.text}</p>
               <div className="h-4 w-4 absolute bottom-2 right-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
               </div>
@@ -162,27 +128,3 @@ export function MessageList({
     </>
   );
 }
-
-const BotAvatar = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" className="h-full w-full">
-    <circle cx="20" cy="20" r="20" fill="#7C3AED" />
-    <path d="M10 15 L20 10 L30 15 L30 25 L20 30 L10 25Z" fill="#A78BFA" />
-    <circle cx="20" cy="20" r="6" fill="#C4B5FD" />
-    <path d="M17 18 L23 18 L20 22Z" fill="#7C3AED" />
-    <circle cx="16" cy="17" r="2" fill="#EDE9FE" />
-    <circle cx="24" cy="17" r="2" fill="#EDE9FE" />
-    <path d="M15 24 Q20 28 25 24" stroke="#DDD6FE" fill="none" strokeWidth="1.5" />
-  </svg>
-);
-
-const UserAvatar = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" className="h-full w-full">
-    <circle cx="20" cy="20" r="20" fill="#2DD4BF" />
-    <polygon points="20,5 30,15 25,30 15,30 10,15" fill="#14B8A6" />
-    <circle cx="20" cy="18" r="7" fill="#5EEAD4" />
-    <rect x="15" y="16" width="10" height="4" rx="2" fill="#99F6E4" />
-    <circle cx="15" cy="15" r="2" fill="#CCFBF1" />
-    <circle cx="25" cy="15" r="2" fill="#CCFBF1" />
-    <path d="M15 22 Q20 25 25 22" stroke="#F0FDFA" fill="none" strokeWidth="1.5" />
-  </svg>
-);

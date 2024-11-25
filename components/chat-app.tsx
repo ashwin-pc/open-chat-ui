@@ -11,9 +11,11 @@ import { ChatInput } from './chat-input';
 import { MessageList } from './message-list';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { ShortcutsDialog } from './shortcuts-dialog';
-import { BedrockModelNames, ChatApiInterface } from '@/lib/types';
+import { BedrockModelNames, ChatApiInterface, Roles } from '@/lib/types';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from './ui/sidebar';
 import { ThemeProvider } from '@/contexts/theme-context';
+import { Toaster } from './ui/sonner';
+import { toast } from 'sonner';
 
 interface ChatAppProps {
   apiClient: ChatApiInterface;
@@ -124,7 +126,7 @@ export function ChatApp({ apiClient }: ChatAppProps) {
 
   const handleEdit = (index: number) => {
     const messageToEdit = currentBranch.messages[index];
-    if (messageToEdit && messageToEdit.sender === 'Human') {
+    if (messageToEdit && messageToEdit.sender === Roles.HUMAN) {
       // Store the current input as backup in case of cancel
       setEditingInputBackup(input);
       setInput(messageToEdit.text);
@@ -142,6 +144,7 @@ export function ChatApp({ apiClient }: ChatAppProps) {
   const handleBranch = (index: number) => {
     const newMessages = currentBranch.messages.slice(0, index + 1);
     actions.createBranch(currentThreadId, newMessages, currentBranch.attachments);
+    toast.success('Branch created');
   };
 
   const toggleImmersive = () => {
@@ -239,6 +242,7 @@ export function ChatApp({ apiClient }: ChatAppProps) {
               />
             </div>
           </div>
+          <Toaster />
         </SidebarInset>
       </SidebarProvider>
     </ThemeProvider>

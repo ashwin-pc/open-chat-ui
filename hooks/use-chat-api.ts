@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { BedrockModelNames, ChatApiInterface, Message } from '@/lib/types';
+import { BedrockModelNames, ChatApiInterface, Message, Roles } from '@/lib/types';
 
 interface UseChatApiProps {
   currentThreadId: string;
@@ -38,7 +38,7 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
     } else if (status === 'COMPLETE') {
       const botResponse: Message = {
         text: latestResponse,
-        sender: 'Assistant',
+        sender: Roles.ASSISTANT,
       };
 
       const updatedMessages = [...currentMessages, botResponse];
@@ -52,7 +52,7 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
   const handleNewMessage = async (input: string, currentMessages: Message[], model: BedrockModelNames) => {
     const userMessage: Message = {
       text: input,
-      sender: 'Human',
+      sender: Roles.HUMAN,
     };
 
     const timestamp = Date.now();
@@ -72,7 +72,7 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
   const handleEditMessage = async (input: string, currentMessages: Message[], editIndex: number) => {
     const newMessage: Message = {
       text: input,
-      sender: 'Assistant',
+      sender: Roles.HUMAN,
     };
 
     // Keep messages up to the edit point and add the edited message
@@ -83,7 +83,7 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
     const botResponse = await apiClient.sendMessage(input, currentMessages);
     const newBotMessage: Message = {
       text: botResponse.latestResponse || "I'm a mock response to your edited message.",
-      sender: 'Assistant',
+      sender: Roles.ASSISTANT,
     };
     onUpdateMessages([...updatedMessages, newBotMessage]);
   };
@@ -93,7 +93,7 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
     onUpdateMessages(newMessages);
 
     const lastMessage = newMessages[newMessages.length - 1];
-    if (lastMessage.sender === 'Human') {
+    if (lastMessage.sender === Roles.HUMAN) {
       apiClient.createConversation(
         lastMessage.text,
         newMessages,
