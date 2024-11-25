@@ -2,7 +2,7 @@ import { Minimize2, Paperclip, Maximize2, X, Edit, Send } from 'lucide-react';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { FileAttachmentList } from './file-attachment-list';
-import { Branch, BedrockModelNames, BedrockModelDisplayNames } from '@/lib/types';
+import { BedrockModelNames, BedrockModelDisplayNames, Attachment } from '@/lib/types';
 import { useEffect, useState } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
@@ -22,7 +22,7 @@ interface ChatInputProps {
   textareaRef: React.RefObject<HTMLTextAreaElement>;
   fileInputRef: React.RefObject<HTMLInputElement>;
   handleFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  currentBranch: Branch;
+  attachments: Attachment[];
   removeAttachment: (filename: string) => void;
   selectedModel: BedrockModelNames;
   onModelChange: (model: BedrockModelNames) => void;
@@ -41,7 +41,7 @@ export function ChatInput({
   textareaRef,
   fileInputRef,
   handleFileUpload,
-  currentBranch,
+  attachments,
   removeAttachment,
   selectedModel,
   onModelChange,
@@ -79,6 +79,8 @@ export function ChatInput({
   return (
     <div className={containerClassName}>
       <div className="container mx-auto p-2 md:p-4 h-full flex flex-col">
+        {/* File attachments area */}
+        <FileAttachmentList attachments={attachments} onRemove={removeAttachment} className="mb-2" />
         {/* Hidden file input */}
         <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" multiple />
 
@@ -109,9 +111,6 @@ export function ChatInput({
 
         {/* Main content area */}
         <div className="relative flex-grow flex flex-col min-h-0">
-          {/* File attachments area */}
-          <FileAttachmentList files={currentBranch.attachments} onRemove={removeAttachment} className="mb-2" />
-
           {/* Textarea container */}
           <div className={`relative ${isImmersive ? 'flex-grow flex flex-col min-h-0' : 'flex-grow'}`}>
             <Textarea
@@ -130,7 +129,7 @@ export function ChatInput({
                   ? 'Waiting for response...'
                   : editingMessageId
                   ? 'Edit your message...'
-                  : `Type your message${currentBranch.attachments.length > 0 ? ' with attachments' : ''}...`
+                  : `Type your message${attachments.length > 0 ? ' with attachments' : ''}...`
               }
               className={`${
                 isImmersive ? 'flex-grow resize-none p-4 h-full' : 'flex-grow resize-none pr-12'
@@ -209,7 +208,6 @@ export function ChatInput({
                 } as unknown as React.ChangeEvent<HTMLInputElement>;
                 handleFileUpload(fakeEvent);
                 setShowPasteDialog(false);
-                toast.success('File created successfully');
               }}
             >
               Save as File

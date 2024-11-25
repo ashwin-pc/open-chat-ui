@@ -16,6 +16,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from './ui/sidebar';
 import { ThemeProvider } from '@/contexts/theme-context';
 import { Toaster } from './ui/sonner';
 import { toast } from 'sonner';
+import { MAX_FILE_SIZE, MAX_TOKENS_PER_FILE, parseFile, getTokenCount } from '@/lib/utils/file';
 
 interface ChatAppProps {
   apiClient: ChatApiInterface;
@@ -36,16 +37,24 @@ export function ChatApp({ apiClient }: ChatAppProps) {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
-  const { isPolling, partialResponse, handleNewMessage, handleEditMessage, handleRestartFromMessage, handleAbort } =
-    useChatApi({
-      currentThreadId,
-      apiClient, // Pass the API client to the hook
-      onUpdateMessages: (newMessages) => {
-        actions.updateBranch(currentThreadId, currentThread.currentBranchId, {
-          messages: newMessages,
-        });
-      },
-    });
+  const {
+    isPolling,
+    partialResponse,
+    handleNewMessage,
+    handleEditMessage,
+    handleRestartFromMessage,
+    handleAbort,
+    pendingAttachments,
+    setPendingAttachments,
+  } = useChatApi({
+    currentThreadId,
+    apiClient, // Pass the API client to the hook
+    onUpdateMessages: (newMessages) => {
+      actions.updateBranch(currentThreadId, currentThread.currentBranchId, {
+        messages: newMessages,
+      });
+    },
+  });
 
   useHotkeys('shortcuts-dialog', {
     key: 'cmd+/',
@@ -131,6 +140,7 @@ export function ChatApp({ apiClient }: ChatAppProps) {
       setEditingInputBackup(input);
       setInput(messageToEdit.text);
       setEditingMessageId(index);
+      setPendingAttachments(messageToEdit.attachments || []);
       textareaRef.current?.focus();
     }
   };
@@ -155,15 +165,55 @@ export function ChatApp({ apiClient }: ChatAppProps) {
     }, 0);
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      const newAttachments = Array.from(event.target.files);
-      actions.addAttachments(currentThreadId, currentThread.currentBranchId, newAttachments);
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!event.target.files?.length) return;
+
+    const newFiles = Array.from(event.target.files);
+
+    // Track total tokens across all files
+    let totalTokens = 0;
+    for (const attachment of pendingAttachments) {
+      try {
+        totalTokens += getTokenCount(attachment.content);
+      } catch (error) {
+        console.error(`Error processing existing file ${attachment.name}:`, error);
+      }
+    }
+
+    for (const file of newFiles) {
+      try {
+        // Size check
+        if (file.size > MAX_FILE_SIZE) {
+          toast.error(`${file.name} exceeds 5MB limit`);
+          continue;
+        }
+
+        const content = await parseFile(file);
+
+        // Token check for individual file
+        const fileTokens = getTokenCount(content);
+        if (fileTokens > MAX_TOKENS_PER_FILE) {
+          toast.error(`${file.name} exceeds token limit`);
+          continue;
+        }
+
+        // Check combined token count
+        if (totalTokens + fileTokens > MAX_TOKENS_PER_FILE) {
+          toast.error('Adding this file would exceed total token limit');
+          continue;
+        }
+
+        totalTokens += fileTokens;
+        setPendingAttachments((prev) => [...prev, { name: file.name, content }]);
+        toast.success(`${file.name} added successfully`);
+      } catch (error) {
+        toast.error(`Error processing ${file.name}: ${error}`);
+      }
     }
   };
 
   const handleRemoveAttachment = (fileName: string) => {
-    actions.removeAttachment(currentThreadId, currentThread.currentBranchId, fileName);
+    setPendingAttachments((prev) => prev.filter((f) => f.name !== fileName));
   };
 
   const handleModelChange = (model: BedrockModelNames) => {
@@ -180,9 +230,10 @@ export function ChatApp({ apiClient }: ChatAppProps) {
   }, [input, adjustTextareaHeight]);
 
   useEffect(() => {
+    const currentTimeout = timeoutRef.current;
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+      if (currentTimeout) {
+        clearTimeout(currentTimeout);
       }
     };
   }, []);
@@ -235,7 +286,7 @@ export function ChatApp({ apiClient }: ChatAppProps) {
                 textareaRef={textareaRef}
                 fileInputRef={fileInputRef}
                 handleFileUpload={handleFileUpload}
-                currentBranch={currentBranch}
+                attachments={pendingAttachments}
                 removeAttachment={handleRemoveAttachment}
                 selectedModel={currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2}
                 onModelChange={handleModelChange}

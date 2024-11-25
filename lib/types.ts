@@ -12,9 +12,15 @@ export enum Roles {
   ASSISTANT = 'Assistant',
 }
 
+export interface Attachment {
+  name: string;
+  content: string; // Base64 or plain text
+}
+
 export type Message = {
-  sender: Roles;
   text: string;
+  sender: Roles;
+  attachments?: Attachment[]; // Use Attachment interface
 };
 
 export type Branch = {

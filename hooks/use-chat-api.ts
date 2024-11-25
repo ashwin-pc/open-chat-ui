@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
-import { BedrockModelNames, ChatApiInterface, Message, Roles } from '@/lib/types';
+import { Attachment, BedrockModelNames, ChatApiInterface, Message, Roles } from '@/lib/types';
+import { formatAttachmentMessage, formatAttachments } from '@/lib/utils/file';
 
 interface UseChatApiProps {
   currentThreadId: string;
@@ -16,6 +17,7 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
   const [isPolling, setIsPolling] = useState(false);
   const [partialResponse, setPartialResponse] = useState<PartialResponse>();
   const timeoutRef = useRef<NodeJS.Timeout>();
+  const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
 
   const pollForResponse = async (conversationId: string, updatedTime: number, currentMessages: Message[]) => {
     // Clear any existing timeout
@@ -53,34 +55,80 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
     const userMessage: Message = {
       text: input,
       sender: Roles.HUMAN,
+      attachments: pendingAttachments, // Store serialized attachments
     };
 
-    const timestamp = Date.now();
+    // Prepare message to send to the API
+    let messageToSend = input;
+    if (pendingAttachments.length > 0) {
+      const attachmentContent = formatAttachments(pendingAttachments);
+      messageToSend = attachmentContent + input;
+    }
+
+    const messageHistoryToSend = currentMessages.map((message) => {
+      return {
+        text: formatAttachmentMessage(message),
+        sender: message.sender,
+      };
+    });
+
+    // Send the message to the API
+    apiClient.createConversation(
+      messageToSend,
+      messageHistoryToSend,
+      currentThreadId.toString(),
+      Date.now(),
+      model,
+      '',
+      (error) => console.error(error),
+    );
+
     const updatedMessages = [...currentMessages, userMessage];
     onUpdateMessages(updatedMessages);
 
-    apiClient.createConversation(input, updatedMessages, currentThreadId.toString(), timestamp, model, '', (error) =>
-      console.error(error),
-    );
+    // Clear pending files after sending
+    setPendingAttachments([]);
 
-    // Wait for 1 second before starting to poll
+    // Start polling for the response
     setTimeout(() => {
-      pollForResponse(currentThreadId.toString(), timestamp, updatedMessages);
+      pollForResponse(currentThreadId.toString(), Date.now(), updatedMessages);
     }, 1000);
   };
 
+  /**
+   * Handle the event when a message has been edited by the user
+   * @param input new message
+   * @param currentMessages Current messages
+   * @param editIndex Position of the message to edit
+   */
   const handleEditMessage = async (input: string, currentMessages: Message[], editIndex: number) => {
+    debugger;
+    // When editing, restore files from the original message
+    const originalMessage = currentMessages[editIndex];
+
     const newMessage: Message = {
+      ...originalMessage,
       text: input,
-      sender: Roles.HUMAN,
     };
+
+    // Formsat attachments
+    const messageToSend = formatAttachmentMessage(newMessage);
+    const messageHistoryToSend = currentMessages.map((message) => {
+      return {
+        text: formatAttachmentMessage(message),
+        sender: message.sender,
+      };
+    });
 
     // Keep messages up to the edit point and add the edited message
     const updatedMessages = [...currentMessages.slice(0, editIndex), newMessage];
     onUpdateMessages(updatedMessages);
 
+    // Clear pending files after sending
+    setPendingAttachments([]);
+
     // Get bot response for the edited message
-    const botResponse = await apiClient.sendMessage(input, currentMessages);
+    const botResponse = await apiClient.sendMessage(messageToSend, messageHistoryToSend);
     const newBotMessage: Message = {
       text: botResponse.latestResponse || "I'm a mock response to your edited message.",
       sender: Roles.ASSISTANT,
@@ -123,5 +171,7 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
     handleEditMessage,
     handleRestartFromMessage,
     handleAbort,
+    pendingAttachments,
+    setPendingAttachments,
   };
 }

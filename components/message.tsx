@@ -1,9 +1,10 @@
-// message.tsx
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from '@/components/ui/context-menu';
-import { Button } from '@/components/ui/button';
-import { Edit, GitBranch, RotateCcw, Copy } from 'lucide-react';
+import { Copy, Edit, GitBranch, RotateCcw } from 'lucide-react';
 import { useCallback } from 'react';
+import { Paperclip } from 'lucide-react';
+import { Avatar, AvatarFallback } from './ui/avatar';
+import { Button } from './ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from './ui/context-menu';
 import { toast } from 'sonner';
 import ReactMarkdown, { Components } from 'react-markdown';
 import { Roles } from '@/lib/types';
@@ -27,8 +28,9 @@ const components: Partial<Components> = {
 
 interface MessageProps {
   message: {
-    sender: 'Human' | 'Assistant';
     text: string;
+    sender: string;
+    attachments?: { name: string }[];
   };
   index: number;
   editingMessageId: number | null;
@@ -49,7 +51,7 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
   const ActionButtons = () => (
     <div className="absolute -bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
       <div className="flex bg-background/95 rounded-lg shadow-sm border border-border/50">
-        {message.sender === 'Human' ? (
+        {isHuman ? (
           <>
             <Button
               variant="ghost"
@@ -99,7 +101,7 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
       <ContextMenuTrigger>
         <div
           className={`flex mb-4 ${isHuman ? 'justify-end' : 'justify-start'} 
-          ${isAfterEditPoint ? 'opacity-50' : ''}`}
+            ${isAfterEditPoint ? 'opacity-50' : ''}`}
         >
           <div
             className={`flex items-start relative group ${
@@ -109,7 +111,6 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
             <Avatar className="h-8 w-8">
               <AvatarFallback>{isHuman ? <UserAvatar /> : <BotAvatar />}</AvatarFallback>
             </Avatar>
-
             <div className={`rounded-lg p-3 ${isHuman ? 'bg-muted' : 'bg-transparent'}`}>
               <div
                 className={`
@@ -123,6 +124,26 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
               >
                 <ReactMarkdown components={components}>{message.text}</ReactMarkdown>
               </div>
+              {message.attachments && message.attachments.length > 0 && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center mt-1 text-xs text-muted-foreground cursor-pointer">
+                      <Paperclip className="h-3 w-3 mr-1" />
+                      <span>
+                        {message.attachments.length} attachment
+                        {message.attachments.length > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <ul className="text-xs">
+                      {message.attachments.map((attachment, idx) => (
+                        <li key={idx}>{attachment.name}</li>
+                      ))}
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
             <ActionButtons />
           </div>
