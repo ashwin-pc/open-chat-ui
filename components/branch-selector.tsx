@@ -1,27 +1,22 @@
 // BranchSelector.tsx
-import { GitBranch } from "lucide-react"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
-import { Branch } from "@/lib/types"
+import { GitBranch } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Branch } from '@/lib/types';
 
 interface BranchSelectorProps {
-  currentBranchId: number
-  branches: Branch[]
-  onBranchChange: (branchId: number) => void
+  currentBranchId: number;
+  branches: Branch[];
+  onBranchChange: (branchId: number) => void;
 }
 
 export function BranchSelector({ currentBranchId, branches, onBranchChange }: BranchSelectorProps) {
   return (
-    <Select
-      value={currentBranchId.toString()}
-      onValueChange={(value) => onBranchChange(Number(value))}
-    >
-      <SelectTrigger className="w-[200px] md:w-[250px]">
+    <Select value={currentBranchId.toString()} onValueChange={(value) => onBranchChange(Number(value))}>
+      <SelectTrigger className="w-full md:w-[250px]">
         <SelectValue>
           <div className="flex items-center space-x-2">
             <GitBranch className="h-4 w-4" />
-            <span className="truncate">
-              {branches.find(b => b.id === currentBranchId)?.name}
-            </span>
+            <span className="truncate">{branches.find((b) => b.id === currentBranchId)?.name}</span>
           </div>
         </SelectValue>
       </SelectTrigger>
@@ -34,22 +29,16 @@ export function BranchSelector({ currentBranchId, branches, onBranchChange }: Br
                   <GitBranch className="h-4 w-4" />
                   <span className="font-medium">{branch.name}</span>
                 </div>
-                <span className="text-xs text-muted-foreground">
-                  {new Date(branch.createdAt).toLocaleDateString()}
-                </span>
+                <span className="text-xs text-muted-foreground">{new Date(branch.createdAt).toLocaleDateString()}</span>
               </div>
               {branch.description && (
-                <p className="text-xs text-muted-foreground truncate max-w-[300px]">
-                  {branch.description}
-                </p>
+                <p className="text-xs text-muted-foreground truncate max-w-[300px]">{branch.description}</p>
               )}
-              <div className="text-xs text-muted-foreground">
-                {branch.messages.length} messages
-              </div>
+              <div className="text-xs text-muted-foreground">{branch.messages.length} messages</div>
             </div>
           </SelectItem>
         ))}
       </SelectContent>
     </Select>
-  )
+  );
 }

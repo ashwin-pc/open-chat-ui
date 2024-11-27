@@ -17,6 +17,9 @@ import { ThemeProvider } from '@/contexts/theme-context';
 import { Toaster } from './ui/sonner';
 import { toast } from 'sonner';
 import { MAX_FILE_SIZE, MAX_TOKENS_PER_FILE, parseFile, getTokenCount } from '@/lib/utils/file';
+import { Menu, SettingsIcon } from 'lucide-react';
+import { Button } from './ui/button';
+import { MobileMenu } from './moble-menu';
 
 interface ChatAppProps {
   apiClient: ChatApiInterface;
@@ -35,6 +38,7 @@ export function ChatApp({ apiClient }: ChatAppProps) {
   } = useMessageInput();
   const [isImmersive, setIsImmersive] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const {
@@ -220,6 +224,9 @@ export function ChatApp({ apiClient }: ChatAppProps) {
     actions.updateBranchModel(currentThreadId, currentThread.currentBranchId, model);
   };
 
+  const openMobileMenu = () => setIsMobileMenuOpen(true);
+  const openSettings = () => {}; // TODO
+
   useEffect(() => {
     adjustTextareaHeight();
     window.addEventListener('resize', adjustTextareaHeight);
@@ -245,21 +252,43 @@ export function ChatApp({ apiClient }: ChatAppProps) {
         <SidebarInset>
           <div className="flex h-screen flex-col">
             {/* Main Chat Area */}
-            <header className="flex flex-row items-center justify-between p-2 md:p-4 shrink-0">
+            <header className="flex items-center justify-between p-2 md:p-4 shrink-0">
               <div className="flex items-center space-x-2 md:space-x-4">
                 <SidebarTrigger />
                 <h2 className="text-lg md:text-2xl font-bold truncate">{currentThread.name}</h2>
               </div>
               <div className="flex items-center space-x-2 md:space-x-4">
-                <ShortcutsDialog open={isShortcutsOpen} onOpenChange={setIsShortcutsOpen} />
-                <ThemeToggle />
-                <BranchSelector
-                  currentBranchId={currentThread.currentBranchId}
-                  branches={currentThread.branches}
-                  onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
-                />
+                {/* Mobile view */}
+                <div className="flex md:hidden">
+                  <Button variant="ghost" size="icon" onClick={openMobileMenu}>
+                    <Menu className="w-6 h-6" />
+                  </Button>
+                </div>
+                {/* Desktop view */}
+                <div className="hidden md:flex items-center space-x-2 md:space-x-4">
+                  <BranchSelector
+                    currentBranchId={currentThread.currentBranchId}
+                    branches={currentThread.branches}
+                    onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
+                  />
+                  <ShortcutsDialog open={isShortcutsOpen} onOpenChange={setIsShortcutsOpen} />
+                  <ThemeToggle />
+                  <Button variant="ghost" size="icon" onClick={openSettings}>
+                    <SettingsIcon className="w-6 h-6" />
+                  </Button>
+                </div>
               </div>
             </header>
+            {/* Mobile menu */}
+            <MobileMenu
+              isOpen={isMobileMenuOpen}
+              onOpenChange={setIsMobileMenuOpen}
+              currentThread={currentThread}
+              currentThreadId={currentThreadId}
+              actions={actions}
+              setIsShortcutsOpen={setIsShortcutsOpen}
+              openSettings={openSettings}
+            />
             <div className="flex-grow flex flex-col p-2 md:p-4">
               <MessageList
                 messages={currentBranch.messages}
