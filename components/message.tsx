@@ -113,7 +113,7 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
             >
               <AvatarFallback>{isHuman ? <UserAvatar /> : <BotAvatar />}</AvatarFallback>
             </Avatar>
-            <div className={`rounded-lg ${isHuman ? 'bg-muted p-3' : 'bg-transparent'}`}>
+            <div className={`rounded-lg ${isHuman ? 'bg-muted p-3' : 'bg-transparent pl-3'}`}>
               <div
                 className={`
                   prose max-w-none

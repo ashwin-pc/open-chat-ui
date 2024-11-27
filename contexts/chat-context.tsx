@@ -1,8 +1,9 @@
 // contexts/ChatContext.tsx
-import { createContext, useContext, useState, ReactNode, useMemo } from 'react';
+import { createContext, useContext, useMemo, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Message, ChatThread, Branch, BedrockModelNames } from '../lib/types';
 import { useHotkeys } from '../hooks/use-hotkeys';
+import { useLocalStorage } from 'usehooks-ts';
 
 export interface ChatContextType {
   chatThreads: ChatThread[];
@@ -26,24 +27,28 @@ export interface ChatContextType {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children }: { children: ReactNode }) {
-  const [chatThreads, setChatThreads] = useState<ChatThread[]>([
-    {
-      id: uuidv4(),
-      name: 'New Chat',
-      branches: [
-        {
-          id: 1,
-          name: 'Main',
-          messages: [],
-          attachments: [],
-          createdAt: new Date(),
-          description: 'Initial conversation branch',
-        },
-      ],
-      currentBranchId: 1,
-    },
-  ]);
-  const [currentThreadId, setCurrentThreadId] = useState(chatThreads[0].id);
+  const initialThread = {
+    id: uuidv4(),
+    name: 'New Chat',
+    branches: [
+      {
+        id: 1,
+        name: 'Main',
+        messages: [],
+        attachments: [],
+        createdAt: new Date(),
+        description: 'Initial conversation branch',
+      },
+    ],
+    currentBranchId: 1,
+  };
+
+  const [chatThreads, setChatThreads] = useLocalStorage<ChatThread[]>('chatThreads', [initialThread], {
+    initializeWithValue: false,
+  });
+  const [currentThreadId, setCurrentThreadId] = useLocalStorage<string>('currentThreadId', initialThread.id, {
+    initializeWithValue: false,
+  });
 
   useHotkeys('new-thread', {
     key: '/',

@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { ThemeToggle } from './theme-toggle';
 import { SidePanel } from './side-panel';
 import { BranchSelector } from './branch-selector';
+import { ChatLoading } from './chat-loading';
 import { useChatApi } from '@/hooks/use-chat-api';
 import { useChat } from '@/contexts/chat-context';
 import { useMessageInput } from '@/hooks/use-message-input';
@@ -26,6 +27,7 @@ interface ChatAppProps {
 }
 
 export function ChatApp({ apiClient }: ChatAppProps) {
+  const [loaded, setLoaded] = useState(false);
   const { currentBranch, currentThread, actions, currentThreadId } = useChat();
   const {
     input,
@@ -40,7 +42,6 @@ export function ChatApp({ apiClient }: ChatAppProps) {
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout>();
   const {
     isPolling,
     partialResponse,
@@ -237,93 +238,95 @@ export function ChatApp({ apiClient }: ChatAppProps) {
   }, [input, adjustTextareaHeight]);
 
   useEffect(() => {
-    const currentTimeout = timeoutRef.current;
-    return () => {
-      if (currentTimeout) {
-        clearTimeout(currentTimeout);
-      }
-    };
+    setLoaded(true);
+    return () => {};
   }, []);
 
   return (
     <ThemeProvider>
       <SidebarProvider>
-        <SidePanel />
-        <SidebarInset>
-          <div className="flex h-screen flex-col">
-            {/* Main Chat Area */}
-            <header className="flex items-center justify-between p-2 md:p-4 shrink-0">
-              <div className="flex items-center space-x-2 md:space-x-4">
-                <SidebarTrigger />
-                <h2 className="text-lg md:text-2xl font-bold truncate">{currentThread.name}</h2>
-              </div>
-              <div className="flex items-center space-x-2 md:space-x-4">
-                {/* Mobile view */}
-                <div className="flex md:hidden">
-                  <Button variant="ghost" size="icon" onClick={openMobileMenu}>
-                    <Menu className="w-6 h-6" />
-                  </Button>
-                </div>
-                {/* Desktop view */}
-                <div className="hidden md:flex items-center space-x-2 md:space-x-4">
-                  <BranchSelector
-                    currentBranchId={currentThread.currentBranchId}
-                    branches={currentThread.branches}
-                    onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
+        {!loaded ? (
+          <ChatLoading />
+        ) : (
+          <>
+            <SidePanel />
+            <SidebarInset>
+              <div className="flex h-screen flex-col">
+                {/* Main Chat Area */}
+                <header className="flex items-center justify-between p-2 md:p-4 shrink-0">
+                  <div className="flex items-center space-x-2 md:space-x-4">
+                    <SidebarTrigger />
+                    <h2 className="text-lg md:text-2xl font-bold truncate">{currentThread.name}</h2>
+                  </div>
+                  <div className="flex items-center space-x-2 md:space-x-4">
+                    {/* Mobile view */}
+                    <div className="flex md:hidden">
+                      <Button variant="ghost" size="icon" onClick={openMobileMenu}>
+                        <Menu className="w-6 h-6" />
+                      </Button>
+                    </div>
+                    {/* Desktop view */}
+                    <div className="hidden md:flex items-center space-x-2 md:space-x-4">
+                      <BranchSelector
+                        currentBranchId={currentThread.currentBranchId}
+                        branches={currentThread.branches}
+                        onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
+                      />
+                      <ShortcutsDialog open={isShortcutsOpen} onOpenChange={setIsShortcutsOpen} />
+                      <ThemeToggle />
+                      <Button variant="ghost" size="icon" onClick={openSettings}>
+                        <SettingsIcon className="w-6 h-6" />
+                      </Button>
+                    </div>
+                  </div>
+                </header>
+                {/* Mobile menu */}
+                <MobileMenu
+                  isOpen={isMobileMenuOpen}
+                  onOpenChange={setIsMobileMenuOpen}
+                  currentThread={currentThread}
+                  currentThreadId={currentThreadId}
+                  actions={actions}
+                  setIsShortcutsOpen={setIsShortcutsOpen}
+                  openSettings={openSettings}
+                />
+                <div className="flex-grow flex flex-col p-2 md:p-4">
+                  <MessageList
+                    messages={currentBranch.messages}
+                    editingMessageId={editingMessageId}
+                    partialResponse={partialResponse}
+                    isPolling={isPolling}
+                    onRestart={handleRestart}
+                    onEdit={handleEdit}
+                    onBranch={handleBranch}
+                    threadId={currentThread.id}
                   />
-                  <ShortcutsDialog open={isShortcutsOpen} onOpenChange={setIsShortcutsOpen} />
-                  <ThemeToggle />
-                  <Button variant="ghost" size="icon" onClick={openSettings}>
-                    <SettingsIcon className="w-6 h-6" />
-                  </Button>
+                </div>
+                <div className="flex flex-col">
+                  <ChatInput
+                    isImmersive={isImmersive}
+                    toggleImmersive={toggleImmersive}
+                    input={input}
+                    setInput={setInput}
+                    handleSend={handleSend}
+                    isPolling={isPolling}
+                    handleAbort={handleAbort}
+                    editingMessageId={editingMessageId}
+                    handleCancelEdit={handleCancelEdit}
+                    textareaRef={textareaRef}
+                    fileInputRef={fileInputRef}
+                    handleFileUpload={handleFileUpload}
+                    attachments={pendingAttachments}
+                    removeAttachment={handleRemoveAttachment}
+                    selectedModel={currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2}
+                    onModelChange={handleModelChange}
+                  />
                 </div>
               </div>
-            </header>
-            {/* Mobile menu */}
-            <MobileMenu
-              isOpen={isMobileMenuOpen}
-              onOpenChange={setIsMobileMenuOpen}
-              currentThread={currentThread}
-              currentThreadId={currentThreadId}
-              actions={actions}
-              setIsShortcutsOpen={setIsShortcutsOpen}
-              openSettings={openSettings}
-            />
-            <div className="flex-grow flex flex-col p-2 md:p-4">
-              <MessageList
-                messages={currentBranch.messages}
-                editingMessageId={editingMessageId}
-                partialResponse={partialResponse}
-                isPolling={isPolling}
-                onRestart={handleRestart}
-                onEdit={handleEdit}
-                onBranch={handleBranch}
-                threadId={currentThread.id}
-              />
-            </div>
-            <div className="flex flex-col">
-              <ChatInput
-                isImmersive={isImmersive}
-                toggleImmersive={toggleImmersive}
-                input={input}
-                setInput={setInput}
-                handleSend={handleSend}
-                isPolling={isPolling}
-                handleAbort={handleAbort}
-                editingMessageId={editingMessageId}
-                handleCancelEdit={handleCancelEdit}
-                textareaRef={textareaRef}
-                fileInputRef={fileInputRef}
-                handleFileUpload={handleFileUpload}
-                attachments={pendingAttachments}
-                removeAttachment={handleRemoveAttachment}
-                selectedModel={currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2}
-                onModelChange={handleModelChange}
-              />
-            </div>
-          </div>
-          <Toaster />
-        </SidebarInset>
+              <Toaster />
+            </SidebarInset>
+          </>
+        )}
       </SidebarProvider>
     </ThemeProvider>
   );
