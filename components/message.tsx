@@ -104,14 +104,16 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
             ${isAfterEditPoint ? 'opacity-50' : ''}`}
         >
           <div
-            className={`flex items-start relative group ${
-              isHuman ? 'space-x-reverse space-x-2 flex-row-reverse' : 'space-x-2'
-            }`}
+            className={`flex flex-col items-${isHuman ? 'end' : 'start'} relative group 
+              ${isHuman ? 'sm:items-end' : 'sm:items-start'}`}
           >
-            <Avatar className="h-8 w-8">
+            <Avatar
+              className={`h-6 w-6 sm:h-8 sm:w-8 mb-2 
+              ${isHuman ? 'self-end' : 'self-start'}`}
+            >
               <AvatarFallback>{isHuman ? <UserAvatar /> : <BotAvatar />}</AvatarFallback>
             </Avatar>
-            <div className={`rounded-lg p-3 ${isHuman ? 'bg-muted' : 'bg-transparent'}`}>
+            <div className={`rounded-lg ${isHuman ? 'bg-muted p-3' : 'bg-transparent'}`}>
               <div
                 className={`
                   prose max-w-none
