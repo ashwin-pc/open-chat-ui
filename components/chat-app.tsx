@@ -114,7 +114,7 @@ export function ChatApp({ apiClient }: ChatAppProps) {
   const handleSend = async () => {
     if (input.trim()) {
       if (editingMessageId !== null) {
-        await handleEditMessage(input, currentBranch.messages, editingMessageId);
+        await handleEditMessage(input, currentThread, editingMessageId);
         setEditingMessageId(null);
         setEditingInputBackup('');
       } else {
@@ -124,18 +124,14 @@ export function ChatApp({ apiClient }: ChatAppProps) {
             name: title,
           });
         }
-        await handleNewMessage(
-          input,
-          currentBranch.messages,
-          currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
-        );
+        await handleNewMessage(input, currentThread);
       }
       setInput('');
     }
   };
 
   const handleRestart = async (index: number) => {
-    handleRestartFromMessage(currentBranch.messages, index);
+    handleRestartFromMessage(currentThread, index);
   };
 
   const handleEdit = (index: number) => {

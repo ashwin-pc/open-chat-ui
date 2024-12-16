@@ -38,6 +38,7 @@ export interface ChatThread {
   name: string;
   branches: Branch[];
   currentBranchId: number;
+  context?: string; // TODO
 }
 
 export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {

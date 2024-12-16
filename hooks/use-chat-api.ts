@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Attachment, BedrockModelNames, ChatApiInterface, Message, Roles } from '@/lib/types';
+import { Attachment, BedrockModelNames, ChatApiInterface, ChatThread, Message, Roles } from '@/lib/types';
 import { formatAttachmentMessage, formatAttachments } from '@/lib/utils/file';
 import { toast } from 'sonner';
 
@@ -86,7 +86,13 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
     }, 1000);
   };
 
-  const handleNewMessage = async (input: string, currentMessages: Message[], model: BedrockModelNames) => {
+  const handleNewMessage = async (input: string, chatThread: ChatThread) => {
+    const currentBranch = chatThread.branches.find((b) => b.id === chatThread.currentBranchId);
+    if (!currentBranch) {
+      toast.error('Could not find current branch');
+      return;
+    }
+
     const userMessage: Message = {
       text: input,
       sender: Roles.HUMAN,
@@ -99,42 +105,60 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
       messageToSend = attachmentContent + input;
     }
 
-    const updatedMessages = [...currentMessages, userMessage];
+    const updatedMessages = [...currentBranch.messages, userMessage];
     onUpdateMessages(updatedMessages);
     setPendingAttachments([]);
 
-    createConversationAndPoll(messageToSend, currentMessages, updatedMessages, model);
+    createConversationAndPoll(
+      messageToSend,
+      currentBranch.messages,
+      updatedMessages,
+      currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
+    );
   };
 
   /**
    * Handle the event when a message has been edited by the user
    * @param input new message
-   * @param currentMessages Current messages
+   * @param chatThread Chat thread
    * @param editIndex Position of the message to edit
    */
-  const handleEditMessage = async (input: string, currentMessages: Message[], editIndex: number) => {
-    debugger;
-    // When editing, restore files from the original message
-    const originalMessage = currentMessages[editIndex];
+  const handleEditMessage = async (input: string, chatThread: ChatThread, editIndex: number) => {
+    const currentBranch = chatThread.branches.find((b) => b.id === chatThread.currentBranchId);
+    if (!currentBranch) {
+      toast.error('Could not find current branch');
+      return;
+    }
 
+    const originalMessage = currentBranch.messages[editIndex];
     const newMessage: Message = {
       ...originalMessage,
       text: input,
     };
 
-    // Keep messages up to the edit point and add the edited message
-    const updatedMessages = [...currentMessages.slice(0, editIndex), newMessage];
+    const updatedMessages = [...currentBranch.messages.slice(0, editIndex), newMessage];
     onUpdateMessages(updatedMessages);
 
     // Clear pending files after sending
     setPendingAttachments([]);
 
     const messageToSend = formatAttachmentMessage(newMessage);
-    createConversationAndPoll(messageToSend, updatedMessages.slice(0, -1), updatedMessages);
+    createConversationAndPoll(
+      messageToSend,
+      updatedMessages.slice(0, -1),
+      updatedMessages,
+      currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
+    );
   };
 
-  const handleRestartFromMessage = async (currentMessages: Message[], restartIndex: number) => {
-    const newMessages = currentMessages.slice(0, restartIndex + 1);
+  const handleRestartFromMessage = async (chatThread: ChatThread, restartIndex: number) => {
+    const currentBranch = chatThread.branches.find((b) => b.id === chatThread.currentBranchId);
+    if (!currentBranch) {
+      toast.error('Could not find current branch');
+      return;
+    }
+
+    const newMessages = currentBranch.messages.slice(0, restartIndex + 1);
     onUpdateMessages(newMessages);
 
     const lastMessage = newMessages[newMessages.length - 1];
@@ -144,7 +168,7 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
         messageToSend,
         newMessages.slice(0, -1),
         newMessages,
-        BedrockModelNames.CLAUDE_V3_5_SONNET,
+        currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
       );
     }
   };

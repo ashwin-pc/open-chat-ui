@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, MessageSquare } from 'lucide-react';
+import { Plus, Trash2, MessageSquare, MoreHorizontal } from 'lucide-react';
 import { useChat } from '@/contexts/chat-context';
 import {
   Sidebar,
@@ -11,7 +11,14 @@ import {
   SidebarGroup,
   useSidebar,
   SidebarFooter,
+  SidebarMenuAction,
 } from '@/components/ui/sidebar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 
 export function SidePanel() {
@@ -52,20 +59,30 @@ export function SidePanel() {
                   onClick={() => actions.switchThread(thread.id)}
                 >
                   {thread.name}
-                  {chatThreads.length > 1 && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="ml-auto"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        actions.deleteThread(thread.id);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
                 </SidebarMenuButton>
+                {chatThreads.length > 1 && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SidebarMenuAction>
+                        <MoreHorizontal />
+                      </SidebarMenuAction>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent side="right" align="start">
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          actions.deleteThread(thread.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        <span>Delete Thread</span>
+                      </DropdownMenuItem>
+                      {/* <DropdownMenuItem>
+                      <span>Delete Project</span>
+                    </DropdownMenuItem> */}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>
