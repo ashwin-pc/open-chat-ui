@@ -141,7 +141,7 @@ export function ChatInput({
 
             {/* Send/Edit/Abort button */}
             <div className="absolute right-2 bottom-2 flex space-x-2">
-              {editingMessageId && (
+              {(editingMessageId !== null) && (
                 <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="h-8 w-8">
                   <X className="h-4 w-4" />
                 </Button>
@@ -154,8 +154,6 @@ export function ChatInput({
               >
                 {isPolling ? (
                   <X className="h-4 w-4" />
-                ) : editingMessageId ? (
-                  <Edit className="h-4 w-4" />
                 ) : (
                   <Send className="h-4 w-4" />
                 )}

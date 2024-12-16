@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Attachment, BedrockModelNames, ChatApiInterface, Message, Roles } from '@/lib/types';
 import { formatAttachmentMessage, formatAttachments } from '@/lib/utils/file';
+import { toast } from 'sonner';
 
 interface UseChatApiProps {
   currentThreadId: string;
@@ -26,26 +27,34 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
     }
 
     setIsPolling(true);
-    const { status, latestResponse } = await apiClient.getLatestResponse(conversationId, updatedTime);
+    try {
+      const { status, latestResponse } = await apiClient.getLatestResponse(conversationId, updatedTime);
 
-    if (latestResponse) {
-      setPartialResponse({
-        threadId: conversationId,
-        text: latestResponse,
-      });
-    }
+      if (latestResponse) {
+        setPartialResponse({
+          threadId: conversationId,
+          text: latestResponse,
+        });
+      }
 
-    if (status === 'PENDING') {
-      timeoutRef.current = setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 100);
-    } else if (status === 'COMPLETE') {
-      const botResponse: Message = {
-        text: latestResponse,
-        sender: Roles.ASSISTANT,
-      };
+      if (status === 'PENDING') {
+        timeoutRef.current = setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 100);
+      } else if (status === 'COMPLETE') {
+        const botResponse: Message = {
+          text: latestResponse,
+          sender: Roles.ASSISTANT,
+        };
 
-      const updatedMessages = [...currentMessages, botResponse];
-      onUpdateMessages(updatedMessages);
+        const updatedMessages = [...currentMessages, botResponse];
+        onUpdateMessages(updatedMessages);
 
+        setPartialResponse(undefined);
+        setIsPolling(false);
+      }
+
+    } catch (error) {
+      console.error('Error polling for response:', error);
+      toast.error(`${error}`, { duration: 10000, dismissible: true });
       setPartialResponse(undefined);
       setIsPolling(false);
     }
@@ -72,12 +81,14 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
       };
     });
 
+    const conversationTime = Date.now()
+
     // Send the message to the API
     apiClient.createConversation(
       messageToSend,
       messageHistoryToSend,
       currentThreadId.toString(),
-      Date.now(),
+      conversationTime,
       model,
       '',
       (error) => console.error(error),
@@ -91,7 +102,7 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
 
     // Start polling for the response
     setTimeout(() => {
-      pollForResponse(currentThreadId.toString(), Date.now(), updatedMessages);
+      pollForResponse(currentThreadId.toString(), conversationTime, updatedMessages);
     }, 1000);
   };
 
@@ -156,12 +167,12 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
   };
 
   const handleAbort = async () => {
+    setIsPolling(false);
+    setPartialResponse(undefined);
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
     await apiClient.abortConversation(currentThreadId.toString());
-    setIsPolling(false);
-    setPartialResponse(undefined);
   };
 
   return {

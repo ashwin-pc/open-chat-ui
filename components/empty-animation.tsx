@@ -321,7 +321,7 @@ const NeuralFlow = () => {
   }, [theme]);
 
   return (
-    <div className="w-full h-full min-h-[200px] bg-background/50 backdrop-blur-sm">
+    <div className="w-full h-full min-h-[200px] max-h-96 bg-background/50 backdrop-blur-sm">
       <canvas ref={canvasRef} className="w-full h-full cursor-pointer" />
     </div>
   );
