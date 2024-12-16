@@ -51,7 +51,6 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
         setPartialResponse(undefined);
         setIsPolling(false);
       }
-
     } catch (error) {
       console.error('Error polling for response:', error);
       toast.error(`${error}`, { duration: 10000, dismissible: true });
@@ -60,33 +59,20 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
     }
   };
 
-  const handleNewMessage = async (input: string, currentMessages: Message[], model: BedrockModelNames) => {
-    const userMessage: Message = {
-      text: input,
-      sender: Roles.HUMAN,
-      attachments: pendingAttachments, // Store serialized attachments
-    };
+  const createConversationAndPoll = (
+    messageToSend: string,
+    messageHistory: Message[],
+    updatedMessages: Message[],
+    model: BedrockModelNames = BedrockModelNames.CLAUDE_V3_5_SONNET,
+  ) => {
+    const conversationTime = Date.now();
 
-    // Prepare message to send to the API
-    let messageToSend = input;
-    if (pendingAttachments.length > 0) {
-      const attachmentContent = formatAttachments(pendingAttachments);
-      messageToSend = attachmentContent + input;
-    }
-
-    const messageHistoryToSend = currentMessages.map((message) => {
-      return {
-        text: formatAttachmentMessage(message),
-        sender: message.sender,
-      };
-    });
-
-    const conversationTime = Date.now()
-
-    // Send the message to the API
     apiClient.createConversation(
       messageToSend,
-      messageHistoryToSend,
+      messageHistory.map((message) => ({
+        text: formatAttachmentMessage(message),
+        sender: message.sender,
+      })),
       currentThreadId.toString(),
       conversationTime,
       model,
@@ -94,16 +80,30 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
       (error) => console.error(error),
     );
 
-    const updatedMessages = [...currentMessages, userMessage];
-    onUpdateMessages(updatedMessages);
-
-    // Clear pending files after sending
-    setPendingAttachments([]);
-
     // Start polling for the response
     setTimeout(() => {
       pollForResponse(currentThreadId.toString(), conversationTime, updatedMessages);
     }, 1000);
+  };
+
+  const handleNewMessage = async (input: string, currentMessages: Message[], model: BedrockModelNames) => {
+    const userMessage: Message = {
+      text: input,
+      sender: Roles.HUMAN,
+      attachments: pendingAttachments,
+    };
+
+    let messageToSend = input;
+    if (pendingAttachments.length > 0) {
+      const attachmentContent = formatAttachments(pendingAttachments);
+      messageToSend = attachmentContent + input;
+    }
+
+    const updatedMessages = [...currentMessages, userMessage];
+    onUpdateMessages(updatedMessages);
+    setPendingAttachments([]);
+
+    createConversationAndPoll(messageToSend, currentMessages, updatedMessages, model);
   };
 
   /**
@@ -122,15 +122,6 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
       text: input,
     };
 
-    // Formsat attachments
-    const messageToSend = formatAttachmentMessage(newMessage);
-    const messageHistoryToSend = currentMessages.map((message) => {
-      return {
-        text: formatAttachmentMessage(message),
-        sender: message.sender,
-      };
-    });
-
     // Keep messages up to the edit point and add the edited message
     const updatedMessages = [...currentMessages.slice(0, editIndex), newMessage];
     onUpdateMessages(updatedMessages);
@@ -138,13 +129,8 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
     // Clear pending files after sending
     setPendingAttachments([]);
 
-    // Get bot response for the edited message
-    const botResponse = await apiClient.sendMessage(messageToSend, messageHistoryToSend);
-    const newBotMessage: Message = {
-      text: botResponse.latestResponse || "I'm a mock response to your edited message.",
-      sender: Roles.ASSISTANT,
-    };
-    onUpdateMessages([...updatedMessages, newBotMessage]);
+    const messageToSend = formatAttachmentMessage(newMessage);
+    createConversationAndPoll(messageToSend, updatedMessages.slice(0, -1), updatedMessages);
   };
 
   const handleRestartFromMessage = async (currentMessages: Message[], restartIndex: number) => {
@@ -153,16 +139,13 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
 
     const lastMessage = newMessages[newMessages.length - 1];
     if (lastMessage.sender === Roles.HUMAN) {
-      apiClient.createConversation(
-        lastMessage.text,
+      const messageToSend = formatAttachmentMessage(lastMessage);
+      createConversationAndPoll(
+        messageToSend,
+        newMessages.slice(0, -1),
         newMessages,
-        currentThreadId.toString(),
-        Date.now(),
         BedrockModelNames.CLAUDE_V3_5_SONNET,
-        '',
-        (error) => console.error(error),
       );
-      pollForResponse(currentThreadId.toString(), Date.now(), newMessages);
     }
   };
 
