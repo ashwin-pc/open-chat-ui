@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, MessageSquare, MoreHorizontal } from 'lucide-react';
+import { Plus, Trash2, MessageSquare, MoreHorizontal, SettingsIcon } from 'lucide-react';
 import { useChat } from '@/contexts/chat-context';
 import {
   Sidebar,
@@ -20,6 +20,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useHotkeys } from '@/hooks/use-hotkeys';
+import { ThemeToggle } from './theme-toggle';
+import { ShortcutsDialog } from './shortcuts-dialog';
 
 export function SidePanel() {
   const { chatThreads, currentThreadId, actions } = useChat();
@@ -77,9 +79,6 @@ export function SidePanel() {
                         <Trash2 className="h-4 w-4" />
                         <span>Delete Thread</span>
                       </DropdownMenuItem>
-                      {/* <DropdownMenuItem>
-                      <span>Delete Project</span>
-                    </DropdownMenuItem> */}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 )}
@@ -94,6 +93,14 @@ export function SidePanel() {
           <Plus className="h-4 w-4 mr-2" />
           New Thread
         </Button>
+
+        <div className="grid grid-cols-3 gap-4 justify-items-center">
+          <ShortcutsDialog />
+          <ThemeToggle />
+          <Button variant="ghost" size="icon" onClick={() => {}}>
+            <SettingsIcon className="w-6 h-6" />
+          </Button>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

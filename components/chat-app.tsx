@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { ThemeToggle } from './theme-toggle';
 import { SidePanel } from './side-panel';
 import { BranchSelector } from './branch-selector';
 import { ChatLoading } from './chat-loading';
@@ -11,7 +10,6 @@ import { useMessageInput } from '@/hooks/use-message-input';
 import { ChatInput } from './chat-input';
 import { MessageList } from './message-list';
 import { useHotkeys } from '@/hooks/use-hotkeys';
-import { ShortcutsDialog } from './shortcuts-dialog';
 import { BedrockModelNames, ChatApiInterface, Roles } from '@/lib/types';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from './ui/sidebar';
 import { ThemeProvider } from '@/contexts/theme-context';
@@ -20,7 +18,6 @@ import { toast } from 'sonner';
 import { MAX_FILE_SIZE, MAX_TOKENS_PER_FILE, parseFile, getTokenCount } from '@/lib/utils/file';
 import { Menu, SettingsIcon } from 'lucide-react';
 import { Button } from './ui/button';
-import { MobileMenu } from './moble-menu';
 
 interface ChatAppProps {
   apiClient: ChatApiInterface;
@@ -39,8 +36,6 @@ export function ChatApp({ apiClient }: ChatAppProps) {
     textareaRef,
   } = useMessageInput();
   const [isImmersive, setIsImmersive] = useState(false);
-  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const {
     isPolling,
@@ -59,13 +54,6 @@ export function ChatApp({ apiClient }: ChatAppProps) {
         messages: newMessages,
       });
     },
-  });
-
-  useHotkeys('shortcuts-dialog', {
-    key: 'cmd+/',
-    description: 'Toggle shortcuts dialog',
-    scope: 'Global',
-    callback: () => setIsShortcutsOpen((prev) => !prev),
   });
 
   useHotkeys('send-message', {
@@ -221,9 +209,6 @@ export function ChatApp({ apiClient }: ChatAppProps) {
     actions.updateBranchModel(currentThreadId, currentThread.currentBranchId, model);
   };
 
-  const openMobileMenu = () => setIsMobileMenuOpen(true);
-  const openSettings = () => {}; // TODO
-
   useEffect(() => {
     adjustTextareaHeight();
     window.addEventListener('resize', adjustTextareaHeight);
@@ -255,37 +240,13 @@ export function ChatApp({ apiClient }: ChatAppProps) {
                     <h2 className="text-lg md:text-2xl font-bold truncate">{currentThread.name}</h2>
                   </div>
                   <div className="flex items-center space-x-2 md:space-x-4">
-                    {/* Mobile view */}
-                    <div className="flex md:hidden">
-                      <Button variant="ghost" size="icon" onClick={openMobileMenu}>
-                        <Menu className="w-6 h-6" />
-                      </Button>
-                    </div>
-                    {/* Desktop view */}
-                    <div className="hidden md:flex items-center space-x-2 md:space-x-4">
-                      <BranchSelector
-                        currentBranchId={currentThread.currentBranchId}
-                        branches={currentThread.branches}
-                        onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
-                      />
-                      <ShortcutsDialog open={isShortcutsOpen} onOpenChange={setIsShortcutsOpen} />
-                      <ThemeToggle />
-                      <Button variant="ghost" size="icon" onClick={openSettings}>
-                        <SettingsIcon className="w-6 h-6" />
-                      </Button>
-                    </div>
+                    <BranchSelector
+                      currentBranchId={currentThread.currentBranchId}
+                      branches={currentThread.branches}
+                      onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
+                    />
                   </div>
                 </header>
-                {/* Mobile menu */}
-                <MobileMenu
-                  isOpen={isMobileMenuOpen}
-                  onOpenChange={setIsMobileMenuOpen}
-                  currentThread={currentThread}
-                  currentThreadId={currentThreadId}
-                  actions={actions}
-                  setIsShortcutsOpen={setIsShortcutsOpen}
-                  openSettings={openSettings}
-                />
                 <div className="flex-grow flex flex-col p-2 md:p-4">
                   <MessageList
                     messages={currentBranch.messages}
