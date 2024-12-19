@@ -1,7 +1,7 @@
 // contexts/ChatContext.tsx
 import { createContext, useContext, useMemo, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Message, ChatThread, Branch, BedrockModelNames } from '../lib/types';
+import { Message, ChatThread, Branch, BedrockModelNames, SystemPrompt } from '../lib/types';
 import { useHotkeys } from '../hooks/use-hotkeys';
 import { useLocalStorage } from 'usehooks-ts';
 
@@ -10,6 +10,9 @@ export interface ChatContextType {
   currentThreadId: string;
   currentThread: ChatThread;
   currentBranch: Branch;
+  systemPrompts: SystemPrompt[];
+  defaultSystemPromptId: string;
+  currentSystemPrompt: SystemPrompt;
   actions: {
     createThread: () => void;
     deleteThread: (threadId: string) => void;
@@ -21,12 +24,23 @@ export interface ChatContextType {
     addAttachments: (threadId: string, branchId: number, files: File[]) => void;
     removeAttachment: (threadId: string, branchId: number, fileName: string) => void;
     updateBranchModel: (threadId: string, branchId: number, model: BedrockModelNames) => void;
+    addSystemPrompt: (prompt: SystemPrompt) => void;
+    updateSystemPrompt: (promptId: string, updates: Partial<SystemPrompt>) => void;
+    deleteSystemPrompt: (promptId: string) => void;
+    setDefaultSystemPrompt: (promptId: string) => void;
+    selectSystemPrompt: (promptId: string) => void;
   };
 }
 
+const DEFAULT_SYSTEM_PROMPT: SystemPrompt = {
+  id: 'default',
+  name: 'Default Prompt',
+  text: 'You are a helpful assistant.',
+};
+
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
-export function ChatProvider({ children }: { children: ReactNode }) {
+export function ChatProvider({ children, prompts }: { children: ReactNode; prompts?: SystemPrompt[] }) {
   const initialThread = {
     id: uuidv4(),
     name: 'New Chat',
@@ -49,6 +63,16 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [currentThreadId, setCurrentThreadId] = useLocalStorage<string>('currentThreadId', initialThread.id, {
     initializeWithValue: false,
   });
+
+  const [systemPrompts, setSystemPrompts] = useLocalStorage<SystemPrompt[]>(
+    'systemPrompts',
+    prompts ?? [DEFAULT_SYSTEM_PROMPT],
+  );
+
+  const [defaultSystemPromptId, setDefaultSystemPromptId] = useLocalStorage<string>(
+    'defaultSystemPromptId',
+    systemPrompts[0].id,
+  );
 
   useHotkeys('new-thread', {
     key: '/',
@@ -84,6 +108,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const currentThread = chatThreads.find((t) => t.id === currentThreadId) || chatThreads[0];
   const currentBranch =
     currentThread.branches.find((b) => b.id === currentThread.currentBranchId) || currentThread.branches[0];
+  const currentSystemPrompt = systemPrompts.find((p) => p.id === currentThread.systemPromptId) || DEFAULT_SYSTEM_PROMPT;
 
   const actions = useMemo(
     () => ({
@@ -97,7 +122,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           setCurrentThreadId(emptyThread.id);
         } else {
           // Create new thread only if no empty thread exists
-          const newThread = {
+          const newThread: ChatThread = {
             id: uuidv4(),
             name: 'New Chat',
             branches: [
@@ -111,6 +136,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
               },
             ],
             currentBranchId: 1,
+            systemPromptId: defaultSystemPromptId,
           };
           setChatThreads((prev) => [...prev, newThread]);
           setCurrentThreadId(newThread.id);
@@ -232,6 +258,33 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           ),
         );
       },
+
+      addSystemPrompt: (prompt: SystemPrompt) => {
+        setSystemPrompts((prompts) => [...prompts, prompt]);
+      },
+      updateSystemPrompt: (promptId: string, updates: Partial<SystemPrompt>) => {
+        setSystemPrompts((prompts) =>
+          prompts.map((prompt) => (prompt.id === promptId ? { ...prompt, ...updates } : prompt)),
+        );
+      },
+      deleteSystemPrompt: (promptId: string) => {
+        setSystemPrompts((prompts) => prompts.filter((prompt) => prompt.id !== promptId));
+      },
+      setDefaultSystemPrompt: (promptId: string) => {
+        setDefaultSystemPromptId(promptId);
+      },
+      selectSystemPrompt: (promptId: string) => {
+        setChatThreads((threads) =>
+          threads.map((thread) =>
+            thread.id === currentThreadId
+              ? {
+                  ...thread,
+                  systemPromptId: promptId,
+                }
+              : thread,
+          ),
+        );
+      },
     }),
     [chatThreads, currentThreadId],
   );
@@ -243,6 +296,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         currentThreadId,
         currentThread,
         currentBranch,
+        systemPrompts,
+        defaultSystemPromptId,
+        currentSystemPrompt,
         actions,
       }}
     >

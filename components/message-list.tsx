@@ -120,26 +120,6 @@ export function MessageList({
         </div>
       )}
 
-      {/* Only show loading indicator if this is the current thread */}
-      {partialResponse?.threadId === threadId && isPolling && partialResponse.text === '' && (
-        <div className="flex justify-start mb-4">
-          <div className="flex items-center space-x-2">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback>
-                <BotAvatar />
-              </AvatarFallback>
-            </Avatar>
-            <div className="bg-muted rounded-lg p-3">
-              <div className="flex space-x-2">
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div ref={messagesEndRef} />
     </>
   );

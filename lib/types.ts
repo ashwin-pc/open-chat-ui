@@ -17,6 +17,13 @@ export interface Attachment {
   content: string; // Base64 or plain text
 }
 
+export interface SystemPrompt {
+  id: string;
+  name: string;
+  text: string;
+  readonly?: boolean;
+}
+
 export type Message = {
   text: string;
   sender: Roles;
@@ -38,7 +45,7 @@ export interface ChatThread {
   name: string;
   branches: Branch[];
   currentBranchId: number;
-  context?: string; // TODO
+  systemPromptId?: string;
 }
 
 export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {

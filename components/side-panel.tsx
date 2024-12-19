@@ -22,6 +22,7 @@ import {
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { ThemeToggle } from './theme-toggle';
 import { ShortcutsDialog } from './shortcuts-dialog';
+import { SettingsDialog } from './settings-dialog';
 
 export function SidePanel() {
   const { chatThreads, currentThreadId, actions } = useChat();
@@ -97,9 +98,7 @@ export function SidePanel() {
         <div className="grid grid-cols-3 gap-4 justify-items-center">
           <ShortcutsDialog />
           <ThemeToggle />
-          <Button variant="ghost" size="icon" onClick={() => {}}>
-            <SettingsIcon className="w-6 h-6" />
-          </Button>
+          <SettingsDialog />
         </div>
       </SidebarFooter>
     </Sidebar>

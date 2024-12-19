@@ -2,9 +2,9 @@ import { useState, useRef } from 'react';
 import { Attachment, BedrockModelNames, ChatApiInterface, ChatThread, Message, Roles } from '@/lib/types';
 import { formatAttachmentMessage, formatAttachments } from '@/lib/utils/file';
 import { toast } from 'sonner';
+import { useChat } from '@/contexts/chat-context';
 
 interface UseChatApiProps {
-  currentThreadId: string;
   apiClient: ChatApiInterface;
   onUpdateMessages: (messages: Message[]) => void;
 }
@@ -14,7 +14,8 @@ export interface PartialResponse {
   text: string;
 }
 
-export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: UseChatApiProps) {
+export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
+  const { currentSystemPrompt, currentThreadId } = useChat();
   const [isPolling, setIsPolling] = useState(false);
   const [partialResponse, setPartialResponse] = useState<PartialResponse>();
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -64,8 +65,15 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
     messageHistory: Message[],
     updatedMessages: Message[],
     model: BedrockModelNames = BedrockModelNames.CLAUDE_V3_5_SONNET,
+    systemContext: string = currentSystemPrompt.text,
   ) => {
     const conversationTime = Date.now();
+
+    setIsPolling(true);
+    setPartialResponse({
+      threadId: currentThreadId.toString(),
+      text: '',
+    });
 
     apiClient.createConversation(
       messageToSend,
@@ -76,7 +84,7 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
       currentThreadId.toString(),
       conversationTime,
       model,
-      '',
+      systemContext,
       (error) => console.error(error),
     );
 

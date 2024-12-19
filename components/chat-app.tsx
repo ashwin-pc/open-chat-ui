@@ -16,8 +16,6 @@ import { ThemeProvider } from '@/contexts/theme-context';
 import { Toaster } from './ui/sonner';
 import { toast } from 'sonner';
 import { MAX_FILE_SIZE, MAX_TOKENS_PER_FILE, parseFile, getTokenCount } from '@/lib/utils/file';
-import { Menu, SettingsIcon } from 'lucide-react';
-import { Button } from './ui/button';
 
 interface ChatAppProps {
   apiClient: ChatApiInterface;
@@ -47,7 +45,6 @@ export function ChatApp({ apiClient }: ChatAppProps) {
     pendingAttachments,
     setPendingAttachments,
   } = useChatApi({
-    currentThreadId,
     apiClient, // Pass the API client to the hook
     onUpdateMessages: (newMessages) => {
       actions.updateBranch(currentThreadId, currentThread.currentBranchId, {
