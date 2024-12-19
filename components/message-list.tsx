@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Message as MessageType } from '@/lib/types';
+import { Message as MessageType, Roles } from '@/lib/types';
 import React, { Suspense, useEffect, useRef } from 'react';
 import { PartialResponse } from '@/hooks/use-chat-api';
 import { BotAvatar, Message } from './message';
@@ -103,21 +103,19 @@ export function MessageList({
 
       {/* Only show partial response if this is the current thread */}
       {partialResponse?.threadId === threadId && (
-        <div className="flex justify-start mb-4 relative group">
-          <div className="flex items-start space-x-2">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback>
-                <BotAvatar />
-              </AvatarFallback>
-            </Avatar>
-            <div className="bg-trasnparent rounded-lg p-3">
-              <p className="whitespace-pre-wrap break-words">{partialResponse.text}</p>
-              <div className="h-4 w-4 absolute bottom-2 right-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <Message
+          message={{
+            text: partialResponse.text,
+            sender: Roles.ASSISTANT,
+            attachments: [],
+          }}
+          index={messages.length}
+          editingMessageId={null}
+          onRestart={onRestart}
+          onEdit={onEdit}
+          onBranch={onBranch}
+          isPartial={true}
+        />
       )}
 
       <div ref={messagesEndRef} />

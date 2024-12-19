@@ -166,3 +166,7 @@ body {
     transform: translate(-10px, -18px);
   }
 }
+
+.language-text {
+  white-space: pre-wrap !important;
+}

@@ -13,13 +13,7 @@ import { CodeBlock } from './code-block';
 const components: Partial<Components> = {
   code({ className, children, ...props }) {
     const match = /language-(\w+)/.exec(className || '');
-    return match ? (
-      <CodeBlock language={match[1]} value={String(children).replace(/\n$/, '')} />
-    ) : (
-      <code className={className} {...props}>
-        {children}
-      </code>
-    );
+    return <CodeBlock language={match?.[1] || 'text'} value={String(children).replace(/\n$/, '')} />;
   },
   pre({ children }) {
     return <>{children}</>;
@@ -37,9 +31,10 @@ interface MessageProps {
   onRestart: (index: number) => void;
   onEdit: (index: number) => void;
   onBranch: (index: number) => void;
+  isPartial?: boolean;
 }
 
-export function Message({ message, index, editingMessageId, onRestart, onEdit, onBranch }: MessageProps) {
+export function Message({ message, index, editingMessageId, onRestart, onEdit, onBranch, isPartial }: MessageProps) {
   const isAfterEditPoint = editingMessageId !== null && index > editingMessageId;
   const isHuman = message.sender === Roles.HUMAN;
 
@@ -125,6 +120,11 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
                   dark:prose-invert`}
               >
                 <ReactMarkdown components={components}>{message.text}</ReactMarkdown>
+                {isPartial && (
+                  <div className="h-4 w-4 absolute top-2 left-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  </div>
+                )}
               </div>
               {message.attachments && message.attachments.length > 0 && (
                 <Tooltip>
