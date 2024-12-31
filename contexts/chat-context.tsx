@@ -75,7 +75,7 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
   );
 
   useHotkeys('new-thread', {
-    key: '/',
+    key: 'ctrl+n',
     description: 'Create new thread',
     scope: 'Global',
     callback: () => {
