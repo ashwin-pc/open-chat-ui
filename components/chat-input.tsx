@@ -187,12 +187,33 @@ export function ChatInput({
           </div>
           <DialogFooter>
             <Button
-              variant="secondary"
-              onClick={() => {
-                setInput((prev) => prev + pastedContent);
-                setShowPasteDialog(false);
-                toast.success('Content pasted as text');
-              }}
+                variant="secondary"
+                onClick={() => {
+                  if (textareaRef.current) {
+                    const textarea = textareaRef.current;
+                    const start = textarea.selectionStart;
+                    const end = textarea.selectionEnd;
+
+                    // Use the current input value and selection
+                    const before = textarea.value.substring(0, start);
+                    const after = textarea.value.substring(end);
+
+                    // Update input using the current cursor position
+                    setInput(before + pastedContent + after);
+
+                    // Focus and set cursor position on next tick
+                    requestAnimationFrame(() => {
+                      textarea.focus();
+                      const newCursorPosition = start + pastedContent.length;
+                      textarea.setSelectionRange(newCursorPosition, newCursorPosition);
+                    });
+                  } else {
+                    // Fallback to append if textarea ref is not available
+                    setInput((prev) => prev + pastedContent);
+                  }
+                  setShowPasteDialog(false);
+                  toast.success('Content pasted as text');
+                }}
             >
               Paste as Text
             </Button>
