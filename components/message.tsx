@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from './ui/context-menu';
 import { toast } from 'sonner';
 import ReactMarkdown, { Components } from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
 import { Roles } from '@/lib/types';
 import { CodeBlock } from './code-block';
 
@@ -119,7 +120,7 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
                   prose-img:rounded-lg
                   dark:prose-invert`}
               >
-                <ReactMarkdown components={components}>{message.text.replace(/\n/g, '\n\n')}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkBreaks]} components={components}>{message.text}</ReactMarkdown>
                 {isPartial && (
                   <div className="h-4 w-4 absolute top-2 left-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
