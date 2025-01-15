@@ -54,7 +54,7 @@ export function ChatApp({ apiClient }: ChatAppProps) {
   });
 
   useHotkeys('send-message', {
-    key: 'cmd+enter',
+    key: 'enter',
     description: 'Send message',
     scope: 'Chat',
     callback: () => {

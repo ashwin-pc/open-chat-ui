@@ -95,15 +95,15 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
     <ContextMenu>
       <ContextMenuTrigger>
         <div
-          className={`flex mb-4 ${isHuman ? 'justify-end' : 'justify-start'} 
+          className={`flex mb-4 ${isHuman ? 'justify-end' : 'justify-start'}
             ${isAfterEditPoint ? 'opacity-50' : ''}`}
         >
           <div
-            className={`flex flex-col items-${isHuman ? 'end' : 'start'} relative group 
+            className={`flex flex-col items-${isHuman ? 'end' : 'start'} relative group
               ${isHuman ? 'sm:items-end' : 'sm:items-start'}`}
           >
             <Avatar
-              className={`h-6 w-6 sm:h-8 sm:w-8 mb-2 
+              className={`h-6 w-6 sm:h-8 sm:w-8 mb-2
               ${isHuman ? 'self-end' : 'self-start'}`}
             >
               <AvatarFallback>{isHuman ? <UserAvatar /> : <BotAvatar />}</AvatarFallback>
@@ -119,7 +119,7 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
                   prose-img:rounded-lg
                   dark:prose-invert`}
               >
-                <ReactMarkdown components={components}>{message.text}</ReactMarkdown>
+                <ReactMarkdown components={components}>{message.text.replace(/\n/g, '\n\n')}</ReactMarkdown>
                 {isPartial && (
                   <div className="h-4 w-4 absolute top-2 left-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
