@@ -5,7 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useChat } from '@/contexts/chat-context';
+import { useChatContext } from '@/contexts/chat-context';
 import { SystemPrompt } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 
@@ -14,7 +14,7 @@ interface SystemPromptEditorProps {
 }
 
 export function SystemPromptEditor({ promptId }: SystemPromptEditorProps) {
-  const { systemPrompts, actions } = useChat();
+  const { systemPrompts, actions } = useChatContext();
   const prompt = systemPrompts.find((p) => p.id === promptId) || {
     id: promptId ?? uuidv4(),
     name: '',

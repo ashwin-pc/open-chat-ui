@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Input } from './ui/input';
 import { toast } from 'sonner';
-import { useChat } from '@/contexts/chat-context';
+import { useChatContext } from '@/contexts/chat-context';
 
 interface ChatInputProps {
   isImmersive: boolean;
@@ -47,7 +47,7 @@ export function ChatInput({
   selectedModel,
   onModelChange,
 }: ChatInputProps) {
-  const { settings } = useChat();
+  const { settings } = useChatContext();
   const containerClassName = isImmersive
     ? 'fixed inset-0 bg-background/80 backdrop-blur-sm transition-all duration-300 opacity-100 z-50'
     : 'bg-background relative before:absolute before:inset-x-0 before:top-[-20px] before:h-[20px] before:bg-gradient-to-b before:from-transparent before:to-background before:z-10';
@@ -121,19 +121,16 @@ export function ChatInput({
               onChange={(e) => setInput(e.target.value)}
               onPaste={handlePaste}
               onKeyDown={(e) => {
-                console.log("useCmdEnterToSend: {}", settings.useCmdEnterToSend)
-                if (settings.useCmdEnterToSend) {
+                if (settings.cmdToSend) {
                   // Only send on Cmd/Ctrl + Enter
                   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !isPolling) {
                     e.preventDefault();
-                    console.log("Sending message with cmd")
                     handleSend();
                   }
                 } else {
                   // Send on just Enter (but Shift+Enter for new line)
                   if (e.key === 'Enter' && !e.shiftKey && !isPolling) {
                     e.preventDefault();
-                    console.log("Sending message withou cmd")
                     handleSend();
                   }
                 }

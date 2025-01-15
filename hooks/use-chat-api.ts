@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Attachment, BedrockModelNames, ChatApiInterface, ChatThread, Message, Roles } from '@/lib/types';
 import { formatAttachmentMessage, formatAttachments } from '@/lib/utils/file';
 import { toast } from 'sonner';
-import { useChat } from '@/contexts/chat-context';
+import { useChatContext } from '@/contexts/chat-context';
 
 interface UseChatApiProps {
   apiClient: ChatApiInterface;
@@ -15,7 +15,7 @@ export interface PartialResponse {
 }
 
 export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
-  const { currentSystemPrompt, currentThreadId } = useChat();
+  const { currentSystemPrompt, currentThreadId } = useChatContext();
   const [isPolling, setIsPolling] = useState(false);
   const [partialResponse, setPartialResponse] = useState<PartialResponse>();
   const timeoutRef = useRef<NodeJS.Timeout>();

@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useChat } from '@/contexts/chat-context';
+import { useChatContext } from '@/contexts/chat-context';
 
 interface SystemPromptsListProps {
   onSelectPrompt: (id: string | null) => void;
@@ -18,7 +18,7 @@ interface SystemPromptsListProps {
 }
 
 export function SystemPromptsList({ onSelectPrompt }: SystemPromptsListProps) {
-  const { systemPrompts, currentThread, actions, defaultSystemPromptId } = useChat();
+  const { systemPrompts, currentThread, actions, defaultSystemPromptId } = useChatContext();
 
   return (
     <div className="w-full h-full flex flex-col">

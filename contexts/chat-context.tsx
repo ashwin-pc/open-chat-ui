@@ -31,9 +31,9 @@ export interface ChatContextType {
     selectSystemPrompt: (promptId: string) => void;
   };
   settings: {
-      useCmdEnterToSend: boolean;
+      cmdToSend: boolean;
   };
-  updateSettings: (newSettings: Partial<{ useCmdEnterToSend: boolean }>) => void;
+  updateSettings: (newSettings: Partial<{ cmdToSend: boolean }>) => void;
 }
 
 const DEFAULT_SYSTEM_PROMPT: SystemPrompt = {
@@ -78,8 +78,8 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
     systemPrompts[0].id,
   );
 
-  const [settings, setSettings] = useLocalStorage<{ useCmdEnterToSend: boolean }>('settings', {
-      useCmdEnterToSend: false,
+  const [settings, setSettings] = useLocalStorage<{ cmdToSend: boolean }>('settings', {
+      cmdToSend: false,
   });
 
   useHotkeys('new-thread', {
@@ -293,7 +293,7 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
           ),
         );
       },
-      updateSettings: (newSettings: Partial<{ useCmdEnterToSend: boolean }>) => {
+      updateSettings: (newSettings: Partial<{ cmdToSend: boolean }>) => {
           setSettings(prev => ({
               ...prev,
               ...newSettings,
@@ -323,8 +323,8 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
   );
 }
 
-export const useChat = () => {
+export const useChatContext = () => {
   const context = useContext(ChatContext);
-  if (!context) throw new Error('useChat must be used within ChatProvider');
+  if (!context) throw new Error('useChatContext must be used within ChatProvider');
   return context;
 };

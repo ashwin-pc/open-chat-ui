@@ -5,7 +5,7 @@ import { SidePanel } from './side-panel';
 import { BranchSelector } from './branch-selector';
 import { ChatLoading } from './chat-loading';
 import { useChatApi } from '@/hooks/use-chat-api';
-import { useChat } from '@/contexts/chat-context';
+import { useChatContext } from '@/contexts/chat-context';
 import { useMessageInput } from '@/hooks/use-message-input';
 import { ChatInput } from './chat-input';
 import { MessageList } from './message-list';
@@ -23,7 +23,7 @@ interface ChatAppProps {
 
 export function ChatApp({ apiClient }: ChatAppProps) {
   const [loaded, setLoaded] = useState(false);
-  const { currentBranch, currentThread, actions, currentThreadId } = useChat();
+  const { currentBranch, currentThread, actions, currentThreadId } = useChatContext();
   const {
     input,
     setInput,

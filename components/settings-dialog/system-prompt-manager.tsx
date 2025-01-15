@@ -5,7 +5,7 @@ import { SystemPromptsList } from './system-prompts-list';
 import { SystemPromptEditor } from './system-prompt-editor';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft } from 'lucide-react';
-import { useChat } from '@/contexts/chat-context';
+import { useChatContext } from '@/contexts/chat-context';
 
 export function SystemPromptsManager() {
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);

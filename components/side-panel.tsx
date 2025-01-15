@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Plus, Trash2, MessageSquare, MoreHorizontal, SettingsIcon } from 'lucide-react';
-import { useChat } from '@/contexts/chat-context';
+import { useChatContext } from '@/contexts/chat-context';
 import {
   Sidebar,
   SidebarContent,
@@ -25,7 +25,7 @@ import { ShortcutsDialog } from './shortcuts-dialog';
 import { SettingsDialog } from './settings-dialog';
 
 export function SidePanel() {
-  const { chatThreads, currentThreadId, actions } = useChat();
+  const { chatThreads, currentThreadId, actions } = useChatContext();
   const { toggleSidebar } = useSidebar();
   useHotkeys('toggle-sidebar', {
     key: 'cmd+\\',
