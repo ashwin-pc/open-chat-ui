@@ -9,6 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ResponsiveDialog } from '../responsive-dialog';
 import { SystemPromptsManager } from './system-prompt-manager';
+import { useChat } from '@/contexts/chat-context';
 
 interface Settings {
   useCmdEnterToSend: boolean;
@@ -17,17 +18,14 @@ interface Settings {
 
 export function SettingsDialog() {
   const [open, setOpen] = useState(false);
-  const [settings, setSettings] = useState<Settings>({
-    useCmdEnterToSend: false,
-    // Initialize other settings here
-  });
+  const { settings, updateSettings } = useChat();
 
-  const updateSettings = (newSettings: Partial<Settings>) => {
-    setSettings(prevSettings => ({
-      ...prevSettings,
-      ...newSettings
-    }));
-  };
+  // const updateSettings = (newSettings: Partial<Settings>) => {
+  //   setSettings(prevSettings => ({
+  //     ...prevSettings,
+  //     ...newSettings
+  //   }));
+  // };
 
   return (
       <ResponsiveDialog
@@ -64,7 +62,9 @@ export function SettingsDialog() {
                   <Switch
                       id="use-cmd-enter"
                       checked={settings.useCmdEnterToSend}
-                      onCheckedChange={(checked: boolean) => updateSettings({ useCmdEnterToSend: checked })}
+                      onCheckedChange={(checked: boolean) =>
+                          updateSettings({ useCmdEnterToSend: checked })
+                      }
                   />
                 </div>
                 <Alert>

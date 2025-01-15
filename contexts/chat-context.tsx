@@ -30,6 +30,10 @@ export interface ChatContextType {
     setDefaultSystemPrompt: (promptId: string) => void;
     selectSystemPrompt: (promptId: string) => void;
   };
+  settings: {
+      useCmdEnterToSend: boolean;
+  };
+  updateSettings: (newSettings: Partial<{ useCmdEnterToSend: boolean }>) => void;
 }
 
 const DEFAULT_SYSTEM_PROMPT: SystemPrompt = {
@@ -73,6 +77,10 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
     'defaultSystemPromptId',
     systemPrompts[0].id,
   );
+
+  const [settings, setSettings] = useLocalStorage<{ useCmdEnterToSend: boolean }>('settings', {
+      useCmdEnterToSend: false,
+  });
 
   useHotkeys('new-thread', {
     key: 'ctrl+n',
@@ -285,6 +293,12 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
           ),
         );
       },
+      updateSettings: (newSettings: Partial<{ useCmdEnterToSend: boolean }>) => {
+          setSettings(prev => ({
+              ...prev,
+              ...newSettings,
+          }));
+      },
     }),
     [chatThreads, currentThreadId],
   );
@@ -300,6 +314,8 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
         defaultSystemPromptId,
         currentSystemPrompt,
         actions,
+        settings, // Add settings to the context value
+        updateSettings: actions.updateSettings, // Add updateSettings to the context value
       }}
     >
       {children}
