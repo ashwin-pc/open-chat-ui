@@ -147,7 +147,6 @@ export function ChatInput({
               } min-h-[60px] overflow-y-auto`}
               rows={isImmersive ? undefined : 1}
               style={!isImmersive ? { maxHeight: '20vh' } : undefined}
-              disabled={isPolling}
             />
 
             {/* Send/Edit/Abort button */}
