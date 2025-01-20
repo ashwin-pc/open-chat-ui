@@ -16,6 +16,7 @@ export interface ChatContextType {
   actions: {
     createThread: () => void;
     deleteThread: (threadId: string) => void;
+    renameThread: (threadId: string, newName: string) => void;
     updateThread: (threadId: string, updates: Partial<ChatThread>) => void;
     createBranch: (threadId: string, messages: Message[], attachments: File[]) => void;
     updateBranch: (threadId: string, branchId: number, updates: Partial<Branch>) => void;
@@ -159,6 +160,16 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
             setCurrentThreadId(newThreads[0].id);
           }
         }
+      },
+
+      renameThread: (threadId: string, newName: string) => {
+          setChatThreads((prevThreads) => {
+              return prevThreads.map((thread) =>
+                  thread.id === threadId
+                      ? { ...thread, name: newName }
+                      : thread
+              );
+          });
       },
 
       updateThread: (threadId: string, updates: Partial<ChatThread>) => {

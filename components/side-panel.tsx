@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, MessageSquare, MoreHorizontal, SettingsIcon } from 'lucide-react';
+import {Plus, Trash2, MessageSquare, MoreHorizontal, SettingsIcon, Pencil} from 'lucide-react';
 import { useChatContext } from '@/contexts/chat-context';
 import {
   Sidebar,
@@ -33,6 +33,13 @@ export function SidePanel() {
     scope: 'Global',
     callback: () => toggleSidebar(),
   });
+
+  const handleRename = (threadId: string, currentName: string) => {
+    const newName = window.prompt('Enter new thread name:', currentName);
+    if (newName && newName.trim() !== '') {
+      actions.renameThread(threadId, newName.trim());
+    }
+  };
 
   return (
     <Sidebar>
@@ -71,6 +78,15 @@ export function SidePanel() {
                       </SidebarMenuAction>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent side="right" align="start">
+                      <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRename(thread.id, thread.name)
+                          }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                        <span>Rename Thread</span>
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={(e) => {
                           e.stopPropagation();
