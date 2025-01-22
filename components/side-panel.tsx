@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import {Plus, Trash2, MessageSquare, MoreHorizontal, SettingsIcon, Pencil} from 'lucide-react';
-import { useChatContext } from '@/contexts/chat-context';
+import {ChatContextType, useChatContext} from '@/contexts/chat-context';
 import {
   Sidebar,
   SidebarContent,
@@ -23,6 +23,10 @@ import { useHotkeys } from '@/hooks/use-hotkeys';
 import { ThemeToggle } from './theme-toggle';
 import { ShortcutsDialog } from './shortcuts-dialog';
 import { SettingsDialog } from './settings-dialog';
+import { ThreadGroup } from './thread-group';
+import { format, isToday, isWithinInterval, subDays } from 'date-fns';
+import {ChatThread} from "@/lib/types";
+import { categorizeThreads } from '@/lib/utils/thread-utils';
 
 export function SidePanel() {
   const { chatThreads, currentThreadId, actions } = useChatContext();
@@ -40,7 +44,7 @@ export function SidePanel() {
       actions.renameThread(threadId, newName.trim());
     }
   };
-
+  const categorized = categorizeThreads(chatThreads);
   return (
     <Sidebar>
       <SidebarHeader>
@@ -60,48 +64,35 @@ export function SidePanel() {
       </SidebarHeader>
 
       <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
-            {chatThreads.map((thread) => (
-              <SidebarMenuItem key={thread.id}>
-                <SidebarMenuButton
-                  isActive={currentThreadId === thread.id}
-                  onClick={() => actions.switchThread(thread.id)}
-                >
-                  {thread.name}
-                </SidebarMenuButton>
-                {chatThreads.length > 1 && (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <SidebarMenuAction>
-                        <MoreHorizontal />
-                      </SidebarMenuAction>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent side="right" align="start">
-                      <DropdownMenuItem
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRename(thread.id, thread.name)
-                          }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                        <span>Rename Thread</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          actions.deleteThread(thread.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span>Delete Thread</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                )}
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
+        <SidebarGroup className="space-y-2">
+          <ThreadGroup
+              title="Today"
+              threads={categorized.today}
+              currentThreadId={currentThreadId}
+              actions={actions}
+              handleRename={handleRename}
+          />
+          <ThreadGroup
+              title="Last 7 Days"
+              threads={categorized.lastWeek}
+              currentThreadId={currentThreadId}
+              actions={actions}
+              handleRename={handleRename}
+          />
+          <ThreadGroup
+              title="Last 30 Days"
+              threads={categorized.lastMonth}
+              currentThreadId={currentThreadId}
+              actions={actions}
+              handleRename={handleRename}
+          />
+          <ThreadGroup
+              title="Older"
+              threads={categorized.older}
+              currentThreadId={currentThreadId}
+              actions={actions}
+              handleRename={handleRename}
+          />
         </SidebarGroup>
       </SidebarContent>
 
