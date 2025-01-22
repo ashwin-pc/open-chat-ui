@@ -96,7 +96,7 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
     <ContextMenu>
       <ContextMenuTrigger>
         <div
-          className={`flex mb-4 ${isHuman ? 'mr-[30%] justify-end' : 'ml-[30%] justify-start'}
+          className={`flex mb-4 ${isHuman ? 'justify-end' : 'justify-start'}
             ${isAfterEditPoint ? 'opacity-50' : ''}`}
         >
           <div
