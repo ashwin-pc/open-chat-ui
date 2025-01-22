@@ -40,7 +40,7 @@ export function ThreadGroup({
                         >
                             {thread.name}
                         </SidebarMenuButton>
-                        {threads.length > 1 && (
+                        {threads && (
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <SidebarMenuAction>

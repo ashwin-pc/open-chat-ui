@@ -11,7 +11,11 @@ export type CategoryThreads = {
 export const categorizeThreads = (threads: ChatThread[]): CategoryThreads => {
     const today = new Date();
 
-    return threads.reduce((acc: CategoryThreads, thread) => {
+    const sortedThreads = [...threads].sort((a, b) =>
+        new Date(b.branches[0].createdAt).getTime() - new Date(a.branches[0].createdAt).getTime()
+    );
+
+    return sortedThreads.reduce((acc: CategoryThreads, thread) => {
         const threadDate = new Date(thread.branches[0].createdAt);
 
         if (isToday(threadDate)) {
