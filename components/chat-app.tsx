@@ -229,7 +229,7 @@ export function ChatApp({ apiClient }: ChatAppProps) {
           <>
             <SidePanel />
             <SidebarInset>
-              <div className="flex h-screen flex-col">
+              <div className="flex h-screen flex-col w-full max-w-[65%] mx-auto">
                 {/* Main Chat Area */}
                 <header className="flex items-center justify-between p-2 md:p-4 shrink-0">
                   <div className="flex items-center space-x-2 md:space-x-4">

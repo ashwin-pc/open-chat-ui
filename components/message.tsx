@@ -100,7 +100,7 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
             ${isAfterEditPoint ? 'opacity-50' : ''}`}
         >
           <div
-            className={`flex flex-col items-${isHuman ? 'end' : 'start'} relative group
+            className={`flex flex-col max-w-full items-${isHuman ? 'end' : 'start'} relative group
               ${isHuman ? 'sm:items-end' : 'sm:items-start'}`}
           >
             <Avatar
@@ -109,7 +109,7 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
             >
               <AvatarFallback>{isHuman ? <UserAvatar /> : <BotAvatar />}</AvatarFallback>
             </Avatar>
-            <div className={`rounded-lg ${isHuman ? 'bg-muted p-3' : 'bg-transparent pl-3'}`}>
+            <div className={`rounded-lg max-w-full overflow-x-auto ${isHuman ? 'bg-muted p-3' : 'bg-accentuated p-3'}`}>
               <div
                 className={`
                   prose max-w-none
