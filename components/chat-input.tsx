@@ -151,7 +151,7 @@ export function ChatInput({
 
             {/* Send/Edit/Abort button */}
             <div className="absolute right-2 bottom-2 flex space-x-2">
-              {(editingMessageId !== null) && (
+              {editingMessageId !== null && (
                 <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="h-8 w-8">
                   <X className="h-4 w-4" />
                 </Button>
@@ -162,11 +162,7 @@ export function ChatInput({
                 className="h-8 w-8"
                 variant={isPolling ? 'destructive' : 'default'}
               >
-                {isPolling ? (
-                  <X className="h-4 w-4" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
+                {isPolling ? <X className="h-4 w-4" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
           </div>
@@ -197,33 +193,33 @@ export function ChatInput({
           </div>
           <DialogFooter>
             <Button
-                variant="secondary"
-                onClick={() => {
-                  if (textareaRef.current) {
-                    const textarea = textareaRef.current;
-                    const start = textarea.selectionStart;
-                    const end = textarea.selectionEnd;
+              variant="secondary"
+              onClick={() => {
+                if (textareaRef.current) {
+                  const textarea = textareaRef.current;
+                  const start = textarea.selectionStart;
+                  const end = textarea.selectionEnd;
 
-                    // Use the current input value and selection
-                    const before = textarea.value.substring(0, start);
-                    const after = textarea.value.substring(end);
+                  // Use the current input value and selection
+                  const before = textarea.value.substring(0, start);
+                  const after = textarea.value.substring(end);
 
-                    // Update input using the current cursor position
-                    setInput(before + pastedContent + after);
+                  // Update input using the current cursor position
+                  setInput(before + pastedContent + after);
 
-                    // Focus and set cursor position on next tick
-                    requestAnimationFrame(() => {
-                      textarea.focus();
-                      const newCursorPosition = start + pastedContent.length;
-                      textarea.setSelectionRange(newCursorPosition, newCursorPosition);
-                    });
-                  } else {
-                    // Fallback to append if textarea ref is not available
-                    setInput((prev) => prev + pastedContent);
-                  }
-                  setShowPasteDialog(false);
-                  toast.success('Content pasted as text');
-                }}
+                  // Focus and set cursor position on next tick
+                  requestAnimationFrame(() => {
+                    textarea.focus();
+                    const newCursorPosition = start + pastedContent.length;
+                    textarea.setSelectionRange(newCursorPosition, newCursorPosition);
+                  });
+                } else {
+                  // Fallback to append if textarea ref is not available
+                  setInput((prev) => prev + pastedContent);
+                }
+                setShowPasteDialog(false);
+                toast.success('Content pasted as text');
+              }}
             >
               Paste as Text
             </Button>

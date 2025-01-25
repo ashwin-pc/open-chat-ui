@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
-import {Plus, Trash2, MessageSquare, MoreHorizontal, SettingsIcon, Pencil} from 'lucide-react';
-import {ChatContextType, useChatContext} from '@/contexts/chat-context';
+import { Plus, Trash2, MessageSquare, MoreHorizontal, SettingsIcon, Pencil } from 'lucide-react';
+import { ChatContextType, useChatContext } from '@/contexts/chat-context';
 import {
   Sidebar,
   SidebarContent,
@@ -25,7 +25,7 @@ import { ShortcutsDialog } from './shortcuts-dialog';
 import { SettingsDialog } from './settings-dialog';
 import { ThreadGroup } from './thread-group';
 import { format, isToday, isWithinInterval, subDays } from 'date-fns';
-import {ChatThread} from "@/lib/types";
+import { ChatThread } from '@/lib/types';
 import { categorizeThreads } from '@/lib/utils/thread-utils';
 
 export function SidePanel() {
@@ -66,32 +66,32 @@ export function SidePanel() {
       <SidebarContent>
         <SidebarGroup className="space-y-2">
           <ThreadGroup
-              title="Today"
-              threads={categorized.today}
-              currentThreadId={currentThreadId}
-              actions={actions}
-              handleRename={handleRename}
+            title="Today"
+            threads={categorized.today}
+            currentThreadId={currentThreadId}
+            actions={actions}
+            handleRename={handleRename}
           />
           <ThreadGroup
-              title="Last 7 Days"
-              threads={categorized.lastWeek}
-              currentThreadId={currentThreadId}
-              actions={actions}
-              handleRename={handleRename}
+            title="Last 7 Days"
+            threads={categorized.lastWeek}
+            currentThreadId={currentThreadId}
+            actions={actions}
+            handleRename={handleRename}
           />
           <ThreadGroup
-              title="Last 30 Days"
-              threads={categorized.lastMonth}
-              currentThreadId={currentThreadId}
-              actions={actions}
-              handleRename={handleRename}
+            title="Last 30 Days"
+            threads={categorized.lastMonth}
+            currentThreadId={currentThreadId}
+            actions={actions}
+            handleRename={handleRename}
           />
           <ThreadGroup
-              title="Older"
-              threads={categorized.older}
-              currentThreadId={currentThreadId}
-              actions={actions}
-              handleRename={handleRename}
+            title="Older"
+            threads={categorized.older}
+            currentThreadId={currentThreadId}
+            actions={actions}
+            handleRename={handleRename}
           />
         </SidebarGroup>
       </SidebarContent>

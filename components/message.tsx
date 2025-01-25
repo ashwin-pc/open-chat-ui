@@ -120,7 +120,9 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
                   prose-img:rounded-lg
                   dark:prose-invert`}
               >
-                <ReactMarkdown remarkPlugins={[remarkBreaks]} components={components}>{message.text}</ReactMarkdown>
+                <ReactMarkdown remarkPlugins={[remarkBreaks]} components={components}>
+                  {message.text}
+                </ReactMarkdown>
                 {isPartial && (
                   <div className="h-4 w-4 absolute top-2 left-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>

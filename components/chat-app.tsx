@@ -206,7 +206,6 @@ export function ChatApp({ apiClient }: ChatAppProps) {
 
   useEffect(() => {
     setLoaded(true);
-    return () => {};
   }, []);
 
   return (

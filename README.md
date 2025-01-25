@@ -25,14 +25,14 @@ npm install open-chat-ui
 
 ```tsx
 import { ChatApp, ChatProvider } from 'open-chat-ui';
-import { apiClient } from './chat-api'; 
+import { apiClient } from './chat-api';
 import 'open-chat-ui/style.css';
 
 function App() {
   return (
-      <ChatProvider>
-        <ChatApp apiClient={apiClient} />
-      </ChatProvider>
+    <ChatProvider>
+      <ChatApp apiClient={apiClient} />
+    </ChatProvider>
   );
 }
 ```
@@ -44,21 +44,25 @@ This repository contains both the component library and a Next.js development en
 ### Local Development
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Start the development server:
+
 ```bash
 npm run dev
 ```
 
 4. Build the library:
+
 ```bash
 npm run build-lib
 ```
@@ -76,6 +80,7 @@ Visit [http://localhost:3000](http://localhost:3000) to see the chat interface i
 ## Component API
 
 ### ChatApp
+
 Main component that renders the chat interface.
 
 ```tsx
@@ -85,14 +90,17 @@ interface ChatAppProps {
 ```
 
 ### ChatProvider
+
 Context provider for chat functionality.
 
 ### ThemeProvider
+
 Theme context provider for styling.
 
 ## Models
 
 Supported AI models:
+
 ```typescript
 enum BedrockModelNames {
   CLAUDE_V3_5_SONNET_V2
@@ -108,16 +116,18 @@ enum BedrockModelNames {
 
 To publish a new version:
 
-1. Update version in 
+1. Update version in
 
 package.json
 
-
 2. Build the library:
+
 ```bash
 npm run build-lib
 ```
+
 3. Publish to npm: (also builds, but is useful to keep them seapare for now)
+
 ```bash
 npm publish
 ```

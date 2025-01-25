@@ -32,7 +32,7 @@ export interface ChatContextType {
     selectSystemPrompt: (promptId: string) => void;
   };
   settings: {
-      cmdToSend: boolean;
+    cmdToSend: boolean;
   };
   updateSettings: (newSettings: Partial<{ cmdToSend: boolean }>) => void;
   creativityLevel: CreativityLevel;
@@ -84,7 +84,7 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
   const [creativityLevel, setCreativityLevel] = useState<CreativityLevel>(CreativityLevel.PRECISE);
 
   const [settings, setSettings] = useLocalStorage<{ cmdToSend: boolean }>('settings', {
-      cmdToSend: false,
+    cmdToSend: false,
   });
 
   useHotkeys('new-thread', {
@@ -167,13 +167,9 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
       },
 
       renameThread: (threadId: string, newName: string) => {
-          setChatThreads((prevThreads) => {
-              return prevThreads.map((thread) =>
-                  thread.id === threadId
-                      ? { ...thread, name: newName }
-                      : thread
-              );
-          });
+        setChatThreads((prevThreads) => {
+          return prevThreads.map((thread) => (thread.id === threadId ? { ...thread, name: newName } : thread));
+        });
       },
 
       updateThread: (threadId: string, updates: Partial<ChatThread>) => {
@@ -309,10 +305,10 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
         );
       },
       updateSettings: (newSettings: Partial<{ cmdToSend: boolean }>) => {
-          setSettings(prev => ({
-              ...prev,
-              ...newSettings,
-          }));
+        setSettings((prev) => ({
+          ...prev,
+          ...newSettings,
+        }));
       },
     }),
     [chatThreads, currentThreadId],
