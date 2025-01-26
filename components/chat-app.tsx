@@ -53,17 +53,6 @@ export function ChatApp({ apiClient }: ChatAppProps) {
     },
   });
 
-  useHotkeys('send-message', {
-    key: 'enter',
-    description: 'Send message',
-    scope: 'Chat',
-    callback: () => {
-      if (input?.trim() && !isPolling) {
-        handleSend();
-      }
-    },
-  });
-
   useHotkeys('cancel-edit', {
     key: 'esc',
     description: 'Cancel edit',

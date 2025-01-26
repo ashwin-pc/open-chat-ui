@@ -122,14 +122,14 @@ export function ChatInput({
               onPaste={handlePaste}
               onKeyDown={(e) => {
                 if (settings.cmdToSend) {
-                  // Only send on Cmd/Ctrl + Enter
+                  // Only send on Cmd/Ctrl + Enter when cmdToSend is true
                   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !isPolling) {
                     e.preventDefault();
                     handleSend();
                   }
                 } else {
-                  // Send on just Enter (but Shift+Enter for new line)
-                  if (e.key === 'Enter' && !e.shiftKey && !isPolling) {
+                  // Only send on Enter when cmdToSend is false, block Cmd + Enter
+                  if (!e.metaKey && !e.ctrlKey && e.key === 'Enter' && !e.shiftKey && !isPolling) {
                     e.preventDefault();
                     handleSend();
                   }
