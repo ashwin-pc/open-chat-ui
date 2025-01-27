@@ -57,6 +57,30 @@ export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {
   [BedrockModelNames.CLAUDE_V3_HAIKU]: 'Claude 3 Haiku (ugh..)',
 };
 
+export enum CreativityLevel {
+  PRECISE = 'PRECISE',
+  BALANCED = 'BALANCED',
+  CREATIVE = 'CREATIVE'
+}
+
+export interface ModelInferenceParameters {
+  temperature?: number;
+  top_k?: number;
+  top_p?: number;
+}
+
+export const CREATIVITY_PARAMETERS: Record<CreativityLevel, ModelInferenceParameters> = {
+  [CreativityLevel.PRECISE]: {
+    top_p: 0.2
+  },
+  [CreativityLevel.BALANCED]: {
+    top_p: 0.5
+  },
+  [CreativityLevel.CREATIVE]: {
+    top_p: 0.8
+  }
+};
+
 export interface ChatApiInterface {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sendMessage: (prompt: string, chatHistory: Array<Message>) => Promise<any>;
@@ -76,5 +100,6 @@ export interface ChatApiInterface {
     model: BedrockModelNames,
     systemContext: string,
     onError: (error: string) => void,
+    modelInferenceParams?: ModelInferenceParameters
   ) => void;
 }

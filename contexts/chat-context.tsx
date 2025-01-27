@@ -1,7 +1,7 @@
 // contexts/ChatContext.tsx
-import { createContext, useContext, useMemo, ReactNode } from 'react';
+import { createContext, useContext, useMemo, ReactNode, useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Message, ChatThread, Branch, BedrockModelNames, SystemPrompt } from '../lib/types';
+import { Message, ChatThread, Branch, BedrockModelNames, SystemPrompt, CreativityLevel } from '../lib/types';
 import { useHotkeys } from '../hooks/use-hotkeys';
 import { useLocalStorage } from 'usehooks-ts';
 
@@ -35,6 +35,8 @@ export interface ChatContextType {
       cmdToSend: boolean;
   };
   updateSettings: (newSettings: Partial<{ cmdToSend: boolean }>) => void;
+  creativityLevel: CreativityLevel;
+  setCreativityLevel: (level: CreativityLevel) => void;
 }
 
 const DEFAULT_SYSTEM_PROMPT: SystemPrompt = {
@@ -78,6 +80,8 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
     'defaultSystemPromptId',
     systemPrompts[0].id,
   );
+
+  const [creativityLevel, setCreativityLevel] = useState<CreativityLevel>(CreativityLevel.PRECISE);
 
   const [settings, setSettings] = useLocalStorage<{ cmdToSend: boolean }>('settings', {
       cmdToSend: false,
@@ -327,6 +331,8 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
         actions,
         settings, // Add settings to the context value
         updateSettings: actions.updateSettings, // Add updateSettings to the context value
+        creativityLevel,
+        setCreativityLevel,
       }}
     >
       {children}

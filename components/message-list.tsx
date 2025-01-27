@@ -3,6 +3,7 @@ import { Message as MessageType, Roles } from '@/lib/types';
 import React, { Suspense, useEffect, useRef } from 'react';
 import { PartialResponse } from '@/hooks/use-chat-api';
 import { BotAvatar, Message } from './message';
+import { CreativitySelector } from './creativity-selector';
 
 // Lazy load the EmptyAnimation component
 const EmptyAnimation = React.lazy(() => import('./empty-animation'));
@@ -38,6 +39,9 @@ function Welcome() {
         <kbd className="px-2 py-0.5 bg-muted rounded text-xs font-mono">⌘/</kbd> or{' '}
         <kbd className="px-2 py-0.5 bg-muted rounded text-xs font-mono">Ctrl+/</kbd> to view all shortcuts.
       </p>
+      <div className="w-full max-w-2xl mt-8">
+        <CreativitySelector />
+      </div>
     </div>
   );
 }
