@@ -71,13 +71,13 @@ export interface ModelInferenceParameters {
 
 export const CREATIVITY_PARAMETERS: Record<CreativityLevel, ModelInferenceParameters> = {
   [CreativityLevel.PRECISE]: {
-    top_p: 0.2
+    top_p: 0.15
   },
   [CreativityLevel.BALANCED]: {
     top_p: 0.5
   },
   [CreativityLevel.CREATIVE]: {
-    top_p: 0.8
+    top_p: 0.85
   }
 };
 
