@@ -30,11 +30,13 @@ export interface ChatContextType {
     deleteSystemPrompt: (promptId: string) => void;
     setDefaultSystemPrompt: (promptId: string) => void;
     selectSystemPrompt: (promptId: string) => void;
+    deleteEntireChatHistory: () => void;
   };
   settings: {
     cmdToSend: boolean;
+    isIncognitoMode: boolean;
   };
-  updateSettings: (newSettings: Partial<{ cmdToSend: boolean }>) => void;
+  updateSettings: (newSettings: Partial<{ cmdToSend: boolean; isIncognitoMode: boolean; }>) => void;
   creativityLevel: CreativityLevel;
   setCreativityLevel: (level: CreativityLevel) => void;
 }
@@ -47,26 +49,37 @@ const DEFAULT_SYSTEM_PROMPT: SystemPrompt = {
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
+const createNewThread = (isIncognitoThread: boolean): ChatThread => ({
+  id: uuidv4(),
+  name: 'New Chat',
+  branches: [
+    {
+      id: 1,
+      name: 'Main',
+      messages: [],
+      attachments: [],
+      createdAt: new Date(),
+      description: 'Initial conversation branch',
+    },
+  ],
+  isIncognitoThread: isIncognitoThread,
+  currentBranchId: 1,
+});
+
 export function ChatProvider({ children, prompts }: { children: ReactNode; prompts?: SystemPrompt[] }) {
-  const initialThread = {
-    id: uuidv4(),
-    name: 'New Chat',
-    branches: [
-      {
-        id: 1,
-        name: 'Main',
-        messages: [],
-        attachments: [],
-        createdAt: new Date(),
-        description: 'Initial conversation branch',
-      },
-    ],
-    currentBranchId: 1,
-  };
+  const [settings, setSettings] = useLocalStorage<{ cmdToSend: boolean;
+    isIncognitoMode: boolean;
+  }>('settings', {
+    cmdToSend: false,
+    isIncognitoMode: false,
+  });
+
+  const initialThread = createNewThread(settings.isIncognitoMode);
 
   const [chatThreads, setChatThreads] = useLocalStorage<ChatThread[]>('chatThreads', [initialThread], {
     initializeWithValue: false,
   });
+
   const [currentThreadId, setCurrentThreadId] = useLocalStorage<string>('currentThreadId', initialThread.id, {
     initializeWithValue: false,
   });
@@ -82,10 +95,6 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
   );
 
   const [creativityLevel, setCreativityLevel] = useState<CreativityLevel>(CreativityLevel.PRECISE);
-
-  const [settings, setSettings] = useLocalStorage<{ cmdToSend: boolean }>('settings', {
-    cmdToSend: false,
-  });
 
   useHotkeys('new-thread', {
     key: 'ctrl+n',
@@ -118,11 +127,6 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
     },
   });
 
-  const currentThread = chatThreads.find((t) => t.id === currentThreadId) || chatThreads[0];
-  const currentBranch =
-    currentThread.branches.find((b) => b.id === currentThread.currentBranchId) || currentThread.branches[0];
-  const currentSystemPrompt = systemPrompts.find((p) => p.id === currentThread.systemPromptId) || DEFAULT_SYSTEM_PROMPT;
-
   const actions = useMemo(
     () => ({
       // Update the createThread action in chat-context.tsx
@@ -135,30 +139,16 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
           setCurrentThreadId(emptyThread.id);
         } else {
           // Create new thread only if no empty thread exists
-          const newThread: ChatThread = {
-            id: uuidv4(),
-            name: 'New Chat',
-            branches: [
-              {
-                id: 1,
-                name: 'Main',
-                messages: [],
-                attachments: [],
-                createdAt: new Date(),
-                description: 'Initial conversation branch',
-              },
-            ],
-            currentBranchId: 1,
-            systemPromptId: defaultSystemPromptId,
-          };
+          const newThread: ChatThread = createNewThread(settings.isIncognitoMode);
           setChatThreads((prev) => [...prev, newThread]);
           setCurrentThreadId(newThread.id);
         }
       },
 
       deleteThread: (threadId: string) => {
-        if (chatThreads.length > 1) {
-          const newThreads = chatThreads.filter((t) => t.id !== threadId);
+        const nonIncognitoThreads = chatThreads.filter((t) => t.isIncognitoThread !== true);
+        if (nonIncognitoThreads.length > 1) {
+          const newThreads = nonIncognitoThreads.filter((t) => t.id !== threadId);
           setChatThreads(newThreads);
           if (currentThreadId === threadId) {
             setCurrentThreadId(newThreads[0].id);
@@ -228,6 +218,10 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
 
       switchThread: (threadId: string) => {
         setCurrentThreadId(threadId);
+        if (settings.isIncognitoMode) {
+          const nonIncognitoThreads = chatThreads.filter((thread) => !thread.isIncognitoThread);
+          setChatThreads(nonIncognitoThreads);
+        }
       },
 
       addAttachments: (threadId: string, branchId: number, files: File[]) => {
@@ -304,26 +298,64 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
           ),
         );
       },
-      updateSettings: (newSettings: Partial<{ cmdToSend: boolean }>) => {
+      updateSettings: (newSettings: Partial<{ cmdToSend: boolean; isIncognitoMode: boolean; }>) => {
+        if (newSettings.isIncognitoMode !== settings.isIncognitoMode) {
+          updateCurrentThreadIncognitoStatusIfRequired(newSettings.isIncognitoMode || false);
+        }
         setSettings((prev) => ({
           ...prev,
           ...newSettings,
         }));
       },
+
+      deleteEntireChatHistory: () => {
+        const newThread = createNewThread(settings.isIncognitoMode);
+        setChatThreads([newThread]);
+        setCurrentThreadId(newThread.id);
+      },
     }),
     [chatThreads, currentThreadId],
   );
 
+  // Updates the incognitoStatus of current thread if it is empty.
+  // This is done because current thread will be used even after incognito status change if it is empty.
+  const updateCurrentThreadIncognitoStatusIfRequired = (isIncognitoThread: boolean) => {
+    const isCurrentThreadEmptyThread = currentContext.currentThread.branches[0]?.messages.length === 0;
+    if (isCurrentThreadEmptyThread) {
+      actions.updateThread(currentThreadId, { isIncognitoThread })
+    }
+  }
+
+  const currentContext = useMemo(() => {
+    const currentThread = chatThreads.find((t) => t.id === currentThreadId) || chatThreads[0];
+    const currentBranch =
+      currentThread.branches.find((b) => b.id === currentThread.currentBranchId) || currentThread.branches[0];
+    const currentSystemPrompt = systemPrompts.find((p) => p.id === currentThread.systemPromptId) || DEFAULT_SYSTEM_PROMPT;
+
+    return {
+      currentThread,
+      currentBranch,
+      currentSystemPrompt,
+    };
+  }, [currentThreadId, chatThreads, systemPrompts])
+
+  const filteredChatThreads = useMemo(() => {
+    return chatThreads.filter(thread =>
+      // Include thread if it's not an incognito thread, OR if it's the current thread (even if incognito)
+      !thread.isIncognitoThread || thread.id === currentThreadId
+    );
+  }, [chatThreads, currentThreadId]);
+
   return (
     <ChatContext.Provider
       value={{
-        chatThreads,
+        chatThreads: filteredChatThreads,
         currentThreadId,
-        currentThread,
-        currentBranch,
+        currentThread: currentContext.currentThread,
+        currentBranch: currentContext.currentBranch,
         systemPrompts,
         defaultSystemPromptId,
-        currentSystemPrompt,
+        currentSystemPrompt: currentContext.currentSystemPrompt,
         actions,
         settings, // Add settings to the context value
         updateSettings: actions.updateSettings, // Add updateSettings to the context value

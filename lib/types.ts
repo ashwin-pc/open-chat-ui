@@ -46,6 +46,7 @@ export interface ChatThread {
   branches: Branch[];
   currentBranchId: number;
   systemPromptId?: string;
+  isIncognitoThread?: boolean;
 }
 
 export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {

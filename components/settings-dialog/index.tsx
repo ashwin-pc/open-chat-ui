@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SettingsIcon, Terminal } from 'lucide-react';
+import { SettingsIcon, Terminal, Trash2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -18,7 +18,7 @@ interface Settings {
 
 export function SettingsDialog() {
   const [open, setOpen] = useState(false);
-  const { settings, updateSettings } = useChatContext();
+  const { settings, updateSettings, actions } = useChatContext();
 
   return (
     <ResponsiveDialog
@@ -39,6 +39,9 @@ export function SettingsDialog() {
           </TabsTrigger>
           <TabsTrigger value="system-prompts" className="flex-1 sm:flex-initial sm:w-full justify-start">
             System Prompts
+          </TabsTrigger>
+          <TabsTrigger value="chat-history" className="flex-1 sm:flex-initial sm:w-full justify-start">
+            Chat History
           </TabsTrigger>
         </TabsList>
         <div className="flex-1 overflow-auto">
@@ -69,6 +72,39 @@ export function SettingsDialog() {
           </TabsContent>
           <TabsContent value="system-prompts" className="p-0 h-full mt-0">
             <SystemPromptsManager />
+          </TabsContent>
+          <TabsContent value="chat-history" className="p-3 h-full">
+            <h2 className="text-lg font-semibold mb-4">Chat History Management</h2>
+            <div className="space-y-4 mb-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="enable-incognito" className="flex flex-col space-y-1">
+                  <span>Enable Incognito</span>
+                  <span className="text-sm text-muted-foreground">
+                    When enabled, chat history will not be shown after exit
+                  </span>
+                </Label>
+                <Switch
+                  id="enable-incognitor"
+                  checked={settings.isIncognitoMode}
+                  onCheckedChange={(checked: boolean) => updateSettings({ isIncognitoMode: checked })}
+                />
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="enable-incognito" className="flex flex-col space-y-1">
+                  <span>Delete entire history</span>
+                  <span className="text-sm text-muted-foreground">
+                    Will delete entire chat threads from history.
+                  </span>
+                </Label>
+                <button onClick={() =>
+                  actions.deleteEntireChatHistory()
+                }>
+                  <Trash2 className="h-8 w-8"/>
+                </button>
+              </div>
+            </div>
           </TabsContent>
         </div>
       </Tabs>
