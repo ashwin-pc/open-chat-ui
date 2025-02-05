@@ -1,4 +1,5 @@
 export enum BedrockModelNames {
+  AMZN_NOVA_PRO = 'us.amazon.nova-pro-v1:0',
   CLAUDE_V3_5_SONNET_V2 = 'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
   CLAUDE_V3_5_SONNET = 'us.anthropic.claude-3-5-sonnet-20240620-v1:0',
   CLAUDE_V3_5_HAIKU = 'us.anthropic.claude-3-5-haiku-20241022-v1:0',
@@ -50,6 +51,7 @@ export interface ChatThread {
 }
 
 export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {
+  [BedrockModelNames.AMZN_NOVA_PRO]: 'Amazon Nova Pro (finally here..)',
   [BedrockModelNames.CLAUDE_V3_5_SONNET_V2]: 'Claude 3.5 Sonnet v2 (new brain)',
   [BedrockModelNames.CLAUDE_V3_5_SONNET]: 'Claude 3.5 Sonnet (old best model)',
   [BedrockModelNames.CLAUDE_V3_5_HAIKU]: 'Claude 3.5 Haiku (another one)',
