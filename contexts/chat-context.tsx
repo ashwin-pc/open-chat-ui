@@ -1,5 +1,5 @@
 // contexts/ChatContext.tsx
-import { createContext, useContext, useMemo, ReactNode, useState } from 'react';
+import { createContext, useContext, useMemo, ReactNode, useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Message, ChatThread, Branch, BedrockModelNames, SystemPrompt, CreativityLevel } from '../lib/types';
 import { useHotkeys } from '../hooks/use-hotkeys';
@@ -36,7 +36,7 @@ export interface ChatContextType {
     cmdToSend: boolean;
     isIncognitoMode: boolean;
   };
-  updateSettings: (newSettings: Partial<{ cmdToSend: boolean; isIncognitoMode: boolean; }>) => void;
+  updateSettings: (newSettings: Partial<{ cmdToSend: boolean; isIncognitoMode: boolean }>) => void;
   creativityLevel: CreativityLevel;
   setCreativityLevel: (level: CreativityLevel) => void;
 }
@@ -67,9 +67,7 @@ const createNewThread = (isIncognitoThread: boolean): ChatThread => ({
 });
 
 export function ChatProvider({ children, prompts }: { children: ReactNode; prompts?: SystemPrompt[] }) {
-  const [settings, setSettings] = useLocalStorage<{ cmdToSend: boolean;
-    isIncognitoMode: boolean;
-  }>('settings', {
+  const [settings, setSettings] = useLocalStorage<{ cmdToSend: boolean; isIncognitoMode: boolean }>('settings', {
     cmdToSend: false,
     isIncognitoMode: false,
   });
@@ -126,6 +124,21 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
       setCurrentThreadId(chatThreads[prevIndex].id);
     },
   });
+
+  // Updates the incognitoStatus of current thread if it is empty.
+  // This is done because current thread will be used even after incognito status change if it is empty.
+  const updateCurrentThreadIncognitoStatusIfRequired = useCallback(
+    (isIncognitoThread: boolean) => {
+      const currentThread = chatThreads.find((t) => t.id === currentThreadId) || chatThreads[0];
+      const isCurrentThreadEmptyThread = currentThread.branches[0]?.messages.length === 0;
+      if (isCurrentThreadEmptyThread) {
+        setChatThreads((threads) =>
+          threads.map((thread) => (thread.id === currentThreadId ? { ...thread, isIncognitoThread } : thread)),
+        );
+      }
+    },
+    [chatThreads, currentThreadId, setChatThreads],
+  );
 
   const actions = useMemo(
     () => ({
@@ -298,7 +311,7 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
           ),
         );
       },
-      updateSettings: (newSettings: Partial<{ cmdToSend: boolean; isIncognitoMode: boolean; }>) => {
+      updateSettings: (newSettings: Partial<{ cmdToSend: boolean; isIncognitoMode: boolean }>) => {
         if (newSettings.isIncognitoMode !== settings.isIncognitoMode) {
           updateCurrentThreadIncognitoStatusIfRequired(newSettings.isIncognitoMode || false);
         }
@@ -314,35 +327,38 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
         setCurrentThreadId(newThread.id);
       },
     }),
-    [chatThreads, currentThreadId],
+    [
+      chatThreads,
+      currentThreadId,
+      setChatThreads,
+      setCurrentThreadId,
+      setDefaultSystemPromptId,
+      setSettings,
+      setSystemPrompts,
+      settings.isIncognitoMode,
+      updateCurrentThreadIncognitoStatusIfRequired,
+    ],
   );
-
-  // Updates the incognitoStatus of current thread if it is empty.
-  // This is done because current thread will be used even after incognito status change if it is empty.
-  const updateCurrentThreadIncognitoStatusIfRequired = (isIncognitoThread: boolean) => {
-    const isCurrentThreadEmptyThread = currentContext.currentThread.branches[0]?.messages.length === 0;
-    if (isCurrentThreadEmptyThread) {
-      actions.updateThread(currentThreadId, { isIncognitoThread })
-    }
-  }
 
   const currentContext = useMemo(() => {
     const currentThread = chatThreads.find((t) => t.id === currentThreadId) || chatThreads[0];
     const currentBranch =
       currentThread.branches.find((b) => b.id === currentThread.currentBranchId) || currentThread.branches[0];
-    const currentSystemPrompt = systemPrompts.find((p) => p.id === currentThread.systemPromptId) || DEFAULT_SYSTEM_PROMPT;
+    const currentSystemPrompt =
+      systemPrompts.find((p) => p.id === currentThread.systemPromptId) || DEFAULT_SYSTEM_PROMPT;
 
     return {
       currentThread,
       currentBranch,
       currentSystemPrompt,
     };
-  }, [currentThreadId, chatThreads, systemPrompts])
+  }, [currentThreadId, chatThreads, systemPrompts]);
 
   const filteredChatThreads = useMemo(() => {
-    return chatThreads.filter(thread =>
-      // Include thread if it's not an incognito thread, OR if it's the current thread (even if incognito)
-      !thread.isIncognitoThread || thread.id === currentThreadId
+    return chatThreads.filter(
+      (thread) =>
+        // Include thread if it's not an incognito thread, OR if it's the current thread (even if incognito)
+        !thread.isIncognitoThread || thread.id === currentThreadId,
     );
   }, [chatThreads, currentThreadId]);
 

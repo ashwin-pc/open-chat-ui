@@ -7,7 +7,7 @@ import { useChatContext } from '@/contexts/chat-context';
 const creativityDescriptions: Record<CreativityLevel, string> = {
   [CreativityLevel.PRECISE]: 'More deterministic and focused responses, best for factual or technical questions',
   [CreativityLevel.BALANCED]: 'Balance between creativity and precision, good for general conversation',
-  [CreativityLevel.CREATIVE]: 'More varied and creative responses, better for brainstorming and creative tasks'
+  [CreativityLevel.CREATIVE]: 'More varied and creative responses, better for brainstorming and creative tasks',
 };
 
 export function CreativitySelector() {
@@ -24,7 +24,7 @@ export function CreativitySelector() {
             {Object.values(CreativityLevel).map((level) => (
               <Button
                 key={level}
-                variant={creativityLevel === level ? "default" : "outline"}
+                variant={creativityLevel === level ? 'default' : 'outline'}
                 className="flex-1"
                 onClick={() => setCreativityLevel(level)}
               >
@@ -32,9 +32,7 @@ export function CreativitySelector() {
               </Button>
             ))}
           </div>
-          <p className="text-med text-center text-muted-foreground">
-            {creativityDescriptions[creativityLevel]}
-          </p>
+          <p className="text-med text-center text-muted-foreground">{creativityDescriptions[creativityLevel]}</p>
         </div>
       </CardContent>
     </Card>

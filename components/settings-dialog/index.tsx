@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { ResponsiveDialog } from '../responsive-dialog';
 import { SystemPromptsManager } from './system-prompt-manager';
 import { useChatContext } from '@/contexts/chat-context';
+import { useHotkeys } from '@/hooks/use-hotkeys';
 
 interface Settings {
   cmdToSend: boolean;
@@ -19,6 +20,12 @@ interface Settings {
 export function SettingsDialog() {
   const [open, setOpen] = useState(false);
   const { settings, updateSettings, actions } = useChatContext();
+  useHotkeys('toggle-settings', {
+    key: 'cmd+,',
+    description: 'Toggle settings dialog',
+    scope: 'Global',
+    callback: () => setOpen((prev) => !prev),
+  });
 
   return (
     <ResponsiveDialog
@@ -61,13 +68,6 @@ export function SettingsDialog() {
                   onCheckedChange={(checked: boolean) => updateSettings({ cmdToSend: checked })}
                 />
               </div>
-              <Alert>
-                <Terminal className="h-4 w-4" />
-                <AlertTitle>More settings coming soon!</AlertTitle>
-                <AlertDescription>
-                  We are working on adding more customization options. Stay tuned for updates.
-                </AlertDescription>
-              </Alert>
             </div>
           </TabsContent>
           <TabsContent value="system-prompts" className="p-0 h-full mt-0">
@@ -94,15 +94,11 @@ export function SettingsDialog() {
               <div className="flex items-center justify-between">
                 <Label htmlFor="enable-incognito" className="flex flex-col space-y-1">
                   <span>Delete entire history</span>
-                  <span className="text-sm text-muted-foreground">
-                    Will delete entire chat threads from history.
-                  </span>
+                  <span className="text-sm text-muted-foreground">Will delete entire chat threads from history.</span>
                 </Label>
-                <button onClick={() =>
-                  actions.deleteEntireChatHistory()
-                }>
-                  <Trash2 className="h-8 w-8"/>
-                </button>
+                <Button variant={'destructive'} onClick={() => actions.deleteEntireChatHistory()}>
+                  <Trash2 /> Delete
+                </Button>
               </div>
             </div>
           </TabsContent>

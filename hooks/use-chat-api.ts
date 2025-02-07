@@ -1,5 +1,14 @@
 import { useState, useRef } from 'react';
-import { Attachment, BedrockModelNames, ChatApiInterface, ChatThread, Message, Roles, CreativityLevel, CREATIVITY_PARAMETERS } from '@/lib/types';
+import {
+  Attachment,
+  BedrockModelNames,
+  ChatApiInterface,
+  ChatThread,
+  Message,
+  Roles,
+  CreativityLevel,
+  CREATIVITY_PARAMETERS,
+} from '@/lib/types';
 import { formatAttachmentMessage, formatAttachments } from '@/lib/utils/file';
 import { toast } from 'sonner';
 import { useChatContext } from '@/contexts/chat-context';
@@ -68,7 +77,8 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
     systemContext: string = currentSystemPrompt.text,
   ) => {
     const conversationTime = Date.now();
-    const modelInferenceParams = CREATIVITY_PARAMETERS[creativityLevel] || CREATIVITY_PARAMETERS[CreativityLevel.PRECISE];
+    const modelInferenceParams =
+      CREATIVITY_PARAMETERS[creativityLevel] || CREATIVITY_PARAMETERS[CreativityLevel.PRECISE];
 
     setIsPolling(true);
     setPartialResponse({
@@ -87,7 +97,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
       model,
       systemContext,
       (error) => console.error(error),
-      modelInferenceParams
+      modelInferenceParams,
     );
 
     // Start polling for the response

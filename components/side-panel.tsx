@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
-import { Plus, Trash2, MessageSquare, MoreHorizontal, SettingsIcon, Pencil } from 'lucide-react';
-import { ChatContextType, useChatContext } from '@/contexts/chat-context';
+import { Plus, MessageSquare } from 'lucide-react';
+import { useChatContext } from '@/contexts/chat-context';
 import {
   Sidebar,
   SidebarContent,
@@ -11,21 +11,12 @@ import {
   SidebarGroup,
   useSidebar,
   SidebarFooter,
-  SidebarMenuAction,
 } from '@/components/ui/sidebar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { ThemeToggle } from './theme-toggle';
 import { ShortcutsDialog } from './shortcuts-dialog';
 import { SettingsDialog } from './settings-dialog';
 import { ThreadGroup } from './thread-group';
-import { format, isToday, isWithinInterval, subDays } from 'date-fns';
-import { ChatThread } from '@/lib/types';
 import { categorizeThreads } from '@/lib/utils/thread-utils';
 
 export function SidePanel() {

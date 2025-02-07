@@ -63,7 +63,7 @@ export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {
 export enum CreativityLevel {
   PRECISE = 'PRECISE',
   BALANCED = 'BALANCED',
-  CREATIVE = 'CREATIVE'
+  CREATIVE = 'CREATIVE',
 }
 
 export interface ModelInferenceParameters {
@@ -74,14 +74,14 @@ export interface ModelInferenceParameters {
 
 export const CREATIVITY_PARAMETERS: Record<CreativityLevel, ModelInferenceParameters> = {
   [CreativityLevel.PRECISE]: {
-    top_p: 0.15
+    top_p: 0.15,
   },
   [CreativityLevel.BALANCED]: {
-    top_p: 0.5
+    top_p: 0.5,
   },
   [CreativityLevel.CREATIVE]: {
-    top_p: 0.85
-  }
+    top_p: 0.85,
+  },
 };
 
 export interface ChatApiInterface {
@@ -103,6 +103,6 @@ export interface ChatApiInterface {
     model: BedrockModelNames,
     systemContext: string,
     onError: (error: string) => void,
-    modelInferenceParams?: ModelInferenceParameters
+    modelInferenceParams?: ModelInferenceParameters,
   ) => void;
 }
