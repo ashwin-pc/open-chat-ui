@@ -70,7 +70,21 @@ export function ChatInput({
     }
   };
 
+  const MODEL_STORAGE_KEY = 'selectedBedrockModel';
+
+  const saveModelSelection = (model: BedrockModelNames) => {
+    localStorage.setItem(MODEL_STORAGE_KEY, model);
+  };
+
+  const loadModelSelection = (): BedrockModelNames | null => {
+    return localStorage.getItem(MODEL_STORAGE_KEY) as BedrockModelNames | null;
+  };
+
   useEffect(() => {
+    const storedModel = loadModelSelection();
+    if (storedModel && storedModel !== selectedModel) {
+      onModelChange(storedModel);
+    }
     const timeout = setTimeout(() => {
       textareaRef.current?.focus();
     }, 100);
@@ -92,8 +106,8 @@ export function ChatInput({
             <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="h-8 w-8">
               <Paperclip className="h-4 w-4" />
             </Button>
-            <Select value={selectedModel} onValueChange={(value: BedrockModelNames) => onModelChange(value)}>
-              <SelectTrigger className="w-[200px] h-8">
+            <Select value={selectedModel} onValueChange={(value: BedrockModelNames) => { onModelChange(value); saveModelSelection(value) }}>
+              <SelectTrigger className="h-8">
                 <SelectValue placeholder="Select model">{BedrockModelDisplayNames[selectedModel]}</SelectValue>
               </SelectTrigger>
               <SelectContent>

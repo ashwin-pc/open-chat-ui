@@ -44,7 +44,7 @@ export interface ChatContextType {
 const DEFAULT_SYSTEM_PROMPT: SystemPrompt = {
   id: 'default',
   name: 'Default Prompt',
-  text: 'You are a helpful assistant.',
+  text: 'You are a helpful assistant. The current date is {{currentDateTime}}',
 };
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -139,6 +139,20 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
     },
     [chatThreads, currentThreadId, setChatThreads],
   );
+
+  const currentThread = chatThreads.find((t) => t.id === currentThreadId) || chatThreads[0];
+  const currentBranch =
+    currentThread.branches.find((b) => b.id === currentThread.currentBranchId) || currentThread.branches[0];
+
+  const formattedDate = new Date().toLocaleDateString(navigator.language || 'en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+  });
+  const currentSystemPrompt = (systemPrompts.find((p) => p.id === currentThread.systemPromptId) || DEFAULT_SYSTEM_PROMPT);
+  currentSystemPrompt.text = currentSystemPrompt.text.replace("{{currentDateTime}}", formattedDate);
 
   const actions = useMemo(
     () => ({
