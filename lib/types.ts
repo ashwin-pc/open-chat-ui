@@ -51,11 +51,11 @@ export interface ChatThread {
 }
 
 export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {
-  [BedrockModelNames.AMZN_NOVA_PRO]: 'Amazon Nova Pro (finally here..)',
-  [BedrockModelNames.CLAUDE_V3_5_SONNET_V2]: 'Claude 3.5 Sonnet v2 (new brain)',
-  [BedrockModelNames.CLAUDE_V3_5_SONNET]: 'Claude 3.5 Sonnet (old best model)',
-  [BedrockModelNames.CLAUDE_V3_5_HAIKU]: 'Claude 3.5 Haiku (another one)',
-  [BedrockModelNames.CLAUDE_V3_OPUS]: 'Claude 3 Opus (wanna be best, but not quite..)',
+  [BedrockModelNames.CLAUDE_V3_5_SONNET_V2]: 'Claude 3.5 Sonnet v2 (best model)',
+  [BedrockModelNames.CLAUDE_V3_5_SONNET]: 'Claude 3.5 Sonnet (older best model)',
+  [BedrockModelNames.AMZN_NOVA_PRO]: `Amazon Nova Pro (it's whatever..)`,
+  [BedrockModelNames.CLAUDE_V3_5_HAIKU]: `Claude 3.5 Haiku (i'm fast!)`,
+  [BedrockModelNames.CLAUDE_V3_OPUS]: 'Claude 3 Opus (old news now..)',
   [BedrockModelNames.CLAUDE_V3_SONNET]: 'Claude 3 Sonnet (meh..)',
   [BedrockModelNames.CLAUDE_V3_HAIKU]: 'Claude 3 Haiku (ugh..)',
 };
