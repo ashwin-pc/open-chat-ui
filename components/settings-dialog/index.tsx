@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SettingsIcon, Trash2 } from 'lucide-react';
+import { SettingsIcon, Trash2, EyeOff } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -47,6 +47,12 @@ export function SettingsDialog() {
         </TabsList>
         <div className="flex-1 overflow-auto">
           <TabsContent value="general" className="p-4 h-full">
+            {settings.isIncognitoMode && (
+              <div className="mb-4 p-2 bg-yellow-100 dark:bg-yellow-900 rounded-md flex items-center gap-2 text-sm">
+                <EyeOff className="w-4 h-4" />
+                <span>You are in incognito mode. Chat history will be deleted when you leave.</span>
+              </div>
+            )}
             <h2 className="text-lg font-semibold mb-4">General Settings</h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -69,18 +75,20 @@ export function SettingsDialog() {
           </TabsContent>
           <TabsContent value="chat-history" className="p-3 h-full">
             <h2 className="text-lg font-semibold mb-4">Chat History Management</h2>
-            <div className="space-y-4 mb-4">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label htmlFor="enable-incognito" className="flex flex-col space-y-1">
-                  <span>Enable Incognito</span>
+                  <span>Enable Incognito Mode</span>
                   <span className="text-sm text-muted-foreground">
-                    When enabled, chat history will not be shown after exit
+                    When enabled, a new incognito chat will be created that won&apos;t be saved to history
                   </span>
                 </Label>
                 <Switch
-                  id="enable-incognitor"
+                  id="enable-incognito"
                   checked={settings.isIncognitoMode}
-                  onCheckedChange={(checked: boolean) => actions.updateSettings({ isIncognitoMode: checked })}
+                  onCheckedChange={(checked: boolean) => {
+                    actions.updateSettings({ isIncognitoMode: checked });
+                  }}
                 />
               </div>
             </div>

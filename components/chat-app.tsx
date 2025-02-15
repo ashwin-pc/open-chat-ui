@@ -10,7 +10,7 @@ import { useMessageInput } from '@/hooks/use-message-input';
 import { ChatInput } from './chat-input';
 import { MessageList } from './message-list';
 import { useHotkeys } from '@/hooks/use-hotkeys';
-import { BedrockModelNames, ChatApiInterface, Roles } from '@/lib/types';
+import { BedrockModelNames, ChatApiInterface, Roles, SystemPrompt, ThreadSummary } from '@/lib/types';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from './ui/sidebar';
 import { ThemeProvider } from '@/contexts/theme-context';
 import { Toaster } from './ui/sonner';
@@ -19,11 +19,12 @@ import { MAX_FILE_SIZE, MAX_TOKENS_PER_FILE, parseFile, getTokenCount } from '@/
 
 interface ChatAppProps {
   apiClient: ChatApiInterface;
+  prompts?: SystemPrompt[];
 }
 
-export function ChatApp({ apiClient }: ChatAppProps) {
+export function ChatApp({ apiClient, prompts }: ChatAppProps) {
+  const { settings, actions, threadSummaries, currentBranch, currentThread, currentThreadId } = useChatContext();
   const [loaded, setLoaded] = useState(false);
-  const { currentBranch, currentThread, actions, currentThreadId } = useChatContext();
   const {
     input,
     setInput,
@@ -93,8 +94,8 @@ export function ChatApp({ apiClient }: ChatAppProps) {
         setEditingInputBackup('');
       } else {
         if (currentBranch.messages.length === 0) {
-          const title = input.split('\n')[0].slice(0, 30) + (input.length > 30 ? '...' : '');
-          actions.renameThread(currentThreadId, title);
+          const title = input.split('\n')[0].slice(0, 25) + (input.length > 25 ? '...' : '');
+          await actions.renameThread(currentThreadId, title);
         }
         await handleNewMessage(input, currentThread);
       }
@@ -205,6 +206,25 @@ export function ChatApp({ apiClient }: ChatAppProps) {
   useEffect(() => {
     setLoaded(true);
   }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (settings.isIncognitoMode) {
+        const incognitoThreads = threadSummaries.filter((summary: ThreadSummary) => summary.isIncognitoThread);
+        incognitoThreads.forEach((thread: ThreadSummary) => {
+          actions.deleteThread(thread.id);
+        });
+      }
+      // Prevent the default behavior
+      event.preventDefault();
+      event.returnValue = '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [actions, settings.isIncognitoMode, threadSummaries]);
 
   return (
     <ThemeProvider>

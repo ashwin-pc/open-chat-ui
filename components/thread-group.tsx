@@ -1,13 +1,13 @@
 import { ChatContextType } from '@/contexts/chat-context';
-import { ThreadSummary } from '@/lib/db';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction } from '@/components/ui/sidebar';
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { MessageCircleDashed, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ThreadSummary } from '@/lib/types';
 
 interface ThreadGroupProps {
   title: string;
@@ -32,6 +32,7 @@ export function ThreadGroup({ title, threads, currentThreadId, actions, handleRe
               isActive={currentThreadId === thread.id}
               onClick={() => actions.switchThread(thread.id)} // Fix: call switchThread instead of actions directly
             >
+              {thread.isIncognitoThread ? <MessageCircleDashed /> : ''}
               {thread.name}
             </SidebarMenuButton>
             <DropdownMenu>

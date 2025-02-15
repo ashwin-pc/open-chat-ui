@@ -40,17 +40,18 @@ export async function runMigration(): Promise<void> {
     if (chatThreadsData) {
       localStorage.setItem('chatThreads_backup', chatThreadsData);
     }
-    if (legacyDiyaData) {
-      localStorage.setItem('DIYA_CONVERSATIONS_backup', legacyDiyaData);
-    }
+    // Uncomment this line to create a backup of the legacy data if you are deleting it later in the migration
+    // if (legacyDiyaData) {
+    //   localStorage.setItem('DIYA_CONVERSATIONS_backup', legacyDiyaData);
+    // }
 
     // Get existing thread IDs from database
-    const existingThreadIds = new Set((await db.threads.toArray()).map(t => t.id));
+    const existingThreadIds = new Set((await db.threads.toArray()).map((t) => t.id));
 
     // Filter and migrate only new threads
     if (chatThreadsData) {
       const threads: ChatThread[] = JSON.parse(chatThreadsData);
-      const newThreads = threads.filter(t => !existingThreadIds.has(t.id));
+      const newThreads = threads.filter((t) => !existingThreadIds.has(t.id));
       if (newThreads.length > 0) {
         await migrateThreads(newThreads);
       }
@@ -59,7 +60,7 @@ export async function runMigration(): Promise<void> {
     // Filter and migrate only new legacy conversations
     if (legacyDiyaData) {
       const legacyConversations: LegacyConversation[] = JSON.parse(legacyDiyaData);
-      const newLegacyConversations = legacyConversations.filter(c => !existingThreadIds.has(c.id));
+      const newLegacyConversations = legacyConversations.filter((c) => !existingThreadIds.has(c.id));
       if (newLegacyConversations.length > 0) {
         const convertedThreads = newLegacyConversations.map(convertLegacyToNewFormat);
         await migrateThreads(convertedThreads);
@@ -70,21 +71,19 @@ export async function runMigration(): Promise<void> {
     const migratedThreads = await db.threads.toArray();
     const migratedSummaries = await db.threadSummaries.toArray();
     const expectedThreadIds = new Set<string>();
-    
+
     if (chatThreadsData) {
       const threads: ChatThread[] = JSON.parse(chatThreadsData);
-      threads.filter(t => !existingThreadIds.has(t.id))
-        .forEach(thread => expectedThreadIds.add(thread.id));
+      threads.filter((t) => !existingThreadIds.has(t.id)).forEach((thread) => expectedThreadIds.add(thread.id));
     }
     if (legacyDiyaData) {
       const legacyConversations: LegacyConversation[] = JSON.parse(legacyDiyaData);
-      legacyConversations.filter(c => !existingThreadIds.has(c.id))
-        .forEach(conv => expectedThreadIds.add(conv.id));
+      legacyConversations.filter((c) => !existingThreadIds.has(c.id)).forEach((conv) => expectedThreadIds.add(conv.id));
     }
 
     let allThreadsMigrated = true;
-    expectedThreadIds.forEach(id => {
-      if (!migratedThreads.find(t => t.id === id) || !migratedSummaries.find(s => s.id === id)) {
+    expectedThreadIds.forEach((id) => {
+      if (!migratedThreads.find((t) => t.id === id) || !migratedSummaries.find((s) => s.id === id)) {
         allThreadsMigrated = false;
       }
     });

@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Plus, MessageSquare } from 'lucide-react';
+import { Plus, MessageSquare, MessageCircleDashed } from 'lucide-react';
 import { useChatContext } from '@/contexts/chat-context';
 import {
   Sidebar,
@@ -20,7 +20,7 @@ import { ThreadGroup } from './thread-group';
 import { categorizeThreads } from '@/lib/utils/thread-utils';
 
 export function SidePanel() {
-  const { threadSummaries, currentThreadId, actions } = useChatContext();
+  const { threadSummaries, currentThreadId, actions, settings } = useChatContext();
   const { toggleSidebar } = useSidebar();
   useHotkeys('toggle-sidebar', {
     key: 'cmd+\\',
@@ -89,8 +89,12 @@ export function SidePanel() {
 
       <SidebarFooter>
         <Button className="w-full" variant="outline" onClick={() => actions.createThread()}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Thread
+          {settings.isIncognitoMode ? (
+            <MessageCircleDashed className="h-4 w-4 mr-2" />
+          ) : (
+            <Plus className="h-4 w-4 mr-2" />
+          )}
+          {settings.isIncognitoMode ? 'New Incognito Chat' : 'New Chat'}
         </Button>
 
         <div className="grid grid-cols-3 gap-4 justify-items-center">

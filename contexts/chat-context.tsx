@@ -1,5 +1,5 @@
 // contexts/ChatContext.tsx
-import { createContext, useContext, useMemo, ReactNode, useState } from 'react';
+import { createContext, useContext, useMemo, ReactNode, useState, useEffect, useCallback } from 'react';
 import { SystemPrompt, CreativityLevel } from '../lib/types';
 import { useHotkeys } from '../hooks/use-hotkeys';
 import { useLocalStorage } from 'usehooks-ts';
@@ -20,6 +20,11 @@ export interface ChatContextType extends Omit<UseThreadData, 'actions'> {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children, prompts }: { children: ReactNode; prompts?: SystemPrompt[] }) {
+  const [settings, setSettings] = useLocalStorage<{ cmdToSend: boolean; isIncognitoMode: boolean }>('settings', {
+    cmdToSend: false,
+    isIncognitoMode: false,
+  });
+
   const {
     threadSummaries,
     currentThreadId,
@@ -29,21 +34,36 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
     defaultSystemPromptId,
     currentSystemPrompt,
     actions: threadActions,
-  } = useThreadStorage({ prompts });
-
-  const [settings, setSettings] = useLocalStorage<{ cmdToSend: boolean; isIncognitoMode: boolean }>('settings', {
-    cmdToSend: false,
-    isIncognitoMode: false,
-  });
+  } = useThreadStorage({ prompts, isIncognito: settings.isIncognitoMode });
 
   const [creativityLevel, setCreativityLevel] = useState<CreativityLevel>(CreativityLevel.PRECISE);
+
+  // Define updateSettings with useCallback to ensure stable reference
+  const updateSettings = useCallback(
+    (newSettings: Partial<{ cmdToSend: boolean; isIncognitoMode: boolean }>) => {
+      setSettings((prev) => ({ ...prev, ...newSettings }));
+    },
+    [setSettings],
+  );
+
+  // Side effect to react to incognito mode changes
+  useEffect(() => {
+    if (!settings.isIncognitoMode) {
+      // When turning off incognito, delete all incognito threads
+      threadSummaries
+        .filter((summary) => summary.isIncognitoThread)
+        .forEach((thread) => threadActions.deleteThread(thread.id));
+    }
+    // We only want to run this effect when isIncognitoMode changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.isIncognitoMode]);
 
   useHotkeys('new-thread', {
     key: 'ctrl+n',
     description: 'Create new thread',
     scope: 'Global',
     callback: () => {
-      threadActions.createThread({ isIncognitoThread: settings.isIncognitoMode });
+      threadActions.createThread();
     },
   });
 
@@ -72,11 +92,9 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
   const actions = useMemo(
     () => ({
       ...threadActions,
-      updateSettings: (newSettings: Partial<{ cmdToSend: boolean; isIncognitoMode: boolean }>) => {
-        setSettings((prev) => ({ ...prev, ...newSettings }));
-      },
+      updateSettings,
     }),
-    [threadActions, setSettings],
+    [threadActions, updateSettings], // threadSummaries is not needed here now
   );
 
   return (

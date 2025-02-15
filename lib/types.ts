@@ -47,13 +47,13 @@ export interface ChatThread {
   branches: Branch[];
   currentBranchId: number;
   systemPromptId?: string;
-  isIncognitoThread?: boolean;
 }
 
 export interface ThreadSummary {
   id: string;
   name: string;
   lastUpdated: Date;
+  isIncognitoThread?: boolean;
 }
 
 export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {
