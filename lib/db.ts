@@ -1,5 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import { ChatThread, SystemPrompt } from './lib/types';
+import { ChatThread, SystemPrompt } from './types';
 
 export interface ThreadSummary {
   id: string;
@@ -17,7 +17,7 @@ export class DiyaChatDB extends Dexie {
     this.version(1).stores({
       threads: 'id', // full conversation data
       threadSummaries: 'id, name, lastUpdated', // light sidebar data
-      systemPrompts: 'id',
+      systemPrompts: 'id, name',
     });
   }
 }

@@ -1,4 +1,4 @@
-import { ThreadSummary } from '@/db';
+import { ThreadSummary } from '@/lib/db';
 import { isToday, isWithinInterval, subDays } from 'date-fns';
 
 export type CategoryThreads = {

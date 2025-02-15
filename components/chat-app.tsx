@@ -93,7 +93,6 @@ export function ChatApp({ apiClient }: ChatAppProps) {
         setEditingInputBackup('');
       } else {
         if (currentBranch.messages.length === 0) {
-          debugger;
           const title = input.split('\n')[0].slice(0, 30) + (input.length > 30 ? '...' : '');
           actions.renameThread(currentThreadId, title);
         }

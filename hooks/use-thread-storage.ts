@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { db } from '../db';
-import { ChatThread, ThreadSummary, Branch, Message, BedrockModelNames } from '../lib/types';
+import { db } from '../lib/db';
+import { useLocalStorage } from 'usehooks-ts';
+import { ChatThread, ThreadSummary, Branch, Message, BedrockModelNames, SystemPrompt } from '../lib/types';
 import { runMigration } from '../lib/migration-utils';
 
 // Move outside actions so it's available in hook scope
@@ -22,8 +23,19 @@ const createNewThread = (options: { isIncognitoThread?: boolean } = {}): ChatThr
   ...options,
 });
 
-export function useThreadStorage() {
+const DEFAULT_SYSTEM_PROMPT: SystemPrompt = {
+  id: 'default',
+  name: 'Default Prompt',
+  text: 'You are a helpful assistant.',
+};
+
+export function useThreadStorage({ prompts }: { prompts?: SystemPrompt[] }) {
   const [threadSummaries, setThreadSummaries] = useState<ThreadSummary[]>([]);
+  const [systemPrompts, setSystemPrompts] = useState<SystemPrompt[]>([]);
+  const [defaultSystemPromptId, setDefaultSystemPromptId] = useLocalStorage<string>(
+    'defaultSystemPromptId',
+    DEFAULT_SYSTEM_PROMPT.id,
+  );
   const [currentThreadId, setCurrentThreadId] = useState<string>('');
   const [currentThread, setCurrentThread] = useState<ChatThread>(() => createNewThread());
   const [currentBranch, setCurrentBranch] = useState<Branch>(() => currentThread.branches[0]);
@@ -87,6 +99,40 @@ export function useThreadStorage() {
     const branch = currentThread.branches.find((b) => b.id === currentThread.currentBranchId);
     setCurrentBranch(branch || currentThread.branches[0]);
   }, [currentThread]);
+
+  // Add system prompts loading
+  useEffect(() => {
+    async function loadSystemPrompts() {
+      const promptsFromDB = await db.systemPrompts.toArray();
+      if (promptsFromDB.length === 0) {
+        if (prompts && prompts.length > 0) {
+          for (const prompt of prompts) {
+            await db.systemPrompts.put(prompt);
+          }
+          setSystemPrompts(prompts);
+        } else {
+          await db.systemPrompts.put(DEFAULT_SYSTEM_PROMPT);
+          setSystemPrompts([DEFAULT_SYSTEM_PROMPT]);
+        }
+      } else {
+        setSystemPrompts(promptsFromDB);
+      }
+    }
+    loadSystemPrompts();
+  }, []);
+
+  const currentSystemPrompt = useMemo(() => {
+    const systemPrompt = systemPrompts.find((p) => p.id === currentThread?.systemPromptId) || DEFAULT_SYSTEM_PROMPT;
+    const formattedDate = new Date().toLocaleDateString(navigator.language || 'en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+    });
+    systemPrompt.text = systemPrompt.text.replace('{{currentDateTime}}', formattedDate);
+    return systemPrompt;
+  }, [systemPrompts, currentThread]);
 
   const actions = useMemo(
     () => ({
@@ -239,8 +285,41 @@ export function useThreadStorage() {
       switchThread: async (threadId: string): Promise<void> => {
         setCurrentThreadId(threadId);
       },
+
+      // System prompt operations
+      addSystemPrompt: async (prompt: SystemPrompt): Promise<void> => {
+        await db.systemPrompts.put(prompt);
+        setSystemPrompts((prev) => [...prev, prompt]);
+      },
+
+      updateSystemPrompt: async (promptId: string, updates: Partial<SystemPrompt>): Promise<void> => {
+        const prompt = await db.systemPrompts.get(promptId);
+        if (!prompt) return;
+        const updatedPrompt = { ...prompt, ...updates };
+        await db.systemPrompts.put(updatedPrompt);
+        setSystemPrompts((prev) => prev.map((p) => (p.id === promptId ? updatedPrompt : p)));
+      },
+
+      deleteSystemPrompt: async (promptId: string): Promise<void> => {
+        if (promptId === DEFAULT_SYSTEM_PROMPT.id) return; // Prevent deleting default prompt
+        await db.systemPrompts.delete(promptId);
+        setSystemPrompts((prev) => prev.filter((p) => p.id !== promptId));
+      },
+
+      setDefaultSystemPrompt: (promptId: string): void => {
+        setDefaultSystemPromptId(promptId);
+      },
+
+      selectSystemPrompt: async (promptId: string): Promise<void> => {
+        if (currentThread) {
+          await actions.updateThread({
+            ...currentThread,
+            systemPromptId: promptId,
+          });
+        }
+      },
     }),
-    [currentThreadId, threadSummaries],
+    [currentThread, currentThreadId, threadSummaries, setDefaultSystemPromptId],
   );
 
   return {
@@ -248,6 +327,9 @@ export function useThreadStorage() {
     currentThreadId,
     currentThread,
     currentBranch,
+    systemPrompts,
+    defaultSystemPromptId,
+    currentSystemPrompt,
     actions,
   };
 }

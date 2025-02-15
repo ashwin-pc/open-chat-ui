@@ -1,5 +1,5 @@
 import { ChatContextType } from '@/contexts/chat-context';
-import { ThreadSummary } from '@/db';
+import { ThreadSummary } from '@/lib/db';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction } from '@/components/ui/sidebar';
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import {

@@ -1,4 +1,4 @@
-import { db } from '../db';
+import { db } from './db';
 import { ChatThread, ThreadSummary } from '../lib/types';
 import { exportChatBackup } from './chat-backup-utils';
 
