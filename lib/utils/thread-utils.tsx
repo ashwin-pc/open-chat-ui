@@ -1,23 +1,21 @@
-import { ChatThread } from '@/lib/types';
-import { format, isToday, isWithinInterval, subDays } from 'date-fns';
+import { ThreadSummary } from '@/db';
+import { isToday, isWithinInterval, subDays } from 'date-fns';
 
 export type CategoryThreads = {
-  today: ChatThread[];
-  lastWeek: ChatThread[];
-  lastMonth: ChatThread[];
-  older: ChatThread[];
+  today: ThreadSummary[];
+  lastWeek: ThreadSummary[];
+  lastMonth: ThreadSummary[];
+  older: ThreadSummary[];
 };
 
-export const categorizeThreads = (threads: ChatThread[]): CategoryThreads => {
+export const categorizeThreads = (threads: ThreadSummary[]): CategoryThreads => {
   const today = new Date();
 
-  const sortedThreads = [...threads].sort(
-    (a, b) => new Date(b.branches[0].createdAt).getTime() - new Date(a.branches[0].createdAt).getTime(),
-  );
+  const sortedThreads = [...threads].sort((a, b) => b.lastUpdated.getTime() - a.lastUpdated.getTime());
 
   return sortedThreads.reduce(
     (acc: CategoryThreads, thread) => {
-      const threadDate = new Date(thread.branches[0].createdAt);
+      const threadDate = thread.lastUpdated;
 
       if (isToday(threadDate)) {
         acc.today.push(thread);

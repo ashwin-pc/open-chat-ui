@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SettingsIcon, Terminal, Trash2 } from 'lucide-react';
+import { SettingsIcon, Trash2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ResponsiveDialog } from '../responsive-dialog';
@@ -12,14 +11,9 @@ import { SystemPromptsManager } from './system-prompt-manager';
 import { useChatContext } from '@/contexts/chat-context';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 
-interface Settings {
-  cmdToSend: boolean;
-  // Add other settings here as needed
-}
-
 export function SettingsDialog() {
   const [open, setOpen] = useState(false);
-  const { settings, updateSettings, actions } = useChatContext();
+  const { settings, actions } = useChatContext();
   useHotkeys('toggle-settings', {
     key: 'cmd+,',
     description: 'Toggle settings dialog',
@@ -65,7 +59,7 @@ export function SettingsDialog() {
                 <Switch
                   id="use-cmd-enter"
                   checked={settings.cmdToSend}
-                  onCheckedChange={(checked: boolean) => updateSettings({ cmdToSend: checked })}
+                  onCheckedChange={(checked: boolean) => actions.updateSettings({ cmdToSend: checked })}
                 />
               </div>
             </div>
@@ -86,7 +80,7 @@ export function SettingsDialog() {
                 <Switch
                   id="enable-incognitor"
                   checked={settings.isIncognitoMode}
-                  onCheckedChange={(checked: boolean) => updateSettings({ isIncognitoMode: checked })}
+                  onCheckedChange={(checked: boolean) => actions.updateSettings({ isIncognitoMode: checked })}
                 />
               </div>
             </div>

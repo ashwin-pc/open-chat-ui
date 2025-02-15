@@ -83,7 +83,7 @@ export function ChatApp({ apiClient }: ChatAppProps) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
-  }, []);
+  }, [textareaRef]);
 
   const handleSend = async () => {
     if (input.trim()) {
@@ -93,10 +93,9 @@ export function ChatApp({ apiClient }: ChatAppProps) {
         setEditingInputBackup('');
       } else {
         if (currentBranch.messages.length === 0) {
+          debugger;
           const title = input.split('\n')[0].slice(0, 30) + (input.length > 30 ? '...' : '');
-          actions.updateThread(currentThreadId, {
-            name: title,
-          });
+          actions.renameThread(currentThreadId, title);
         }
         await handleNewMessage(input, currentThread);
       }

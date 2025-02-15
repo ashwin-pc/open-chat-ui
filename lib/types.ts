@@ -50,6 +50,12 @@ export interface ChatThread {
   isIncognitoThread?: boolean;
 }
 
+export interface ThreadSummary {
+  id: string;
+  name: string;
+  lastUpdated: Date;
+}
+
 export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {
   [BedrockModelNames.CLAUDE_V3_5_SONNET_V2]: 'Claude 3.5 Sonnet v2 (best model)',
   [BedrockModelNames.CLAUDE_V3_5_SONNET]: 'Claude 3.5 Sonnet (second best)',

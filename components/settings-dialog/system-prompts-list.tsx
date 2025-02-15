@@ -58,9 +58,7 @@ export function SystemPromptsList({ onSelectPrompt }: SystemPromptsListProps) {
                             Edit
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem
-                          onClick={() => actions.updateThread(currentThread.id, { systemPromptId: prompt.id })}
-                        >
+                        <DropdownMenuItem onClick={() => actions.selectSystemPrompt(prompt.id)}>
                           <Check className="mr-2 h-4 w-4" />
                           Set as Active
                         </DropdownMenuItem>

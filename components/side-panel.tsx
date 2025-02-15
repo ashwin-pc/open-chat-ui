@@ -20,7 +20,7 @@ import { ThreadGroup } from './thread-group';
 import { categorizeThreads } from '@/lib/utils/thread-utils';
 
 export function SidePanel() {
-  const { chatThreads, currentThreadId, actions } = useChatContext();
+  const { threadSummaries, currentThreadId, actions } = useChatContext();
   const { toggleSidebar } = useSidebar();
   useHotkeys('toggle-sidebar', {
     key: 'cmd+\\',
@@ -35,7 +35,7 @@ export function SidePanel() {
       actions.renameThread(threadId, newName.trim());
     }
   };
-  const categorized = categorizeThreads(chatThreads);
+  const categorized = categorizeThreads(threadSummaries);
   return (
     <Sidebar>
       <SidebarHeader>
@@ -47,7 +47,7 @@ export function SidePanel() {
               </div>
               <div className="flex flex-col gap-0.5 leading-none">
                 <span className="font-semibold">Chat Threads</span>
-                <span className="text-xs text-muted-foreground">{chatThreads.length} conversations</span>
+                <span className="text-xs text-muted-foreground">{threadSummaries.length} conversations</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -88,7 +88,7 @@ export function SidePanel() {
       </SidebarContent>
 
       <SidebarFooter>
-        <Button className="w-full" variant="outline" onClick={actions.createThread}>
+        <Button className="w-full" variant="outline" onClick={() => actions.createThread()}>
           <Plus className="h-4 w-4 mr-2" />
           New Thread
         </Button>

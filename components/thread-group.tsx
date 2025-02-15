@@ -1,5 +1,5 @@
 import { ChatContextType } from '@/contexts/chat-context';
-import { ChatThread } from '@/lib/types';
+import { ThreadSummary } from '@/db';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction } from '@/components/ui/sidebar';
 import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import {
@@ -11,7 +11,7 @@ import {
 
 interface ThreadGroupProps {
   title: string;
-  threads: ChatThread[];
+  threads: ThreadSummary[];
   currentThreadId: string;
   actions: ChatContextType['actions'];
   handleRename: (threadId: string, currentName: string) => void;
@@ -28,38 +28,39 @@ export function ThreadGroup({ title, threads, currentThreadId, actions, handleRe
       <SidebarMenu>
         {threads.map((thread) => (
           <SidebarMenuItem key={thread.id}>
-            <SidebarMenuButton isActive={currentThreadId === thread.id} onClick={() => actions.switchThread(thread.id)}>
+            <SidebarMenuButton
+              isActive={currentThreadId === thread.id}
+              onClick={() => actions.switchThread(thread.id)} // Fix: call switchThread instead of actions directly
+            >
               {thread.name}
             </SidebarMenuButton>
-            {threads && (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuAction>
-                    <MoreHorizontal />
-                  </SidebarMenuAction>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="right" align="start">
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRename(thread.id, thread.name);
-                    }}
-                  >
-                    <Pencil className="h-4 w-4" />
-                    <span>Rename Thread</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      actions.deleteThread(thread.id);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    <span>Delete Thread</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuAction>
+                  <MoreHorizontal />
+                </SidebarMenuAction>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="right" align="start">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRename(thread.id, thread.name);
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                  <span>Rename Thread</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    actions.deleteThread(thread.id);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Delete Thread</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         ))}
       </SidebarMenu>
