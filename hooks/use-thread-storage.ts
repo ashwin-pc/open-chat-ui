@@ -119,6 +119,8 @@ export function useThreadStorage({ prompts }: { prompts?: SystemPrompt[] }) {
       }
     }
     loadSystemPrompts();
+    // Should only run once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const currentSystemPrompt = useMemo(() => {
