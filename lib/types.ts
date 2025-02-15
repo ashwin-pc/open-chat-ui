@@ -54,7 +54,7 @@ export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {
   [BedrockModelNames.CLAUDE_V3_5_SONNET_V2]: 'Claude 3.5 Sonnet v2 (best model)',
   [BedrockModelNames.CLAUDE_V3_5_SONNET_V2]: 'Claude 3.5 Sonnet v2 (best model)',
   [BedrockModelNames.CLAUDE_V3_5_SONNET]: 'Claude 3.5 Sonnet (older best model)',
-  [BedrockModelNames.AMZN_NOVA_PRO]: `Amazon Nova Pro (it's finally here..)`,
+  [BedrockModelNames.AMZN_NOVA_PRO]: `Amazon Nova Pro (homegrown hotshot)`,
   [BedrockModelNames.CLAUDE_V3_5_HAIKU]: `Claude 3.5 Haiku (i'm fast)`,
   [BedrockModelNames.CLAUDE_V3_OPUS]: 'Claude 3 Opus (old news now..)',
   [BedrockModelNames.CLAUDE_V3_SONNET]: 'Claude 3 Sonnet (meh..)',
