@@ -1,9 +1,10 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../lib/db';
 import { useLocalStorage } from 'usehooks-ts';
 import { ChatThread, ThreadSummary, Branch, Message, BedrockModelNames, SystemPrompt } from '../lib/types';
 import { runMigration } from '../lib/migration-utils';
+import { useLiveQuery } from 'dexie-react-hooks';
 
 // Move outside actions so it's available in hook scope
 const initializeEmptyThread = (): ChatThread => ({
@@ -35,97 +36,33 @@ export function useThreadStorage({
   prompts?: SystemPrompt[];
   isIncognito?: boolean;
 }) {
-  const [threadSummaries, setThreadSummaries] = useState<ThreadSummary[]>([]);
-  const [systemPrompts, setSystemPrompts] = useState<SystemPrompt[]>([]);
   const [defaultSystemPromptId, setDefaultSystemPromptId] = useLocalStorage<string>(
     'defaultSystemPromptId',
     DEFAULT_SYSTEM_PROMPT.id,
   );
   const [currentThreadId, setCurrentThreadId] = useState<string>('');
-  const [currentThread, setCurrentThread] = useState<ChatThread>(() => initializeEmptyThread());
-  const [currentBranch, setCurrentBranch] = useState<Branch>(() => currentThread.branches[0]);
+  const isCreatingThreadRef = useRef(false);
 
-  // Single initialization effect
-  useEffect(() => {
-    let mounted = true;
+  const threadSummaries = useLiveQuery(() => db.threadSummaries.toArray(), [], [] as ThreadSummary[]);
 
-    async function initialize() {
-      try {
-        // Wait for migration to complete first
-        await runMigration();
+  // Modify the currentThread hook to avoid returning an unsaved empty thread
+  const currentThread = useLiveQuery(
+    async () => {
+      if (!currentThreadId) return undefined;
+      const thread = await db.threads.get(currentThreadId);
+      return thread;
+    },
+    [currentThreadId],
+    undefined,
+  );
 
-        // Only then load threads
-        const summaries = await db.threadSummaries.toArray();
+  const systemPrompts = useLiveQuery(() => db.systemPrompts.toArray(), [], [] as SystemPrompt[]);
 
-        // Only proceed if component is still mounted
-        if (!mounted) return;
-
-        if (summaries.length === 0) {
-          // Only create new thread if DB is actually empty
-          await actions.createThread();
-        } else {
-          setThreadSummaries(summaries);
-          setCurrentThreadId(summaries[0].id);
-        }
-      } catch (error) {
-        console.error('Failed to initialize thread storage:', error);
-      }
-    }
-
-    initialize();
-
-    return () => {
-      mounted = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
-
-  // Separate effect for loading full thread
-  useEffect(() => {
-    if (!currentThreadId) return;
-
-    let mounted = true;
-    async function loadFullThread() {
-      const fullThread = await db.threads.get(currentThreadId);
-      if (mounted && fullThread) {
-        setCurrentThread(fullThread);
-      }
-    }
-
-    loadFullThread();
-
-    return () => {
-      mounted = false;
-    };
-  }, [currentThreadId]);
-
-  useEffect(() => {
+  const currentBranch = useMemo(() => {
+    if (!currentThread) return initializeEmptyThread().branches[0];
     const branch = currentThread.branches.find((b) => b.id === currentThread.currentBranchId);
-    setCurrentBranch(branch || currentThread.branches[0]);
+    return branch || currentThread.branches[0];
   }, [currentThread]);
-
-  // Add system prompts loading
-  useEffect(() => {
-    async function loadSystemPrompts() {
-      const promptsFromDB = await db.systemPrompts.toArray();
-      if (promptsFromDB.length === 0) {
-        if (prompts && prompts.length > 0) {
-          for (const prompt of prompts) {
-            await db.systemPrompts.put(prompt);
-          }
-          setSystemPrompts(prompts);
-        } else {
-          await db.systemPrompts.put(DEFAULT_SYSTEM_PROMPT);
-          setSystemPrompts([DEFAULT_SYSTEM_PROMPT]);
-        }
-      } else {
-        setSystemPrompts(promptsFromDB);
-      }
-    }
-    loadSystemPrompts();
-    // Should only run once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const currentSystemPrompt = useMemo(() => {
     const systemPrompt = systemPrompts.find((p) => p.id === currentThread?.systemPromptId) || DEFAULT_SYSTEM_PROMPT;
@@ -136,66 +73,67 @@ export function useThreadStorage({
       hour: 'numeric',
       minute: 'numeric',
     });
-    systemPrompt.text = systemPrompt.text.replace('{{currentDateTime}}', formattedDate);
-    return systemPrompt;
+    return {
+      ...systemPrompt,
+      text: systemPrompt.text.replace('{{currentDateTime}}', formattedDate),
+    };
   }, [systemPrompts, currentThread]);
 
   const actions = useMemo(
     () => ({
       // Thread operations
       createThread: async (): Promise<void> => {
-        let summaries = await db.threadSummaries.toArray();
-        // Delete any old "New Chat" thread that doesn't match current incognito mode.
-        for (const s of summaries.filter((s) => s.name === 'New Chat' && s.isIncognitoThread !== isIncognito)) {
-          await db.threads.delete(s.id);
-          await db.threadSummaries.delete(s.id);
+        if (isCreatingThreadRef.current) {
+          return; // Skip if already creating
         }
-        // Re-fetch summaries after deletion to get fresh state.
-        summaries = await db.threadSummaries.toArray();
-        // Check for an existing empty "New Chat" thread matching current incognito mode.
-        const existingEmptyThreadSummary = summaries.find(
-          (s) => s.name === 'New Chat' && s.isIncognitoThread === isIncognito,
-        );
 
-        if (existingEmptyThreadSummary) {
-          const existingThread = await db.threads.get(existingEmptyThreadSummary.id);
-          if (
-            existingThread &&
-            existingThread.branches[0].messages.length === 0 &&
-            existingThread.branches[0].attachments.length === 0
-          ) {
-            setCurrentThread(existingThread);
-            setCurrentThreadId(existingThread.id);
-            return;
+        try {
+          isCreatingThreadRef.current = true;
+          let summaries = await db.threadSummaries.toArray();
+          for (const s of summaries.filter((s) => s.name === 'New Chat' && s.isIncognitoThread !== isIncognito)) {
+            await db.threads.delete(s.id);
+            await db.threadSummaries.delete(s.id);
           }
+          summaries = await db.threadSummaries.toArray();
+          const existingEmptyThreadSummary = summaries.find(
+            (s) => s.name === 'New Chat' && s.isIncognitoThread === isIncognito,
+          );
+
+          if (existingEmptyThreadSummary) {
+            const existingThread = await db.threads.get(existingEmptyThreadSummary.id);
+            if (
+              existingThread &&
+              existingThread.branches[0].messages.length === 0 &&
+              existingThread.branches[0].attachments.length === 0
+            ) {
+              setCurrentThreadId(existingThread.id);
+              return;
+            }
+          }
+          const thread = initializeEmptyThread();
+          await db.threads.put(thread);
+          const summary: ThreadSummary = {
+            id: thread.id,
+            name: thread.name,
+            lastUpdated: new Date(thread.branches[0]?.createdAt || Date.now()),
+            isIncognitoThread: isIncognito,
+          };
+          await db.threadSummaries.put(summary);
+          setCurrentThreadId(thread.id);
+        } finally {
+          isCreatingThreadRef.current = false;
         }
-        const thread = initializeEmptyThread();
-        await db.threads.put(thread);
-        const summary: ThreadSummary = {
-          id: thread.id,
-          name: thread.name,
-          lastUpdated: new Date(thread.branches[0]?.createdAt || Date.now()),
-          isIncognitoThread: isIncognito,
-        };
-        await db.threadSummaries.put(summary);
-        setThreadSummaries((prev) => [...prev, summary]);
-        setCurrentThreadId(thread.id);
-        setCurrentThread(thread);
       },
 
       updateThread: async (threadUpdate: Partial<ChatThread> & { id: string }): Promise<void> => {
-        // Fetch the latest version to merge changes
         const latest = await db.threads.get(threadUpdate.id);
         if (!latest) return;
 
-        // Get the current summary to preserve incognito status
         const currentSummary = await db.threadSummaries.get(threadUpdate.id);
 
-        // Merge updates with latest version
         const mergedThread: ChatThread = {
           ...latest,
           ...threadUpdate,
-          // If branches or currentBranchId are provided, use them, otherwise keep existing
           branches: threadUpdate.branches || latest.branches,
           currentBranchId: threadUpdate.currentBranchId ?? latest.currentBranchId,
         };
@@ -208,19 +146,22 @@ export function useThreadStorage({
           isIncognitoThread: currentSummary?.isIncognitoThread,
         };
         await db.threadSummaries.put(summary);
-        setThreadSummaries((prev) => prev.map((s) => (s.id === mergedThread.id ? summary : s)));
-        if (mergedThread.id === currentThreadId) {
-          setCurrentThread(mergedThread);
+
+        // Update currentThreadId if the merged thread id differs from current state
+        if (mergedThread.id !== threadUpdate.id) {
+          setCurrentThreadId(mergedThread.id);
         }
       },
 
       deleteThread: async (id: string): Promise<void> => {
         await db.threads.delete(id);
         await db.threadSummaries.delete(id);
-        setThreadSummaries((prev) => prev.filter((s) => s.id !== id));
-        if (currentThreadId === id && threadSummaries.length > 1) {
+        const threadLength = await db.threadSummaries.count();
+        if (currentThreadId === id && threadLength > 1) {
           const newId = threadSummaries.find((s) => s.id !== id)?.id || '';
           setCurrentThreadId(newId);
+        } else if (threadLength === 0) {
+          await actions.createThread();
         }
       },
 
@@ -309,11 +250,8 @@ export function useThreadStorage({
       },
 
       deleteEntireChatHistory: async (): Promise<void> => {
-        // Delete all threads from DB
         await db.threads.clear();
         await db.threadSummaries.clear();
-
-        // Add new thread using existing createThread action
         await actions.createThread();
       },
 
@@ -324,7 +262,6 @@ export function useThreadStorage({
       // System prompt operations
       addSystemPrompt: async (prompt: SystemPrompt): Promise<void> => {
         await db.systemPrompts.put(prompt);
-        setSystemPrompts((prev) => [...prev, prompt]);
       },
 
       updateSystemPrompt: async (promptId: string, updates: Partial<SystemPrompt>): Promise<void> => {
@@ -332,13 +269,11 @@ export function useThreadStorage({
         if (!prompt) return;
         const updatedPrompt = { ...prompt, ...updates };
         await db.systemPrompts.put(updatedPrompt);
-        setSystemPrompts((prev) => prev.map((p) => (p.id === promptId ? updatedPrompt : p)));
       },
 
       deleteSystemPrompt: async (promptId: string): Promise<void> => {
-        if (promptId === DEFAULT_SYSTEM_PROMPT.id) return; // Prevent deleting default prompt
+        if (promptId === DEFAULT_SYSTEM_PROMPT.id) return;
         await db.systemPrompts.delete(promptId);
-        setSystemPrompts((prev) => prev.filter((p) => p.id !== promptId));
       },
 
       setDefaultSystemPrompt: (promptId: string): void => {
@@ -357,12 +292,58 @@ export function useThreadStorage({
     [currentThread, currentThreadId, threadSummaries, setDefaultSystemPromptId, isIncognito],
   );
 
+  // Single initialization effect
+  useEffect(() => {
+    let mounted = true;
+
+    async function initialize() {
+      try {
+        await runMigration();
+
+        const promptsFromDB = await db.systemPrompts.toArray();
+        if (promptsFromDB.length === 0) {
+          if (prompts && prompts.length > 0) {
+            await Promise.all(prompts.map((prompt) => db.systemPrompts.put(prompt)));
+          } else {
+            await db.systemPrompts.put(DEFAULT_SYSTEM_PROMPT);
+          }
+        }
+
+        if (!mounted) return;
+
+        if ((await db.threadSummaries.count()) === 0) {
+          await actions.createThread();
+        }
+      } catch (error) {
+        console.error('Failed to initialize thread storage:', error);
+      }
+    }
+
+    initialize();
+
+    return () => {
+      mounted = false;
+      // Cleanup lock on unmount
+      isCreatingThreadRef.current = false;
+    };
+    // Only run once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Add a new effect to select an existing thread if currentThreadId is empty
+  useEffect(() => {
+    if (!currentThreadId && threadSummaries && threadSummaries.length > 0) {
+      setCurrentThreadId(threadSummaries[0].id);
+    }
+  }, [currentThreadId, threadSummaries]);
+
   return {
-    threadSummaries,
-    currentThreadId,
-    currentThread,
+    threadSummaries: threadSummaries || [],
+    currentThreadId: currentThread?.id || '',
+    // Provide a fallback for UI if currentThread is undefined
+    currentThread: currentThread || initializeEmptyThread(),
     currentBranch,
-    systemPrompts,
+    systemPrompts: systemPrompts || [],
     defaultSystemPromptId,
     currentSystemPrompt,
     actions,

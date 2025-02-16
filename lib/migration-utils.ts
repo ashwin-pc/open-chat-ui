@@ -28,6 +28,12 @@ function convertLegacyToNewFormat(legacy: LegacyConversation): ChatThread {
 
 export async function runMigration(): Promise<void> {
   try {
+    if (localStorage.getItem('migrationDone') === 'true') {
+      // Check if migration was done already
+      console.log('Migration already completed');
+      return;
+    }
+
     // Try to migrate from both legacy sources
     const chatThreadsData = localStorage.getItem('chatThreads');
     const legacyDiyaData = localStorage.getItem('DIYA_CONVERSATIONS');
@@ -92,6 +98,7 @@ export async function runMigration(): Promise<void> {
       // Only remove old data if verification passes and we actually migrated something
       localStorage.removeItem('chatThreads');
       // localStorage.removeItem('DIYA_CONVERSATIONS'); // Dont delete legacy data yet
+      localStorage.setItem('migrationDone', 'true'); // Store migration complete flag
     } else if (!allThreadsMigrated) {
       throw new Error('Migration verification failed: Data mismatch');
     }
