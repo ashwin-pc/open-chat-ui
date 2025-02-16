@@ -65,7 +65,10 @@ export function useThreadStorage({
   }, [currentThread]);
 
   const currentSystemPrompt = useMemo(() => {
-    const systemPrompt = systemPrompts.find((p) => p.id === currentThread?.systemPromptId) || DEFAULT_SYSTEM_PROMPT;
+    const systemPrompt =
+      systemPrompts.find((p) => p.id === currentThread?.systemPromptId) ||
+      systemPrompts.find((p) => p.id === defaultSystemPromptId) ||
+      DEFAULT_SYSTEM_PROMPT;
     const formattedDate = new Date().toLocaleDateString(navigator.language || 'en-US', {
       year: 'numeric',
       month: 'long',
@@ -73,11 +76,12 @@ export function useThreadStorage({
       hour: 'numeric',
       minute: 'numeric',
     });
+    debugger;
     return {
       ...systemPrompt,
       text: systemPrompt.text.replace('{{currentDateTime}}', formattedDate),
     };
-  }, [systemPrompts, currentThread]);
+  }, [systemPrompts, currentThread?.systemPromptId, defaultSystemPromptId]);
 
   const actions = useMemo(
     () => ({
@@ -111,6 +115,7 @@ export function useThreadStorage({
             }
           }
           const thread = initializeEmptyThread();
+          debugger;
           await db.threads.put(thread);
           const summary: ThreadSummary = {
             id: thread.id,
@@ -283,7 +288,7 @@ export function useThreadStorage({
       selectSystemPrompt: async (promptId: string): Promise<void> => {
         if (currentThread) {
           await actions.updateThread({
-            ...currentThread,
+            id: currentThread.id,
             systemPromptId: promptId,
           });
         }
@@ -301,6 +306,7 @@ export function useThreadStorage({
         await runMigration();
 
         const promptsFromDB = await db.systemPrompts.toArray();
+        debugger;
         if (promptsFromDB.length === 0) {
           if (prompts && prompts.length > 0) {
             await Promise.all(prompts.map((prompt) => db.systemPrompts.put(prompt)));
