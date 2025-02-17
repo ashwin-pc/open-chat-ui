@@ -11,7 +11,7 @@ import { ChatInput } from './chat-input';
 import { MessageList } from './message-list';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { BedrockModelNames, ChatApiInterface, Roles } from '@/lib/types';
-import { SidebarInset, SidebarProvider, SidebarTrigger, useSidebar } from './ui/sidebar';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from './ui/sidebar';
 import { ThemeProvider } from '@/contexts/theme-context';
 import { Toaster } from './ui/sonner';
 import { toast } from 'sonner';
@@ -208,84 +208,67 @@ export function ChatApp({ apiClient }: ChatAppProps) {
     setLoaded(true);
   }, []);
 
-  const ChatContent = () => {
-    const { state } = useSidebar();
-
-    if (!loaded) {
-      return <ChatLoading />;
-    }
-
-    const flexibleStyles = `fixed z-20 bg-background right-0 transition-all duration-200 w-full left-0 
-      ${state === 'expanded' ? 'md:w-[calc(100%-16rem)] md:left-[16rem]' : 'md:w-[calc(100%)]'}`;
-
-    return (
-      <>
-        <SidePanel />
-        <SidebarInset>
-          <div className="flex h-screen w-full mx-auto relative">
-            {/* Fixed Header */}
-            <header className={`${flexibleStyles} top-0 flex items-center justify-between p-2 md:p-4 border-b`}>
-              <div className="flex items-center space-x-2 md:space-x-4">
-                <SidebarTrigger />
-                <h2 className="text-lg md:text-2xl font-bold truncate">{currentThread.name}</h2>
-              </div>
-              <div className="flex items-center space-x-2 md:space-x-4">
-                <BranchSelector
-                  currentBranchId={currentThread.currentBranchId}
-                  branches={currentThread.branches}
-                  onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
-                />
-              </div>
-            </header>
-
-            {/* Scrollable Message List */}
-            <div className="flex-1 overflow-y-auto h-screen pt-[72px] pb-[180px]">
-              <div className="p-2 md:p-4">
-                <MessageList
-                  messages={currentBranch.messages}
-                  editingMessageId={editingMessageId}
-                  partialResponse={partialResponse}
-                  isPolling={isPolling}
-                  onRestart={handleRestart}
-                  onEdit={handleEdit}
-                  onBranch={handleBranch}
-                  threadId={currentThread.id}
-                />
-              </div>
-            </div>
-
-            {/* Fixed Chat Input */}
-            <div className={`${flexibleStyles} bottom-0 border-t`}>
-              <ChatInput
-                isImmersive={isImmersive}
-                toggleImmersive={toggleImmersive}
-                input={input}
-                setInput={setInput}
-                handleSend={handleSend}
-                isPolling={isPolling}
-                handleAbort={handleAbort}
-                editingMessageId={editingMessageId}
-                handleCancelEdit={handleCancelEdit}
-                textareaRef={textareaRef}
-                fileInputRef={fileInputRef}
-                handleFileUpload={handleFileUpload}
-                attachments={pendingAttachments}
-                removeAttachment={handleRemoveAttachment}
-                selectedModel={currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2}
-                onModelChange={handleModelChange}
-              />
-            </div>
-          </div>
-          <Toaster />
-        </SidebarInset>
-      </>
-    );
-  };
-
   return (
     <ThemeProvider>
       <SidebarProvider>
-        <ChatContent />
+        {!loaded ? (
+          <ChatLoading />
+        ) : (
+          <>
+            <SidePanel />
+            <SidebarInset>
+              <div className="flex h-screen flex-col w-full max-w-[65%] mx-auto">
+                {/* Main Chat Area */}
+                <header className="flex items-center justify-between p-2 md:p-4 shrink-0">
+                  <div className="flex items-center space-x-2 md:space-x-4">
+                    <SidebarTrigger />
+                    <h2 className="text-lg md:text-2xl font-bold truncate">{currentThread.name}</h2>
+                  </div>
+                  <div className="flex items-center space-x-2 md:space-x-4">
+                    <BranchSelector
+                      currentBranchId={currentThread.currentBranchId}
+                      branches={currentThread.branches}
+                      onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
+                    />
+                  </div>
+                </header>
+                <div className="flex-grow flex flex-col p-2 md:p-4">
+                  <MessageList
+                    messages={currentBranch.messages}
+                    editingMessageId={editingMessageId}
+                    partialResponse={partialResponse}
+                    isPolling={isPolling}
+                    onRestart={handleRestart}
+                    onEdit={handleEdit}
+                    onBranch={handleBranch}
+                    threadId={currentThread.id}
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <ChatInput
+                    isImmersive={isImmersive}
+                    toggleImmersive={toggleImmersive}
+                    input={input}
+                    setInput={setInput}
+                    handleSend={handleSend}
+                    isPolling={isPolling}
+                    handleAbort={handleAbort}
+                    editingMessageId={editingMessageId}
+                    handleCancelEdit={handleCancelEdit}
+                    textareaRef={textareaRef}
+                    fileInputRef={fileInputRef}
+                    handleFileUpload={handleFileUpload}
+                    attachments={pendingAttachments}
+                    removeAttachment={handleRemoveAttachment}
+                    selectedModel={currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2}
+                    onModelChange={handleModelChange}
+                  />
+                </div>
+              </div>
+              <Toaster />
+            </SidebarInset>
+          </>
+        )}
       </SidebarProvider>
     </ThemeProvider>
   );

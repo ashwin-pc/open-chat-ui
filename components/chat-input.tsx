@@ -52,20 +52,6 @@ export function ChatInput({
     ? 'fixed inset-0 bg-background/80 backdrop-blur-sm transition-all duration-300 opacity-100 z-50'
     : 'bg-background relative before:absolute before:inset-x-0 before:top-[-20px] before:h-[20px] before:bg-gradient-to-b before:from-transparent before:to-background before:z-10';
 
-  // Extract keyboard handler to ensure consistent behavior
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (isPolling) return;
-
-    const shouldSend = settings.cmdToSend
-      ? (e.metaKey || e.ctrlKey) && e.key === 'Enter'
-      : !e.metaKey && !e.ctrlKey && e.key === 'Enter' && !e.shiftKey;
-
-    if (shouldSend) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
   // Add constant for text length threshold (e.g., 5000 characters)
   const TEXT_LENGTH_THRESHOLD = 5000;
 
@@ -120,13 +106,7 @@ export function ChatInput({
             <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="h-8 w-8">
               <Paperclip className="h-4 w-4" />
             </Button>
-            <Select
-              value={selectedModel}
-              onValueChange={(value: BedrockModelNames) => {
-                onModelChange(value);
-                saveModelSelection(value);
-              }}
-            >
+            <Select value={selectedModel} onValueChange={(value: BedrockModelNames) => { onModelChange(value); saveModelSelection(value) }}>
               <SelectTrigger className="h-8">
                 <SelectValue placeholder="Select model">{BedrockModelDisplayNames[selectedModel]}</SelectValue>
               </SelectTrigger>
@@ -154,7 +134,21 @@ export function ChatInput({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onPaste={handlePaste}
-              onKeyDown={handleKeyDown}
+              onKeyDown={(e) => {
+                if (settings.cmdToSend) {
+                  // Only send on Cmd/Ctrl + Enter when cmdToSend is true
+                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !isPolling) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                } else {
+                  // Only send on Enter when cmdToSend is false, block Cmd + Enter
+                  if (!e.metaKey && !e.ctrlKey && e.key === 'Enter' && !e.shiftKey && !isPolling) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }
+              }}
               placeholder={
                 isPolling
                   ? 'Waiting for response...'
