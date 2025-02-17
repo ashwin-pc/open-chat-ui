@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SettingsIcon, Trash2, EyeOff } from 'lucide-react';
+import { SettingsIcon, EyeOff } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ResponsiveDialog } from '../responsive-dialog';
 import { SystemPromptsManager } from './system-prompt-manager';
+import { ChatManagement } from './chat-management';
 import { useChatContext } from '@/contexts/chat-context';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 
@@ -41,8 +42,8 @@ export function SettingsDialog() {
           <TabsTrigger value="system-prompts" className="flex-1 sm:flex-initial sm:w-full justify-start">
             System Prompts
           </TabsTrigger>
-          <TabsTrigger value="chat-history" className="flex-1 sm:flex-initial sm:w-full justify-start">
-            Chat History
+          <TabsTrigger value="chat-management" className="flex-1 sm:flex-initial sm:w-full justify-start">
+            Chat Management
           </TabsTrigger>
         </TabsList>
         <div className="flex-1 overflow-auto">
@@ -73,36 +74,8 @@ export function SettingsDialog() {
           <TabsContent value="system-prompts" className="p-0 h-full mt-0">
             <SystemPromptsManager />
           </TabsContent>
-          <TabsContent value="chat-history" className="p-3 h-full">
-            <h2 className="text-lg font-semibold mb-4">Chat History Management</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="enable-incognito" className="flex flex-col space-y-1">
-                  <span>Enable Incognito Mode</span>
-                  <span className="text-sm text-muted-foreground">
-                    When enabled, a new incognito chat will be created that won&apos;t be saved to history
-                  </span>
-                </Label>
-                <Switch
-                  id="enable-incognito"
-                  checked={settings.isIncognitoMode}
-                  onCheckedChange={(checked: boolean) => {
-                    actions.updateSettings({ isIncognitoMode: checked });
-                  }}
-                />
-              </div>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="enable-incognito" className="flex flex-col space-y-1">
-                  <span>Delete entire history</span>
-                  <span className="text-sm text-muted-foreground">Will delete entire chat threads from history.</span>
-                </Label>
-                <Button variant={'destructive'} onClick={() => actions.deleteEntireChatHistory()}>
-                  <Trash2 /> Delete
-                </Button>
-              </div>
-            </div>
+          <TabsContent value="chat-management" className="p-4 h-full">
+            <ChatManagement />
           </TabsContent>
         </div>
       </Tabs>

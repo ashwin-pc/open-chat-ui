@@ -27,9 +27,10 @@ interface MessageListProps {
 function Welcome() {
   return (
     <div className="flex flex-col items-center justify-center h-full space-y-4 text-center animate-fade-in">
-      <Suspense fallback={<LoadingFallback />}>
+      {/* TODO: Commenting out for now. If no pushback, will remove this since the empty screen is now pretty busy */}
+      {/* <Suspense fallback={<LoadingFallback />}>
         <EmptyAnimation />
-      </Suspense>
+      </Suspense> */}
       <h2 className="text-2xl font-semibold tracking-tight">Hi there!</h2>
       <p className="text-muted-foreground max-w-sm">
         Start a conversation by typing a message below. Press{' '}
