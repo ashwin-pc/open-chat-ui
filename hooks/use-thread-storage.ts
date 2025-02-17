@@ -76,7 +76,6 @@ export function useThreadStorage({
       hour: 'numeric',
       minute: 'numeric',
     });
-    debugger;
     return {
       ...systemPrompt,
       text: systemPrompt.text.replace('{{currentDateTime}}', formattedDate),
@@ -115,7 +114,6 @@ export function useThreadStorage({
             }
           }
           const thread = initializeEmptyThread();
-          debugger;
           await db.threads.put(thread);
           const summary: ThreadSummary = {
             id: thread.id,
@@ -306,7 +304,6 @@ export function useThreadStorage({
         await runMigration();
 
         const promptsFromDB = await db.systemPrompts.toArray();
-        debugger;
         if (promptsFromDB.length === 0) {
           if (prompts && prompts.length > 0) {
             await Promise.all(prompts.map((prompt) => db.systemPrompts.put(prompt)));
