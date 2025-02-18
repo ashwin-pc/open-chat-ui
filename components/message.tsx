@@ -12,9 +12,26 @@ import { Roles } from '@/lib/types';
 import { CodeBlock } from './code-block';
 
 const components: Partial<Components> = {
-  code({ className, children, ...props }) {
+  code({ className, children }) {
     const match = /language-(\w+)/.exec(className || '');
-    return <CodeBlock language={match?.[1] || 'text'} value={String(children).replace(/\n$/, '')} />;
+    const content = String(children).replace(/\n$/, '');
+    
+    const isCodeBlock = match || content.includes('\n');
+
+    if (!isCodeBlock) {
+      return (
+        <code className={className}>
+          {content}
+        </code>
+      );
+    }
+
+    return (
+      <CodeBlock 
+        language={match?.[1] || 'text'} 
+        value={content} 
+      />
+    );
   },
   pre({ children }) {
     return <>{children}</>;
