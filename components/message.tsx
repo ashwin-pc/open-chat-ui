@@ -1,5 +1,5 @@
 import { Copy, Edit, GitBranch, RotateCcw } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, memo } from 'react';
 import { Paperclip } from 'lucide-react';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { Button } from './ui/button';
@@ -21,6 +21,15 @@ const components: Partial<Components> = {
   },
 };
 
+// Memoized markdown component
+const MemoizedMarkdown = memo(function MemoizedMarkdown({ text }: { text: string }) {
+  return (
+    <ReactMarkdown remarkPlugins={[remarkBreaks]} components={components}>
+      {text}
+    </ReactMarkdown>
+  );
+});
+
 interface MessageProps {
   message: {
     text: string;
@@ -35,16 +44,23 @@ interface MessageProps {
   isPartial?: boolean;
 }
 
-export function Message({ message, index, editingMessageId, onRestart, onEdit, onBranch, isPartial }: MessageProps) {
-  const isAfterEditPoint = editingMessageId !== null && index > editingMessageId;
-  const isHuman = message.sender === Roles.HUMAN;
-
-  const copyToClipboard = useCallback(async () => {
-    await navigator.clipboard.writeText(message.text);
-    toast.success('Copied to clipboard');
-  }, [message.text]);
-
-  const ActionButtons = () => (
+// Memoized action buttons component
+const ActionButtons = memo(function ActionButtons({ 
+  isHuman, 
+  onEdit, 
+  onRestart, 
+  onBranch, 
+  copyToClipboard, 
+  index 
+}: { 
+  isHuman: boolean;
+  onEdit: (index: number) => void;
+  onRestart: (index: number) => void;
+  onBranch: (index: number) => void;
+  copyToClipboard: () => void;
+  index: number;
+}) {
+  return (
     <div className="absolute -bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
       <div className="flex bg-background/95 rounded-lg shadow-sm border border-border/50">
         {isHuman ? (
@@ -91,6 +107,28 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
       </div>
     </div>
   );
+});
+
+export const Message = memo(function Message({ 
+  message, 
+  index, 
+  editingMessageId, 
+  onRestart, 
+  onEdit, 
+  onBranch, 
+  isPartial 
+}: MessageProps) {
+  const isAfterEditPoint = editingMessageId !== null && index > editingMessageId;
+  const isHuman = message.sender === Roles.HUMAN;
+
+  const copyToClipboard = useCallback(async () => {
+    await navigator.clipboard.writeText(message.text);
+    toast.success('Copied to clipboard');
+  }, [message.text]);
+
+  const handleEdit = useCallback(() => onEdit(index), [onEdit, index]);
+  const handleRestart = useCallback(() => onRestart(index), [onRestart, index]);
+  const handleBranch = useCallback(() => onBranch(index), [onBranch, index]);
 
   return (
     <ContextMenu>
@@ -120,9 +158,7 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
                   prose-img:rounded-lg
                   dark:prose-invert`}
               >
-                <ReactMarkdown remarkPlugins={[remarkBreaks]} components={components}>
-                  {message.text}
-                </ReactMarkdown>
+                <MemoizedMarkdown text={message.text} />
                 {isPartial && (
                   <div className="h-4 w-4 absolute top-2 left-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
@@ -150,7 +186,14 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
                 </Tooltip>
               )}
             </div>
-            <ActionButtons />
+            <ActionButtons 
+              isHuman={isHuman}
+              onEdit={handleEdit}
+              onRestart={handleRestart}
+              onBranch={handleBranch}
+              copyToClipboard={copyToClipboard}
+              index={index}
+            />
           </div>
         </div>
       </ContextMenuTrigger>
@@ -182,7 +225,7 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
       </ContextMenuContent>
     </ContextMenu>
   );
-}
+});
 
 export const BotAvatar = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" className="h-full w-full">
