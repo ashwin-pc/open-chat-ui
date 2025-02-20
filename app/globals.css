@@ -85,6 +85,17 @@ body {
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    ::-webkit-scrollbar-thumb {
+      background: hsl(var(--muted-foreground));
+      border-radius: var(--radius);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: hsl(var(--muted));
+    }
+    ::-webkit-scrollbar-track {
+      background: hsl(var(--background));
+    }
+    scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--background));
   }
 }
 
