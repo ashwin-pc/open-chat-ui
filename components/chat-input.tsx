@@ -106,7 +106,13 @@ export function ChatInput({
             <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="h-8 w-8">
               <Paperclip className="h-4 w-4" />
             </Button>
-            <Select value={selectedModel} onValueChange={(value: BedrockModelNames) => { onModelChange(value); saveModelSelection(value) }}>
+            <Select
+              value={selectedModel}
+              onValueChange={(value: BedrockModelNames) => {
+                onModelChange(value);
+                saveModelSelection(value);
+              }}
+            >
               <SelectTrigger className="h-8">
                 <SelectValue placeholder="Select model">{BedrockModelDisplayNames[selectedModel]}</SelectValue>
               </SelectTrigger>
@@ -175,6 +181,7 @@ export function ChatInput({
                 size="icon"
                 className="h-8 w-8"
                 variant={isPolling ? 'destructive' : 'default'}
+                data-testid={isPolling ? 'abort-button' : 'send-button'}
               >
                 {isPolling ? <X className="h-4 w-4" /> : <Send className="h-4 w-4" />}
               </Button>

@@ -15,23 +15,14 @@ const components: Partial<Components> = {
   code({ className, children }) {
     const match = /language-(\w+)/.exec(className || '');
     const content = String(children).replace(/\n$/, '');
-    
+
     const isCodeBlock = match || content.includes('\n');
 
     if (!isCodeBlock) {
-      return (
-        <code className={className}>
-          {content}
-        </code>
-      );
+      return <code className={className}>{content}</code>;
     }
 
-    return (
-      <CodeBlock 
-        language={match?.[1] || 'text'} 
-        value={content} 
-      />
-    );
+    return <CodeBlock language={match?.[1] || 'text'} value={content} />;
   },
   pre({ children }) {
     return <>{children}</>;
@@ -62,14 +53,14 @@ interface MessageProps {
 }
 
 // Memoized action buttons component
-const ActionButtons = memo(function ActionButtons({ 
-  isHuman, 
-  onEdit, 
-  onRestart, 
-  onBranch, 
-  copyToClipboard, 
-  index 
-}: { 
+const ActionButtons = memo(function ActionButtons({
+  isHuman,
+  onEdit,
+  onRestart,
+  onBranch,
+  copyToClipboard,
+  index,
+}: {
   isHuman: boolean;
   onEdit: (index: number) => void;
   onRestart: (index: number) => void;
@@ -126,14 +117,14 @@ const ActionButtons = memo(function ActionButtons({
   );
 });
 
-export const Message = memo(function Message({ 
-  message, 
-  index, 
-  editingMessageId, 
-  onRestart, 
-  onEdit, 
-  onBranch, 
-  isPartial 
+export const Message = memo(function Message({
+  message,
+  index,
+  editingMessageId,
+  onRestart,
+  onEdit,
+  onBranch,
+  isPartial,
 }: MessageProps) {
   const isAfterEditPoint = editingMessageId !== null && index > editingMessageId;
   const isHuman = message.sender === Roles.HUMAN;
@@ -150,7 +141,7 @@ export const Message = memo(function Message({
   return (
     <ContextMenu>
       <ContextMenuTrigger>
-        <div
+        <article
           className={`flex mb-4 ${isHuman ? 'justify-end' : 'justify-start'}
             ${isAfterEditPoint ? 'opacity-50' : ''}`}
         >
@@ -203,7 +194,7 @@ export const Message = memo(function Message({
                 </Tooltip>
               )}
             </div>
-            <ActionButtons 
+            <ActionButtons
               isHuman={isHuman}
               onEdit={handleEdit}
               onRestart={handleRestart}
@@ -212,7 +203,7 @@ export const Message = memo(function Message({
               index={index}
             />
           </div>
-        </div>
+        </article>
       </ContextMenuTrigger>
 
       <ContextMenuContent>

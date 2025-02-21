@@ -4,7 +4,7 @@
 import { Message, BedrockModelNames, Roles } from './types';
 
 // Simulated delay for API calls
-const SIMULATED_DELAY = 3000;
+const SIMULATED_DELAY = 500;
 
 // Mock conversation storage
 let mockConversations: { [id: string]: Message[] } = {};
@@ -88,7 +88,7 @@ export const createConversation = (
   ongoingResponses.set(id, {
     fullResponse: mockResponse,
     currentPosition: 0,
-    chunkSize: 5, // Number of characters to reveal per poll
+    chunkSize: 50, // Number of characters to reveal per poll
   });
 };
 
