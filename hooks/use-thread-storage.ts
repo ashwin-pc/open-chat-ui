@@ -118,7 +118,7 @@ export function useThreadStorage({
           const summary: ThreadSummary = {
             id: thread.id,
             name: thread.name,
-            lastUpdated: new Date(thread.branches[0]?.createdAt || Date.now()),
+            lastUpdated: new Date(), // updated to current time
             isIncognitoThread: isIncognito,
           };
           await db.threadSummaries.put(summary);
@@ -145,7 +145,7 @@ export function useThreadStorage({
         const summary: ThreadSummary = {
           id: mergedThread.id,
           name: mergedThread.name,
-          lastUpdated: new Date(mergedThread.branches[0]?.createdAt || Date.now()),
+          lastUpdated: new Date(), // updated to current time
           isIncognitoThread: currentSummary?.isIncognitoThread,
         };
         await db.threadSummaries.put(summary);

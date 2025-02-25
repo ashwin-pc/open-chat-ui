@@ -388,4 +388,48 @@ describe('useThreadStorage', () => {
     // Should only create one thread due to the isCreatingThreadRef lock
     expect(db.threads.put).toHaveBeenCalledTimes(1);
   });
+
+  it('should set lastUpdated to current time on thread update', async () => {
+    const existingThread = {
+      id: 'test-thread',
+      name: 'Old Name',
+      branches: [
+        {
+          id: 1,
+          name: 'Main',
+          messages: [],
+          attachments: [],
+          createdAt: new Date('2000-01-01'),
+          description: 'Initial conversation branch',
+        },
+      ],
+      currentBranchId: 1,
+    };
+    const oldSummary = {
+      id: 'test-thread',
+      name: 'Old Name',
+      lastUpdated: new Date('2000-01-01'),
+      isIncognitoThread: false,
+    };
+
+    // Prevent useEffect from calling createThread by making thread count non-zero.
+    (db.threadSummaries.count as jest.Mock).mockResolvedValue(1);
+    (db.threadSummaries.toArray as jest.Mock).mockResolvedValue([
+      { id: 'test-thread', name: 'Old Name', lastUpdated: new Date('2000-01-01') },
+    ]);
+    (db.threads.get as jest.Mock).mockResolvedValue(existingThread);
+    (db.threadSummaries.get as jest.Mock).mockResolvedValue(oldSummary);
+
+    const { result } = renderHook(() => useThreadStorage({}));
+
+    await act(async () => {
+      await result.current.actions.updateThread({ id: 'test-thread', name: 'Updated Name' });
+    });
+
+    // Capture the summary passed to db.threadSummaries.put
+    const putCalls = (db.threadSummaries.put as jest.Mock).mock.calls;
+    const lastCallArg = putCalls[putCalls.length - 1][0];
+    expect(lastCallArg.name).toBe('Updated Name');
+    expect(new Date().getTime() - new Date(lastCallArg.lastUpdated).getTime()).toBeLessThan(1000);
+  });
 });
