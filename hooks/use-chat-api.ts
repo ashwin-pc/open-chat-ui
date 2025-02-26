@@ -62,8 +62,8 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
         setIsPolling(false);
       }
     } catch (error) {
-      console.error('Error polling for response:', error);
-      toast.error(`${error}`, { duration: 10000, dismissible: true });
+      // Show the error message directly from the API
+      toast.error(String(error));
       setPartialResponse(undefined);
       setIsPolling(false);
     }
@@ -96,7 +96,12 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
       conversationTime,
       model,
       systemContext,
-      (error) => console.error(error),
+      (error) => {
+        // Show the error message directly from the API
+        toast.error(String(error));
+        setIsPolling(false);
+        setPartialResponse(undefined);
+      },
       modelInferenceParams,
     );
 
@@ -129,12 +134,16 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
     onUpdateMessages(updatedMessages);
     setPendingAttachments([]);
 
-    createConversationAndPoll(
-      messageToSend,
-      currentBranch.messages,
-      updatedMessages,
-      currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
-    );
+    try {
+      createConversationAndPoll(
+        messageToSend,
+        currentBranch.messages,
+        updatedMessages,
+        currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
+      );
+    } catch (error) {
+      toast.error(String(error));
+    }
   };
 
   /**
@@ -162,13 +171,17 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
     // Clear pending files after sending
     setPendingAttachments([]);
 
-    const messageToSend = formatAttachmentMessage(newMessage);
-    createConversationAndPoll(
-      messageToSend,
-      updatedMessages.slice(0, -1),
-      updatedMessages,
-      currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
-    );
+    try {
+      const messageToSend = formatAttachmentMessage(newMessage);
+      createConversationAndPoll(
+        messageToSend,
+        updatedMessages.slice(0, -1),
+        updatedMessages,
+        currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
+      );
+    } catch (error) {
+      toast.error(String(error));
+    }
   };
 
   const handleRestartFromMessage = async (chatThread: ChatThread, restartIndex: number) => {
@@ -183,13 +196,17 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
 
     const lastMessage = newMessages[newMessages.length - 1];
     if (lastMessage.sender === Roles.HUMAN) {
-      const messageToSend = formatAttachmentMessage(lastMessage);
-      createConversationAndPoll(
-        messageToSend,
-        newMessages.slice(0, -1),
-        newMessages,
-        currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
-      );
+      try {
+        const messageToSend = formatAttachmentMessage(lastMessage);
+        createConversationAndPoll(
+          messageToSend,
+          newMessages.slice(0, -1),
+          newMessages,
+          currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
+        );
+      } catch (error) {
+        toast.error(String(error));
+      }
     }
   };
 
@@ -199,7 +216,11 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    await apiClient.abortConversation(currentThreadId.toString());
+    try {
+      await apiClient.abortConversation(currentThreadId.toString());
+    } catch (error) {
+      toast.error(String(error));
+    }
   };
 
   return {
