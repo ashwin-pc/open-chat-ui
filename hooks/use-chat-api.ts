@@ -12,6 +12,8 @@ import {
 import { formatAttachmentMessage, formatAttachments } from '@/lib/utils/file';
 import { toast } from 'sonner';
 import { useChatContext } from '@/contexts/chat-context';
+import { anthropicDefaultArtifactPrompt } from '../../prompts/anthropic-default-artifact-prompt';
+import { systemPrompts } from '../../prompts';
 
 interface UseChatApiProps {
   apiClient: ChatApiInterface;
@@ -24,7 +26,7 @@ export interface PartialResponse {
 }
 
 export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
-  const { currentSystemPrompt, currentThreadId, creativityLevel } = useChatContext();
+  const { currentSystemPrompt, currentThreadId, creativityLevel, settings } = useChatContext();
   const [isPolling, setIsPolling] = useState(false);
   const [partialResponse, setPartialResponse] = useState<PartialResponse>();
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -85,6 +87,12 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
       threadId: currentThreadId.toString(),
       text: '',
     });
+    const artifactPrompt =
+      systemPrompts.find((prompt) => prompt.name === 'anthropic-artifact-default') || anthropicDefaultArtifactPrompt;
+
+    if (settings.useArtifacts) {
+      systemContext = artifactPrompt.text + systemContext;
+    }
 
     apiClient.createConversation(
       messageToSend,

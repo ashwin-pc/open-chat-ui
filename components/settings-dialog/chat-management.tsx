@@ -73,7 +73,7 @@ export function ChatManagement() {
               if (!existing) {
                 await db.threads.put(thread);
               }
-            })
+            }),
           );
         }
 
@@ -86,7 +86,7 @@ export function ChatManagement() {
                 summary.lastUpdated = new Date(summary.lastUpdated);
                 await db.threadSummaries.put(summary);
               }
-            })
+            }),
           );
         }
 
@@ -97,19 +97,19 @@ export function ChatManagement() {
               if (!existing) {
                 await db.systemPrompts.put(prompt);
               }
-            })
+            }),
           );
         }
 
         // Handle legacy data if present
         if (content.legacyData) {
           const { chatThreads, DIYA_CONVERSATIONS, chatThreads_backup, DIYA_CONVERSATIONS_backup } = content.legacyData;
-          
+
           if (chatThreads) localStorage.setItem('chatThreads', chatThreads);
           if (DIYA_CONVERSATIONS) localStorage.setItem('DIYA_CONVERSATIONS', DIYA_CONVERSATIONS);
           if (chatThreads_backup) localStorage.setItem('chatThreads_backup', chatThreads_backup);
           if (DIYA_CONVERSATIONS_backup) localStorage.setItem('DIYA_CONVERSATIONS_backup', DIYA_CONVERSATIONS_backup);
-          
+
           // Reset migration flag and run migration for legacy data
           localStorage.removeItem('migrationDone');
           await runMigration();

@@ -40,6 +40,7 @@ export function useThreadStorage({
     'defaultSystemPromptId',
     DEFAULT_SYSTEM_PROMPT.id,
   );
+
   const [currentThreadId, setCurrentThreadId] = useState<string>('');
   const isCreatingThreadRef = useRef(false);
 

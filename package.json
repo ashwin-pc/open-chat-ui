@@ -35,14 +35,18 @@
     "gpt-tokenizer": "^2.2.3",
     "next": "14.2.16",
     "next-themes": "^0.4.3",
-    "react-markdown": "^9.0.1",
     "react-syntax-highlighter": "^15.6.1",
     "sonner": "^1.7.0",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
     "usehooks-ts": "^3.1.0",
     "uuid": "^11.0.3",
-    "vaul": "^1.1.1"
+    "vaul": "^1.1.1",
+    "@monaco-editor/react": "^4.7.0",
+    "mermaid": "11.3.0",
+    "@iconify/utils": "2.1.32",
+    "react-markdown": "^10.0.0",
+    "svg-pan-zoom": "3.6.2"
   },
   "peerDependencies": {
     "@radix-ui/react-avatar": "^1.1.1",

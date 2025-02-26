@@ -1,22 +1,25 @@
-// contexts/ChatContext.tsx
 import { createContext, useContext, useMemo, ReactNode, useState, useEffect, useCallback } from 'react';
 import { SystemPrompt, CreativityLevel } from '@/lib/types';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { useLocalStorage } from 'usehooks-ts';
 import { UseThreadData, useThreadStorage } from '@/hooks/use-thread-storage';
+import { Artifact } from '@/components/artifacts/types';
 
 type Settings = {
   cmdToSend: boolean;
   isIncognitoMode: boolean;
   largeTextPasteDetection: boolean;
   enableMaxChatWidth: boolean;
+  useArtifacts: boolean;
 };
 
 export interface ChatContextType extends Omit<UseThreadData, 'actions'> {
   settings: Settings;
   creativityLevel: CreativityLevel;
+  currentArtifact: Artifact | null;
   actions: UseThreadData['actions'] & {
     updateSettings: (newSettings: Partial<Settings>) => void;
+    setCurrentArtifact: (artifact: Artifact | null) => void;
   };
   setCreativityLevel: (level: CreativityLevel) => void;
 }
@@ -29,7 +32,11 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
     isIncognitoMode: false,
     largeTextPasteDetection: false,
     enableMaxChatWidth: true,
+    useArtifacts: false,
   });
+
+  // Right panel artifact
+  const [currentArtifact, setCurrentArtifact] = useState<Artifact | null>(null);
 
   const {
     threadSummaries,
@@ -99,6 +106,7 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
     () => ({
       ...threadActions,
       updateSettings,
+      setCurrentArtifact,
     }),
     [threadActions, updateSettings], // threadSummaries is not needed here now
   );
@@ -117,6 +125,7 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
         settings,
         creativityLevel,
         setCreativityLevel,
+        currentArtifact,
       }}
     >
       {children}

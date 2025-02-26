@@ -10,6 +10,11 @@ import ReactMarkdown, { Components } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import { Roles } from '@/lib/types';
 import { CodeBlock } from './code-block';
+import { ArtifactButton } from '@/components/artifact-button';
+import { cleanStreamingTextAsMessage, parseArtifact } from '@/components/artifacts/artifact-parser';
+import { Artifact, ArtifactType } from '@/components/artifacts/types';
+import { useSidebar } from '@/components/ui/sidebar';
+import { useChatContext } from '@/contexts/chat-context';
 
 const components: Partial<Components> = {
   code({ className, children }) {
@@ -126,6 +131,15 @@ export const Message = memo(function Message({
   onBranch,
   isPartial,
 }: MessageProps) {
+  const { actions } = useChatContext();
+  const { setOpen } = useSidebar();
+  const handleShowArtifact = (artifact: Artifact) => {
+    actions.setCurrentArtifact(artifact);
+    setOpen(false);
+  };
+
+  const displayText = cleanStreamingTextAsMessage(message.text);
+  const parsedArtifact = parseArtifact(message.text);
   const isAfterEditPoint = editingMessageId !== null && index > editingMessageId;
   const isHuman = message.sender === Roles.HUMAN;
 
@@ -166,7 +180,7 @@ export const Message = memo(function Message({
                   prose-img:rounded-lg
                   dark:prose-invert`}
               >
-                <MemoizedMarkdown text={message.text} />
+                <MemoizedMarkdown text={displayText} />
                 {isPartial && (
                   <div className="h-4 w-4 absolute top-2 left-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
@@ -231,6 +245,13 @@ export const Message = memo(function Message({
           </>
         )}
       </ContextMenuContent>
+      {parsedArtifact.artifacts.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {parsedArtifact.artifacts.map((artifact, idx) => (
+            <ArtifactButton key={idx} artifact={artifact} onShowArtifact={handleShowArtifact} />
+          ))}
+        </div>
+      )}
     </ContextMenu>
   );
 });

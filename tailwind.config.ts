@@ -91,10 +91,10 @@ const config: Config = {
         DEFAULT: {
           css: {
             'code::before': {
-              content: '""'
+              content: '""',
             },
             'code::after': {
-              content: '""'
+              content: '""',
             },
             'code:not(pre code)': {
               backgroundColor: 'hsl(var(--muted))',

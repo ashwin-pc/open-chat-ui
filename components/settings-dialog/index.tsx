@@ -82,6 +82,19 @@ export function SettingsDialog() {
                   onCheckedChange={(checked: boolean) => actions.updateSettings({ cmdToSend: checked })}
                 />
               </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="use-artifacts" className="flex flex-col space-y-1">
+                  <span>Enable artifacts</span>
+                  <span className="text-sm text-muted-foreground">
+                    When enabled, display artifacts like code, and mermaid diagrams in a separate preview window.
+                  </span>
+                </Label>
+                <Switch
+                  id="use-artifacts"
+                  checked={settings.useArtifacts}
+                  onCheckedChange={(checked: boolean) => actions.updateSettings({ useArtifacts: checked })}
+                />
+              </div>
               {/* New Max Chat Width toggle */}
               <div className="flex items-center justify-between">
                 <Label htmlFor="enable-max-chat-width" className="flex flex-col space-y-1">

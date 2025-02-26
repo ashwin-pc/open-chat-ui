@@ -18,6 +18,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { toast } from 'sonner';
 import { MAX_FILE_SIZE, MAX_TOKENS_PER_FILE, parseFile, getTokenCount } from '@/lib/utils/file';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from './ui/resizeable';
+import { Artifacts } from '@/components/artifacts';
 
 interface ChatAppProps {
   apiClient: ChatApiInterface;
@@ -25,7 +26,8 @@ interface ChatAppProps {
 }
 
 export function ChatApp({ apiClient, prompts }: ChatAppProps) {
-  const { settings, actions, threadSummaries, currentBranch, currentThread, currentThreadId } = useChatContext();
+  const { settings, actions, threadSummaries, currentBranch, currentThread, currentThreadId, currentArtifact } =
+    useChatContext();
   const [loaded, setLoaded] = useState(false);
   const {
     input,
@@ -241,8 +243,8 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
                 <ResizablePanel>
                   <div
                     style={{
-                      maxWidth: settings.enableMaxChatWidth ? '800px' : '100%',
-                      margin: settings.enableMaxChatWidth ? '0 auto' : undefined,
+                      maxWidth: settings.enableMaxChatWidth ? '100%' : '800px',
+                      margin: settings.enableMaxChatWidth ? undefined : '0 auto',
                     }}
                     className="flex h-screen flex-col"
                   >
@@ -293,6 +295,13 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
                     </div>
                   </div>
                 </ResizablePanel>
+                {currentArtifact && (
+                  <ResizablePanel>
+                    {currentArtifact && (
+                      <Artifacts artifact={currentArtifact} onChange={(newCode) => console.log(newCode)} />
+                    )}
+                  </ResizablePanel>
+                )}
                 {/* Enable the code below when artifacts are active */}
                 {/* <ResizableHandle />
                 <ResizablePanel>Placeholder for artifacts panel</ResizablePanel> */}
