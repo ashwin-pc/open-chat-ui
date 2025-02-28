@@ -1,18 +1,17 @@
 // contexts/ChatContext.tsx
 import { createContext, useContext, useMemo, ReactNode, useState, useEffect, useCallback } from 'react';
-import { SystemPrompt, CreativityLevel } from '../lib/types';
-import { useHotkeys } from '../hooks/use-hotkeys';
+import { SystemPrompt, CreativityLevel } from '@/lib/types';
+import { useHotkeys } from '@/hooks/use-hotkeys';
 import { useLocalStorage } from 'usehooks-ts';
-import { UseThreadData, useThreadStorage } from '../hooks/use-thread-storage';
+import { UseThreadData, useThreadStorage } from '@/hooks/use-thread-storage';
+
+type Settings = { cmdToSend: boolean; isIncognitoMode: boolean; largeTextPasteDetection: boolean };
 
 export interface ChatContextType extends Omit<UseThreadData, 'actions'> {
-  settings: {
-    cmdToSend: boolean;
-    isIncognitoMode: boolean;
-  };
+  settings: Settings;
   creativityLevel: CreativityLevel;
   actions: UseThreadData['actions'] & {
-    updateSettings: (newSettings: Partial<{ cmdToSend: boolean; isIncognitoMode: boolean }>) => void;
+    updateSettings: (newSettings: Partial<Settings>) => void;
   };
   setCreativityLevel: (level: CreativityLevel) => void;
 }
@@ -20,9 +19,10 @@ export interface ChatContextType extends Omit<UseThreadData, 'actions'> {
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
 export function ChatProvider({ children, prompts }: { children: ReactNode; prompts?: SystemPrompt[] }) {
-  const [settings, setSettings] = useLocalStorage<{ cmdToSend: boolean; isIncognitoMode: boolean }>('settings', {
+  const [settings, setSettings] = useLocalStorage<Settings>('settings', {
     cmdToSend: false,
     isIncognitoMode: false,
+    largeTextPasteDetection: false,
   });
 
   const {
@@ -40,7 +40,7 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
 
   // Define updateSettings with useCallback to ensure stable reference
   const updateSettings = useCallback(
-    (newSettings: Partial<{ cmdToSend: boolean; isIncognitoMode: boolean }>) => {
+    (newSettings: Partial<Settings>) => {
       setSettings((prev) => ({ ...prev, ...newSettings }));
     },
     [setSettings],

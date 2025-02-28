@@ -63,7 +63,7 @@ export function ChatInput({
   const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const pastedText = e.clipboardData.getData('text');
 
-    if (pastedText.length > TEXT_LENGTH_THRESHOLD) {
+    if (pastedText.length > TEXT_LENGTH_THRESHOLD && settings.largeTextPasteDetection) {
       e.preventDefault();
       setPastedContent(pastedText);
       setShowPasteDialog(true);

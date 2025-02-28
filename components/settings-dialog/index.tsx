@@ -57,6 +57,19 @@ export function SettingsDialog() {
             <h2 className="text-lg font-semibold mb-4">General Settings</h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
+                <Label htmlFor="use-large-text-paste-detection" className="flex flex-col space-y-1">
+                  <span>Auto-Convert Large Pasted Text to File</span>
+                  <span className="text-sm text-muted-foreground">
+                    When enabled, you have the option to convert large pasted text to a file.
+                  </span>
+                </Label>
+                <Switch
+                  id="use-large-text-paste-detection"
+                  checked={settings.largeTextPasteDetection}
+                  onCheckedChange={(checked: boolean) => actions.updateSettings({ largeTextPasteDetection: checked })}
+                />
+              </div>
+              <div className="flex items-center justify-between">
                 <Label htmlFor="use-cmd-enter" className="flex flex-col space-y-1">
                   <span>Use Cmd + Enter to Send</span>
                   <span className="text-sm text-muted-foreground">
