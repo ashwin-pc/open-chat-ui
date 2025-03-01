@@ -146,12 +146,18 @@ export function ChatInput({
                   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !isPolling) {
                     e.preventDefault();
                     handleSend();
+                    if (isImmersive) {
+                      toggleImmersive();
+                    }
                   }
                 } else {
                   // Only send on Enter when cmdToSend is false, block Cmd + Enter
                   if (!e.metaKey && !e.ctrlKey && e.key === 'Enter' && !e.shiftKey && !isPolling) {
                     e.preventDefault();
                     handleSend();
+                    if (isImmersive) {
+                      toggleImmersive();
+                    }
                   }
                 }
               }}
@@ -177,7 +183,16 @@ export function ChatInput({
                 </Button>
               )}
               <Button
-                onClick={isPolling ? handleAbort : handleSend}
+                onClick={() => {
+                  if (isPolling) {
+                    handleAbort();
+                  } else {
+                    handleSend();
+                    if (isImmersive) {
+                      toggleImmersive();
+                    }
+                  }
+                }}
                 size="icon"
                 className="h-8 w-8"
                 variant={isPolling ? 'destructive' : 'default'}
