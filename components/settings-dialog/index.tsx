@@ -82,6 +82,20 @@ export function SettingsDialog() {
                   onCheckedChange={(checked: boolean) => actions.updateSettings({ cmdToSend: checked })}
                 />
               </div>
+              {/* New Max Chat Width toggle */}
+              <div className="flex items-center justify-between">
+                <Label htmlFor="enable-max-chat-width" className="flex flex-col space-y-1">
+                  <span>Enable Max Chat Width</span>
+                  <span className="text-sm text-muted-foreground">
+                    Toggle to constrain the chat area to a fixed width.
+                  </span>
+                </Label>
+                <Switch
+                  id="enable-max-chat-width"
+                  checked={settings.enableMaxChatWidth}
+                  onCheckedChange={(checked: boolean) => actions.updateSettings({ enableMaxChatWidth: checked })}
+                />
+              </div>
             </div>
           </TabsContent>
           <TabsContent value="system-prompts" className="p-0 h-full mt-0">

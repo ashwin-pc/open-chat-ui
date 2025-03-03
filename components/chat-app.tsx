@@ -14,8 +14,10 @@ import { BedrockModelNames, ChatApiInterface, Roles, SystemPrompt, ThreadSummary
 import { SidebarInset, SidebarProvider, SidebarTrigger } from './ui/sidebar';
 import { ThemeProvider } from '@/contexts/theme-context';
 import { Toaster } from './ui/sonner';
+import { ScrollArea } from './ui/scroll-area';
 import { toast } from 'sonner';
 import { MAX_FILE_SIZE, MAX_TOKENS_PER_FILE, parseFile, getTokenCount } from '@/lib/utils/file';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from './ui/resizeable';
 
 interface ChatAppProps {
   apiClient: ChatApiInterface;
@@ -235,54 +237,66 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
           <>
             <SidePanel />
             <SidebarInset>
-              <div className="flex h-screen flex-col w-full max-w-[65%] mx-auto">
-                {/* Main Chat Area */}
-                <header className="flex items-center justify-between p-2 md:p-4 shrink-0">
-                  <div className="flex items-center space-x-2 md:space-x-4">
-                    <SidebarTrigger />
-                    <h2 className="text-lg md:text-2xl font-bold truncate">{currentThread.name}</h2>
+              <ResizablePanelGroup direction="horizontal">
+                <ResizablePanel>
+                  <div
+                    style={{
+                      maxWidth: settings.enableMaxChatWidth ? '800px' : '100%',
+                      margin: settings.enableMaxChatWidth ? '0 auto' : undefined,
+                    }}
+                    className="flex h-screen flex-col"
+                  >
+                    <header className="flex items-center justify-between p-2 md:p-4 shrink-0">
+                      <div className="flex items-center space-x-2 md:space-x-4">
+                        <SidebarTrigger />
+                        <h2 className="text-lg md:text-2xl font-bold truncate">{currentThread.name}</h2>
+                      </div>
+                      <div className="flex items-center space-x-2 md:space-x-4">
+                        <BranchSelector
+                          currentBranchId={currentThread.currentBranchId}
+                          branches={currentThread.branches}
+                          onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
+                        />
+                      </div>
+                    </header>
+                    <ScrollArea className="flex-grow flex flex-col p-2 md:p-4">
+                      <MessageList
+                        messages={currentBranch.messages}
+                        editingMessageId={editingMessageId}
+                        partialResponse={partialResponse}
+                        isPolling={isPolling}
+                        onRestart={handleRestart}
+                        onEdit={handleEdit}
+                        onBranch={handleBranch}
+                        threadId={currentThread.id}
+                      />
+                    </ScrollArea>
+                    <div className="flex flex-col">
+                      <ChatInput
+                        isImmersive={isImmersive}
+                        toggleImmersive={toggleImmersive}
+                        input={input}
+                        setInput={setInput}
+                        handleSend={handleSend}
+                        isPolling={isPolling}
+                        handleAbort={handleAbort}
+                        editingMessageId={editingMessageId}
+                        handleCancelEdit={handleCancelEdit}
+                        textareaRef={textareaRef}
+                        fileInputRef={fileInputRef}
+                        handleFileUpload={handleFileUpload}
+                        attachments={pendingAttachments}
+                        removeAttachment={handleRemoveAttachment}
+                        selectedModel={currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2}
+                        onModelChange={handleModelChange}
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2 md:space-x-4">
-                    <BranchSelector
-                      currentBranchId={currentThread.currentBranchId}
-                      branches={currentThread.branches}
-                      onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
-                    />
-                  </div>
-                </header>
-                <div className="flex-grow flex flex-col p-2 md:p-4">
-                  <MessageList
-                    messages={currentBranch.messages}
-                    editingMessageId={editingMessageId}
-                    partialResponse={partialResponse}
-                    isPolling={isPolling}
-                    onRestart={handleRestart}
-                    onEdit={handleEdit}
-                    onBranch={handleBranch}
-                    threadId={currentThread.id}
-                  />
-                </div>
-                <div className="flex flex-col">
-                  <ChatInput
-                    isImmersive={isImmersive}
-                    toggleImmersive={toggleImmersive}
-                    input={input}
-                    setInput={setInput}
-                    handleSend={handleSend}
-                    isPolling={isPolling}
-                    handleAbort={handleAbort}
-                    editingMessageId={editingMessageId}
-                    handleCancelEdit={handleCancelEdit}
-                    textareaRef={textareaRef}
-                    fileInputRef={fileInputRef}
-                    handleFileUpload={handleFileUpload}
-                    attachments={pendingAttachments}
-                    removeAttachment={handleRemoveAttachment}
-                    selectedModel={currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2}
-                    onModelChange={handleModelChange}
-                  />
-                </div>
-              </div>
+                </ResizablePanel>
+                {/* Enable the code below when artifacts are active */}
+                {/* <ResizableHandle />
+                <ResizablePanel>Placeholder for artifacts panel</ResizablePanel> */}
+              </ResizablePanelGroup>
               <Toaster />
             </SidebarInset>
           </>

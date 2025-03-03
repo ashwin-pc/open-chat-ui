@@ -22,7 +22,11 @@ export const CodeBlock = ({ language, value }: CodeBlockProps) => {
 
   return (
     <div className="relative">
-      <SyntaxHighlighter language={language} style={style}>
+      <SyntaxHighlighter
+        language={language}
+        style={style}
+        codeTagProps={{ style: { wordBreak: 'break-all', whiteSpace: 'pre-wrap' } }}
+      >
         {value}
       </SyntaxHighlighter>
       <button onClick={handleCopy} className="absolute top-2 right-2 text-foreground p-0 rounded">

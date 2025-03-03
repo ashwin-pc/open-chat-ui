@@ -155,10 +155,10 @@ export const Message = memo(function Message({
             >
               <AvatarFallback>{isHuman ? <UserAvatar /> : <BotAvatar />}</AvatarFallback>
             </Avatar>
-            <div className={`rounded-lg max-w-full overflow-x-auto ${isHuman ? 'bg-muted p-3' : 'bg-accentuated p-3'}`}>
+            <div className={`rounded-lg max-w-full ${isHuman ? 'bg-muted p-3' : 'bg-accentuated p-3'}`}>
               <div
                 className={`
-                  prose max-w-none
+                  prose max-w-full break-words break-all
                   prose-headings:mb-2 prose-headings:mt-4 prose-headings:font-semibold
                   prose-p:my-1 prose-p:leading-relaxed
                   prose-a:text-primary hover:prose-a:opacity-80

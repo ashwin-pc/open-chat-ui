@@ -5,7 +5,12 @@ import { useHotkeys } from '@/hooks/use-hotkeys';
 import { useLocalStorage } from 'usehooks-ts';
 import { UseThreadData, useThreadStorage } from '@/hooks/use-thread-storage';
 
-type Settings = { cmdToSend: boolean; isIncognitoMode: boolean; largeTextPasteDetection: boolean };
+type Settings = {
+  cmdToSend: boolean;
+  isIncognitoMode: boolean;
+  largeTextPasteDetection: boolean;
+  enableMaxChatWidth: boolean;
+};
 
 export interface ChatContextType extends Omit<UseThreadData, 'actions'> {
   settings: Settings;
@@ -23,6 +28,7 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
     cmdToSend: false,
     isIncognitoMode: false,
     largeTextPasteDetection: false,
+    enableMaxChatWidth: true,
   });
 
   const {
