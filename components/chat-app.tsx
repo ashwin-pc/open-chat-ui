@@ -216,10 +216,10 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
         incognitoThreads.forEach((thread: ThreadSummary) => {
           actions.deleteThread(thread.id);
         });
+        // Show closing confirmation only in incognito mode
+        event.preventDefault();
+        event.returnValue = '';
       }
-      // Prevent the default behavior
-      event.preventDefault();
-      event.returnValue = '';
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
