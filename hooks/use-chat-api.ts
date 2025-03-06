@@ -14,6 +14,8 @@ import { toast } from 'sonner';
 import { useChatContext } from '@/contexts/chat-context';
 import { anthropicDefaultArtifactPrompt } from '../../prompts/anthropic-default-artifact-prompt';
 import { systemPrompts } from '../../prompts';
+import { db } from '../lib/db';
+import { generateConversationTitle } from '../../utils/title-generation';
 
 interface UseChatApiProps {
   apiClient: ChatApiInterface;
@@ -26,7 +28,7 @@ export interface PartialResponse {
 }
 
 export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
-  const { currentSystemPrompt, currentThreadId, creativityLevel, settings } = useChatContext();
+  const { currentSystemPrompt, currentThreadId, creativityLevel, actions, settings } = useChatContext();
   const [isPolling, setIsPolling] = useState(false);
   const [partialResponse, setPartialResponse] = useState<PartialResponse>();
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -59,6 +61,17 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
 
         const updatedMessages = [...currentMessages, botResponse];
         onUpdateMessages(updatedMessages);
+
+        // Generate title only after we have the complete assistant response
+        // Check if this is the first message in the thread (messageHistory.length was 0)
+        if (currentMessages.length === 1 && currentMessages[0].sender === Roles.HUMAN && latestResponse !== '') {
+          generateThreadTitle(
+            currentMessages[0].text,
+            latestResponse,
+            conversationId,
+            BedrockModelNames.CLAUDE_V3_5_HAIKU,
+          );
+        }
 
         setPartialResponse(undefined);
         setIsPolling(false);
@@ -117,6 +130,34 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
     setTimeout(() => {
       pollForResponse(currentThreadId.toString(), conversationTime, updatedMessages);
     }, 1000);
+  };
+
+  const generateThreadTitle = async (
+    userMessage: string, 
+    assistantMessage: string, 
+    threadId: string,
+    model: BedrockModelNames
+  ) => {
+    try {
+      const generatedTitle = await generateConversationTitle(
+        apiClient,
+        userMessage,
+        assistantMessage
+      );
+      
+      // Update the thread summary with the new title
+      const summary = await db.threadSummaries.get(threadId);
+      if (summary) {
+        summary.name = generatedTitle;
+        summary.lastUpdated = new Date();
+        await db.threadSummaries.put(summary);
+        
+        actions.renameThread(threadId, generatedTitle);
+      }
+    } catch (error) {
+      console.error("Failed to generate title:", error);
+      // No need to show an error toast here as it's not critical
+    }
   };
 
   const handleNewMessage = async (input: string, chatThread: ChatThread) => {
@@ -240,5 +281,6 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
     handleAbort,
     pendingAttachments,
     setPendingAttachments,
+    generateThreadTitle,
   };
 }

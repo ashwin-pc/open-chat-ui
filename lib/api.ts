@@ -83,13 +83,23 @@ export const createConversation = (
     mockConversations[id] = [...mockConversations[id], newMessage];
   }, SIMULATED_DELAY);
 
-  const mockResponse = `Here is a detailed response that will be streamed word by word. This is simulating how a real LLM would generate text token by token. The response will grow longer with each polling request until it's complete.`;
-
-  ongoingResponses.set(id, {
-    fullResponse: mockResponse,
-    currentPosition: 0,
-    chunkSize: 50, // Number of characters to reveal per poll
-  });
+  // Special handling for title generation conversations
+  if (id.startsWith('title-')) {
+    const mockTitle = 'Generated Mock Title';
+    ongoingResponses.set(id, {
+      fullResponse: mockTitle,
+      currentPosition: 0,
+      chunkSize: 5, // Smaller chunks for title
+    });
+  } else {
+    const mockResponse = `Here is a detailed response that will be streamed word by word. This is simulating how a real LLM would generate text token by token. The response will grow longer with each polling request until it's complete.`;
+    
+    ongoingResponses.set(id, {
+      fullResponse: mockResponse,
+      currentPosition: 0,
+      chunkSize: 50, // Number of characters to reveal per poll
+    });
+  }
 };
 
 // Helper function to get all conversations (for UI testing)
