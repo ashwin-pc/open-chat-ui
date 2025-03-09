@@ -33,7 +33,7 @@ export function ThreadGroup({ title, threads, currentThreadId, actions, handleRe
               onClick={() => actions.switchThread(thread.id)} // Fix: call switchThread instead of actions directly
             >
               {thread.isIncognitoThread ? <MessageCircleDashed /> : ''}
-              {thread.name}
+              <span>{thread.name}</span>
             </SidebarMenuButton>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
