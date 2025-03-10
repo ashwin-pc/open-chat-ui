@@ -10,6 +10,7 @@ import { ErrorBoundary } from './error-boundary';
 import { ArtifactsProps, ARTIFACT_TYPES, ViewType } from './types';
 import { X, Copy, Download, Code, Eye, AlertCircle } from 'lucide-react';
 import { MarkdownPreview } from '@/components/artifacts/markdown-preview';
+import { SvgPreview } from './svg-preview';
 import { useTheme } from '@/contexts/theme-context';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
@@ -20,7 +21,11 @@ import type { editor } from 'monaco-editor';
 export function Artifacts({ artifact, onChange }: ArtifactsProps) {
   const { actions } = useChatContext();
   const { content, artifactType, title, codeLanguage } = artifact;
-  const hasPreview = artifactType === ARTIFACT_TYPES.MERMAID || artifactType === ARTIFACT_TYPES.MARKDOWN;
+  const hasPreview =
+    artifactType === ARTIFACT_TYPES.MERMAID ||
+    artifactType === ARTIFACT_TYPES.MARKDOWN ||
+    artifactType === ARTIFACT_TYPES.SVG;
+
   const [view, setView] = useState<ViewType>('code');
   const [currentCode, setCurrentCode] = useState<string>(content);
   const [error, setError] = useState<string>('');
@@ -31,6 +36,7 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
 
   useEffect(() => {
     setCurrentCode(content);
+    setView('code');
   }, [content]);
 
   useEffect(() => {
@@ -74,6 +80,8 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
         fileExtension = 'md';
       } else if (artifactType === ARTIFACT_TYPES.MERMAID && view === 'code') {
         fileExtension = 'mmd';
+      } else if (artifactType === ARTIFACT_TYPES.SVG) {
+        fileExtension = 'svg';
       } else if (artifactType === ARTIFACT_TYPES.CODE && codeLanguage) {
         fileExtension = getLanguageExtension(codeLanguage);
       }
@@ -165,6 +173,10 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
 
           {view === 'preview' && artifactType === ARTIFACT_TYPES.MARKDOWN && (
             <MarkdownPreview code={currentCode} theme={theme} />
+          )}
+
+          {view === 'preview' && artifactType === ARTIFACT_TYPES.SVG && (
+            <SvgPreview content={currentCode} theme={theme} onError={setError} />
           )}
 
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">

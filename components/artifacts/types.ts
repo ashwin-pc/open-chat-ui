@@ -2,6 +2,7 @@ export const ARTIFACT_TYPES = {
   CODE: 'application/vnd.ant.code',
   MERMAID: 'application/vnd.ant.mermaid',
   MARKDOWN: 'text/markdown',
+  SVG: 'image/svg+xml',
 } as const;
 
 export type ArtifactType = (typeof ARTIFACT_TYPES)[keyof typeof ARTIFACT_TYPES];
