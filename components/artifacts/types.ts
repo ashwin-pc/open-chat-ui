@@ -1,8 +1,7 @@
 export const ARTIFACT_TYPES = {
   CODE: 'application/vnd.ant.code',
   MERMAID: 'application/vnd.ant.mermaid',
-  MARKDOWN: 'application/vnd.ant.markdown',
-  TEXT: 'text/markdown',
+  MARKDOWN: 'text/markdown',
 } as const;
 
 export type ArtifactType = (typeof ARTIFACT_TYPES)[keyof typeof ARTIFACT_TYPES];
@@ -36,6 +35,6 @@ export interface Artifact {
 
 export interface ArtifactsProps {
   artifact: Artifact;
-  onChange: (newCode: string) => void;
+  onChange?: (newCode: string) => void;
   theme?: 'light' | 'dark';
 }

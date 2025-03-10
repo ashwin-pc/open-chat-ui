@@ -296,11 +296,12 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
                   </div>
                 </ResizablePanel>
                 {currentArtifact && (
-                  <ResizablePanel>
-                    {currentArtifact && (
-                      <Artifacts artifact={currentArtifact} onChange={(newCode) => console.log(newCode)} />
-                    )}
-                  </ResizablePanel>
+                  <>
+                    <ResizableHandle withHandle />
+                    <ResizablePanel>
+                      <Artifacts artifact={currentArtifact} />
+                    </ResizablePanel>
+                  </>
                 )}
                 {/* Enable the code below when artifacts are active */}
                 {/* <ResizableHandle />

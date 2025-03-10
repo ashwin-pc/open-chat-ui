@@ -7,31 +7,30 @@ import { cn } from '@/lib/utils';
 import { downloadMermaidSvg, MermaidPreview } from './mermaid-preview';
 import { Loading } from './loading';
 import { ErrorBoundary } from './error-boundary';
-import { ArtifactsProps, ARTIFACT_TYPES, EditorState, ViewType } from './types';
-import { X, Copy, Download, Code, Eye, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArtifactsProps, ARTIFACT_TYPES, ViewType } from './types';
+import { X, Copy, Download, Code, Eye, AlertCircle } from 'lucide-react';
 import { MarkdownPreview } from '@/components/artifacts/markdown-preview';
 import { useTheme } from '@/contexts/theme-context';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { downloadTextFile, getLanguageExtension, sanitizeFilename } from '@/components/artifacts/utils';
 import { useChatContext } from '@/contexts/chat-context';
+import type { editor } from 'monaco-editor';
 
 export function Artifacts({ artifact, onChange }: ArtifactsProps) {
   const { actions } = useChatContext();
   const { content, artifactType, title, codeLanguage } = artifact;
   const hasPreview = artifactType === ARTIFACT_TYPES.MERMAID || artifactType === ARTIFACT_TYPES.MARKDOWN;
   const [view, setView] = useState<ViewType>('code');
-  const [currentCode, setCurrentCode] = useState(content);
+  const [currentCode, setCurrentCode] = useState<string>(content);
   const [error, setError] = useState<string>('');
-  const [editorState, setEditorState] = useState<EditorState>({});
   const [isEditorReady, setIsEditorReady] = useState(false);
   const { theme } = useTheme();
-  const editorRef = useRef(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const alertTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
     setCurrentCode(content);
-    setView('code');
   }, [content]);
 
   useEffect(() => {
@@ -45,17 +44,11 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
   const handleEditorDidMount: OnMount = (editor) => {
     editorRef.current = editor;
     setIsEditorReady(true);
-
-    if (editorState.position) {
-      editor.setPosition(editorState.position);
-      editor.setSelection(editorState.selection);
-      editor.setScrollPosition(editorState.scrollPosition);
-    }
   };
 
-  const handleCodeChange = (value: string) => {
+  const handleCodeChange = (value = '') => {
     setCurrentCode(value);
-    onChange(value);
+    onChange?.(value);
   };
 
   const handleCopyCode = async () => {
@@ -143,37 +136,37 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
         )}
 
         <div className="flex-1 relative">
-          <div className={cn('absolute inset-0', view === 'code' ? 'block' : 'hidden')}>
-            {!isEditorReady && <Loading />}
-            <Editor
-              height="100%"
-              defaultLanguage={codeLanguage || 'text'}
-              value={currentCode}
-              onChange={handleCodeChange}
-              onMount={handleEditorDidMount}
-              theme={theme === 'dark' ? 'vs-dark' : 'light'}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14,
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                wordWrap: 'on',
-                renderValidationDecorations: 'off',
-              }}
-            />
-          </div>
+          {view === 'code' && (
+            <>
+              {!isEditorReady && <Loading />}
+              <Editor
+                height="100%"
+                defaultLanguage={codeLanguage || 'text'}
+                value={currentCode}
+                onChange={handleCodeChange}
+                onMount={handleEditorDidMount}
+                theme={theme === 'dark' ? 'vs-dark' : 'light'}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 14,
+                  lineNumbers: 'on',
+                  scrollBeyondLastLine: false,
+                  automaticLayout: true,
+                  wordWrap: 'on',
+                  renderValidationDecorations: 'off',
+                }}
+              />
+            </>
+          )}
 
-          {artifactType === ARTIFACT_TYPES.MERMAID && view === 'preview' && (
-            <div className="absolute inset-0">
-              <MermaidPreview code={currentCode} theme={theme} onError={setError} />
-            </div>
+          {view === 'preview' && artifactType === ARTIFACT_TYPES.MERMAID && (
+            <MermaidPreview code={currentCode} theme={theme} onError={setError} />
           )}
-          {artifactType === ARTIFACT_TYPES.MARKDOWN && view === 'preview' && (
-            <div className="absolute inset-0">
-              <MarkdownPreview code={currentCode} theme={theme} />
-            </div>
+
+          {view === 'preview' && artifactType === ARTIFACT_TYPES.MARKDOWN && (
+            <MarkdownPreview code={currentCode} theme={theme} />
           )}
+
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
             <div className="flex gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-2 rounded-full border shadow-lg">
               <Button variant="ghost" size="sm" onClick={handleCopyCode}>
@@ -185,8 +178,6 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
             </div>
           </div>
         </div>
-
-        {/* Floating Action Bar */}
       </div>
     </ErrorBoundary>
   );
