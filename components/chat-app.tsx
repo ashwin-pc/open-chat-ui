@@ -230,6 +230,18 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
     };
   }, [actions, settings.isIncognitoMode, threadSummaries]);
 
+  useEffect(() => {
+    // Add this effect to handle ResizeObserver errors
+    const resizeErrorHandler = (e: ErrorEvent) => {
+      if (e.message.includes('ResizeObserver loop')) {
+        e.stopImmediatePropagation();
+      }
+    };
+
+    window.addEventListener('error', resizeErrorHandler);
+    return () => window.removeEventListener('error', resizeErrorHandler);
+  }, []);
+
   return (
     <ThemeProvider>
       <SidebarProvider>
