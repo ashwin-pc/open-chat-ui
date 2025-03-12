@@ -1,20 +1,20 @@
 import { Copy, Edit, GitBranch, RotateCcw } from 'lucide-react';
-import { useCallback, memo } from 'react';
-import { Paperclip } from 'lucide-react';
+import { memo, useCallback } from 'react';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { Button } from './ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from './ui/context-menu';
 import { toast } from 'sonner';
 import ReactMarkdown, { Components } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
-import { Roles } from '@/lib/types';
+import { Attachment, Roles } from '@/lib/types';
 import { CodeBlock } from './code-block';
 import { ArtifactButton } from '@/components/artifact-button';
 import { cleanStreamingTextAsMessage, parseArtifact } from '@/components/artifacts/artifact-parser';
-import { Artifact, ArtifactType } from '@/components/artifacts/types';
+import { Artifact } from '@/components/artifacts/types';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useChatContext } from '@/contexts/chat-context';
+import { TextFilePreview } from '@/components/text-file-preview';
+import { isFileImage } from '@/lib/utils/file';
 
 const components: Partial<Components> = {
   code({ className, children }) {
@@ -47,7 +47,7 @@ interface MessageProps {
   message: {
     text: string;
     sender: string;
-    attachments?: { name: string }[];
+    attachments?: Attachment[];
   };
   index: number;
   editingMessageId: number | null;
@@ -170,6 +170,27 @@ export const Message = memo(function Message({
             >
               <AvatarFallback>{isHuman ? <UserAvatar /> : <BotAvatar />}</AvatarFallback>
             </Avatar>
+            {!!message?.attachments?.length && (
+              <div className={`flex flex-wrap gap-2 mb-2`}>
+                {message?.attachments?.map((attachment) => {
+                  if (isFileImage(attachment.name)) {
+                    return (
+                      <img
+                        className="max-h-[200px] object-cover rounded-lg shadow-sm"
+                        key={attachment.name}
+                        src={attachment.content}
+                        alt={attachment.name}
+                        style={{
+                          backgroundColor: '#f8f9fa',
+                          border: '1px solid #e9ecef',
+                        }}
+                      />
+                    );
+                  }
+                  return <TextFilePreview key={attachment.name} filename={attachment.name} />;
+                })}
+              </div>
+            )}
             <div className={`rounded-lg max-w-full ${isHuman ? 'bg-muted p-3' : 'bg-accentuated p-3'}`}>
               <div
                 className={`
@@ -188,26 +209,6 @@ export const Message = memo(function Message({
                   </div>
                 )}
               </div>
-              {message.attachments && message.attachments.length > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center mt-1 text-xs text-muted-foreground cursor-pointer">
-                      <Paperclip className="h-3 w-3 mr-1" />
-                      <span>
-                        {message.attachments.length} attachment
-                        {message.attachments.length > 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <ul className="text-xs">
-                      {message.attachments.map((attachment, idx) => (
-                        <li key={idx}>{attachment.name}</li>
-                      ))}
-                    </ul>
-                  </TooltipContent>
-                </Tooltip>
-              )}
             </div>
             <ActionButtons
               isHuman={isHuman}

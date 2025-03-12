@@ -16,7 +16,14 @@ import { ThemeProvider } from '@/contexts/theme-context';
 import { Toaster } from './ui/sonner';
 import { ScrollArea } from './ui/scroll-area';
 import { toast } from 'sonner';
-import { MAX_FILE_SIZE, MAX_TOKENS_PER_FILE, parseFile, getTokenCount } from '@/lib/utils/file';
+import {
+  MAX_FILE_SIZE,
+  MAX_TOKENS_PER_FILE,
+  parseFile,
+  getTokenCount,
+  isFileImage,
+  MAX_IMAGE_SIZE,
+} from '@/lib/utils/file';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from './ui/resizeable';
 import { Artifacts } from '@/components/artifacts';
 
@@ -152,7 +159,9 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
     let totalTokens = 0;
     for (const attachment of pendingAttachments) {
       try {
-        totalTokens += getTokenCount(attachment.content);
+        if (isFileImage(attachment.name)) {
+          totalTokens += getTokenCount(attachment.content);
+        }
       } catch (error) {
         console.error(`Error processing existing file ${attachment.name}:`, error);
       }
@@ -160,29 +169,40 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
 
     for (const file of newFiles) {
       try {
-        // Size check
-        if (file.size > MAX_FILE_SIZE) {
-          toast.error(`${file.name} exceeds 5MB limit`);
-          continue;
+        const isImage = isFileImage(file.name);
+        const maxSize = isImage ? MAX_IMAGE_SIZE : MAX_FILE_SIZE;
+
+        if (file.size > maxSize) {
+          toast.error(`${file.name} exceeds ${isImage ? '30' : '5'}MB limit`);
+          return false;
         }
 
         const content = await parseFile(file);
 
-        // Token check for individual file
-        const fileTokens = getTokenCount(content);
-        if (fileTokens > MAX_TOKENS_PER_FILE) {
-          toast.error(`${file.name} exceeds token limit`);
-          continue;
+        if (!isImage) {
+          // Token check for individual file
+          const fileTokens = getTokenCount(content);
+          if (fileTokens > MAX_TOKENS_PER_FILE) {
+            toast.error(`${file.name} exceeds token limit`);
+            continue;
+          }
+
+          // Check combined token count
+          if (totalTokens + fileTokens > MAX_TOKENS_PER_FILE) {
+            toast.error('Adding this file would exceed total token limit');
+            continue;
+          }
+
+          totalTokens += fileTokens;
         }
 
-        // Check combined token count
-        if (totalTokens + fileTokens > MAX_TOKENS_PER_FILE) {
-          toast.error('Adding this file would exceed total token limit');
-          continue;
-        }
-
-        totalTokens += fileTokens;
-        setPendingAttachments((prev) => [...prev, { name: file.name, content }]);
+        setPendingAttachments((prev) => [
+          ...prev,
+          {
+            name: file.name,
+            content,
+          },
+        ]);
         toast.success(`${file.name} added successfully`);
       } catch (error) {
         toast.error(`Error processing ${file.name}: ${error}`);

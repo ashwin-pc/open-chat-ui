@@ -2,7 +2,10 @@ import { encode } from 'gpt-tokenizer';
 import { Attachment, Message } from '../types';
 
 export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+export const MAX_IMAGE_SIZE = 30 * 1024 * 1024; // https://support.anthropic.com/en/articles/9002500-what-kinds-of-images-can-i-upload-to-claude-ai
 export const MAX_TOKENS_PER_FILE = 160000;
+
+export const IMAGE_FILE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
 
 export const ALLOWED_FILE_EXTENSIONS = [
   // Markup and General Text Files
@@ -305,6 +308,9 @@ export const ALLOWED_FILE_EXTENSIONS = [
   'properties',
   'resx',
   'rc',
+
+  // Images
+  ...IMAGE_FILE_EXTENSIONS,
 ];
 
 export async function parseFile(file: File, onProgress?: (progress: number) => void): Promise<string> {
@@ -346,7 +352,11 @@ export async function parseFile(file: File, onProgress?: (progress: number) => v
       }
     };
 
-    reader.readAsText(file);
+    if (isFileImage(file.name)) {
+      reader.readAsDataURL(file);
+    } else {
+      reader.readAsText(file);
+    }
   });
 }
 
@@ -362,6 +372,9 @@ export function getTokenCount(text: string): number {
 export const formatAttachments = (attachments: Attachment[]): string => {
   return attachments
     .map((attachment) => {
+      if (isFileImage(attachment.name)) {
+        return `<diya_image_file name="${attachment.name}">\n${attachment.content}\n</diya_image_file>\n\n`;
+      }
       return `<file name="${attachment.name}">\n${attachment.content}\n</file>\n\n`;
     })
     .join('');
@@ -371,4 +384,22 @@ export const formatAttachmentMessage = (message: Message): string => {
   if (!message.attachments) return message.text;
   const attachmentContent = formatAttachments(message.attachments);
   return attachmentContent + message.text;
+};
+
+export const isFileImage = (filename: string): boolean =>
+  IMAGE_FILE_EXTENSIONS.some((extension) => filename.includes(extension));
+
+export const getBase64SizeInBytes = (base64String: string): number => {
+  const base64WithoutHeader = base64String.replace(/^data:image\/\w+;base64,/, '');
+  return (base64WithoutHeader.length * 3) / 4;
+};
+
+export const formatFileSize = (sizeInBytes: number): string => {
+  if (sizeInBytes < 1024) {
+    return `${Math.round(sizeInBytes)} bytes`;
+  } else if (sizeInBytes < 1024 * 1024) {
+    return `${(sizeInBytes / 1024).toFixed(2)} KB`;
+  } else {
+    return `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
 };

@@ -2,7 +2,7 @@ import { X } from 'lucide-react';
 import { Button } from './ui/button';
 import { useEffect, useState } from 'react';
 import { Progress } from './ui/progress';
-import { getTokenCount } from '@/lib/utils/file';
+import { formatFileSize, getBase64SizeInBytes, getTokenCount, isFileImage } from '@/lib/utils/file';
 import { Attachment } from '@/lib/types';
 
 interface FileAttachmentListProps {
@@ -15,6 +15,7 @@ interface FileAttachmentListProps {
 interface AttachmentWithTokens extends Attachment {
   tokenCount?: number;
   progress?: number;
+  sizeInBytes?: number;
 }
 
 export function FileAttachmentList({ attachments, onRemove, className = '' }: FileAttachmentListProps) {
@@ -27,6 +28,7 @@ export function FileAttachmentList({ attachments, onRemove, className = '' }: Fi
         const attachmentWithTokens: AttachmentWithTokens = attachment;
         try {
           attachmentWithTokens.tokenCount = getTokenCount(attachment.content);
+          attachmentWithTokens.sizeInBytes = getBase64SizeInBytes(attachment.content);
         } catch (error) {
           console.error(`Error processing file ${attachment.name}:`, error);
           attachmentWithTokens.tokenCount = 0;
@@ -35,7 +37,9 @@ export function FileAttachmentList({ attachments, onRemove, className = '' }: Fi
       });
 
       setAttachmentsWithTokens(processed);
-      setTotalTokens(processed.reduce((sum, file) => sum + (file.tokenCount || 0), 0));
+      setTotalTokens(
+        processed.filter((p) => !isFileImage(p.name)).reduce((sum, file) => sum + (file.tokenCount || 0), 0),
+      );
     };
 
     processFiles();
@@ -46,27 +50,46 @@ export function FileAttachmentList({ attachments, onRemove, className = '' }: Fi
   return (
     <div className={className}>
       <div className={`flex flex-wrap gap-2 mb-2`}>
-        {attachmentsWithTokens.map((file, index) => (
-          <div key={index} className="flex flex-col bg-muted rounded-lg p-2 text-sm w-[200px]">
-            <div className="flex items-center justify-between">
-              <span className="truncate max-w-[150px]">{file.name}</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onRemove(file.name)}
-                className="h-6 w-6 hover:bg-transparent"
-              >
-                <X className="h-3 w-3" />
-              </Button>
+        {attachmentsWithTokens.map((file, index) => {
+          const isImage = isFileImage(file.name);
+          return (
+            <div key={index} className="flex flex-col bg-muted rounded-lg p-2 text-sm w-[200px]">
+              <div className="flex items-start space-x-2">
+                {isImage && (
+                  <div className="flex-shrink-0">
+                    <img className="h-10 w-10 object-cover rounded" src={file.content} alt={file.name} />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between">
+                    <span className="truncate max-w-[150px]">{file.name}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onRemove(file.name)}
+                      className="h-6 w-6 hover:bg-transparent"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  {!isImage && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Tokens: {file.tokenCount?.toLocaleString() || '...'}
+                    </div>
+                  )}
+                  {isImage && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Size: {formatFileSize(file.sizeInBytes ?? 0)}
+                    </div>
+                  )}
+                  {file.progress !== undefined && file.progress < 100 && (
+                    <Progress value={file.progress} className="h-1 mt-2" />
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="text-xs text-muted-foreground mt-1">
-              Tokens: {file.tokenCount?.toLocaleString() || '...'}
-            </div>
-            {file.progress !== undefined && file.progress < 100 && (
-              <Progress value={file.progress} className="h-1 mt-2" />
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
       <div className="text-sm text-muted-foreground">
         Total Tokens: {totalTokens.toLocaleString()}/160,000
