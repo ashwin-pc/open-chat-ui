@@ -158,6 +158,7 @@ export const Message = memo(function Message({
         <article
           className={`flex mb-4 ${isHuman ? 'justify-end' : 'justify-start'}
             ${isAfterEditPoint ? 'opacity-50' : ''}`}
+          data-role-type={isHuman ? 'human' : 'bot'}
         >
           <div
             className={`flex flex-col max-w-full items-${isHuman ? 'end' : 'start'} relative group
@@ -182,7 +183,7 @@ export const Message = memo(function Message({
               >
                 <MemoizedMarkdown text={displayText} />
                 {isPartial && (
-                  <div className="h-4 w-4 absolute top-2 left-2">
+                  <div className="h-4 w-4 absolute top-2 left-2" data-testid="typing-indicator">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                   </div>
                 )}

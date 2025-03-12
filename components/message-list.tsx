@@ -123,7 +123,7 @@ export function MessageList({
         />
       )}
 
-      <div ref={messagesEndRef} />
+      <div ref={messagesEndRef} data-testid="messages-end-ref" />
     </>
   );
 }

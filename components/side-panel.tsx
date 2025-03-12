@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { Plus, MessageSquare, MessageCircleDashed } from 'lucide-react';
+import { Plus, MessageSquare, MessageCircleDashed, ArrowLeft } from 'lucide-react';
 import { useChatContext } from '@/contexts/chat-context';
 import {
   Sidebar,
@@ -18,6 +18,7 @@ import { ShortcutsDialog } from './shortcuts-dialog';
 import { SettingsDialog } from './settings-dialog';
 import { ThreadGroup } from './thread-group';
 import { categorizeThreads } from '@/lib/utils/thread-utils';
+import { record } from 'aws-amplify/analytics';
 
 export function SidePanel() {
   const { threadSummaries, currentThreadId, actions, settings } = useChatContext();
@@ -35,6 +36,12 @@ export function SidePanel() {
       actions.renameThread(threadId, newName.trim());
     }
   };
+
+  const goToLegacyUI = () => {
+    record({ name: 'ClickedLegacyUI' });
+    window.location.href = window.location.origin;
+  };
+
   const categorized = categorizeThreads(threadSummaries);
   return (
     <Sidebar>
@@ -95,6 +102,11 @@ export function SidePanel() {
             <Plus className="h-4 w-4 mr-2" />
           )}
           {settings.isIncognitoMode ? 'New Incognito Chat' : 'New Chat'}
+        </Button>
+
+        <Button className="w-full" variant="secondary" onClick={goToLegacyUI}>
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back to Legacy UI
         </Button>
 
         <div className="grid grid-cols-3 gap-4 justify-items-center">
