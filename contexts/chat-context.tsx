@@ -4,6 +4,7 @@ import { useHotkeys } from '@/hooks/use-hotkeys';
 import { useLocalStorage } from 'usehooks-ts';
 import { UseThreadData, useThreadStorage } from '@/hooks/use-thread-storage';
 import { Artifact } from '@/components/artifacts/types';
+import { record } from 'aws-amplify/analytics';
 
 type Settings = {
   cmdToSend: boolean;
@@ -70,6 +71,11 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
     // We only want to run this effect when isIncognitoMode changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.isIncognitoMode]);
+
+  // Record page load event
+  useEffect(() => {
+    record({ name: 'WebPageLoad', attributes: { page: 'New UI' } });
+  }, []);
 
   useHotkeys('new-thread', {
     key: 'ctrl+n',
