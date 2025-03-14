@@ -5,6 +5,7 @@ import { useLocalStorage } from 'usehooks-ts';
 import { ChatThread, ThreadSummary, Branch, Message, BedrockModelNames, SystemPrompt } from '../lib/types';
 import { runMigration } from '../lib/migration-utils';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { toast } from 'sonner';
 
 // Move outside actions so it's available in hook scope
 const initializeEmptyThread = (): ChatThread => ({
@@ -32,16 +33,18 @@ const DEFAULT_SYSTEM_PROMPT: SystemPrompt = {
 export function useThreadStorage({
   prompts,
   isIncognito = false,
+  threadId = null,
 }: {
   prompts?: SystemPrompt[];
   isIncognito?: boolean;
+  threadId?: string | null;
 }) {
   const [defaultSystemPromptId, setDefaultSystemPromptId] = useLocalStorage<string>(
     'defaultSystemPromptId',
     DEFAULT_SYSTEM_PROMPT.id,
   );
 
-  const [currentThreadId, setCurrentThreadId] = useState<string>('');
+  const [currentThreadId, setCurrentThreadId] = useState<string>(threadId);
   const isCreatingThreadRef = useRef(false);
 
   const threadSummaries = useLiveQuery(() => db.threadSummaries.toArray(), [], [] as ThreadSummary[]);
@@ -110,7 +113,7 @@ export function useThreadStorage({
               existingThread.branches[0].messages.length === 0 &&
               existingThread.branches[0].attachments.length === 0
             ) {
-              setCurrentThreadId(existingThread.id);
+              await actions.switchThread(existingThread.id);
               return;
             }
           }
@@ -123,7 +126,7 @@ export function useThreadStorage({
             isIncognitoThread: isIncognito,
           };
           await db.threadSummaries.put(summary);
-          setCurrentThreadId(thread.id);
+          await actions.switchThread(thread.id);
         } finally {
           isCreatingThreadRef.current = false;
         }
@@ -260,6 +263,18 @@ export function useThreadStorage({
       },
 
       switchThread: async (threadId: string): Promise<void> => {
+        const threadExists = await db.threads.get(threadId);
+        if (!threadExists) {
+          console.error(`Thread ${threadId} not found`);
+          toast.error('Chat thread not found');
+          const currentUrl = new URL(window.location.href);
+          currentUrl.searchParams.delete('thread');
+          window.history.replaceState({}, '', currentUrl.toString());
+          return;
+        }
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.set('thread', threadId);
+        window.history.pushState({}, '', newUrl.toString());
         setCurrentThreadId(threadId);
       },
 
@@ -315,7 +330,18 @@ export function useThreadStorage({
 
         if (!mounted) return;
 
-        if ((await db.threadSummaries.count()) === 0) {
+        if (threadId) {
+          // If thread ID exists in URL, try to load it
+          const threadExists = await db.threads.get(threadId);
+          if (threadExists) {
+            await actions.switchThread(threadId);
+          } else {
+            // If thread doesn't exist, create new one
+            await actions.createThread();
+          }
+        } else {
+          // No thread ID in URL, always point to new thread
+          const threadCount = await db.threadSummaries.count();
           await actions.createThread();
         }
       } catch (error) {
@@ -327,19 +353,9 @@ export function useThreadStorage({
 
     return () => {
       mounted = false;
-      // Cleanup lock on unmount
       isCreatingThreadRef.current = false;
     };
-    // Only run once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Add a new effect to select an existing thread if currentThreadId is empty
-  useEffect(() => {
-    if (!currentThreadId && threadSummaries && threadSummaries.length > 0) {
-      setCurrentThreadId(threadSummaries[0].id);
-    }
-  }, [currentThreadId, threadSummaries]);
 
   return {
     threadSummaries: threadSummaries || [],

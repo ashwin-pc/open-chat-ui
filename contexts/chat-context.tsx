@@ -27,7 +27,15 @@ export interface ChatContextType extends Omit<UseThreadData, 'actions'> {
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
-export function ChatProvider({ children, prompts }: { children: ReactNode; prompts?: SystemPrompt[] }) {
+export function ChatProvider({
+  children,
+  prompts,
+  threadId,
+}: {
+  children: ReactNode;
+  prompts?: SystemPrompt[];
+  threadId?: string | null;
+}) {
   const [settings, setSettings] = useLocalStorage<Settings>('settings', {
     cmdToSend: false,
     isIncognitoMode: false,
@@ -48,7 +56,7 @@ export function ChatProvider({ children, prompts }: { children: ReactNode; promp
     defaultSystemPromptId,
     currentSystemPrompt,
     actions: threadActions,
-  } = useThreadStorage({ prompts, isIncognito: settings.isIncognitoMode });
+  } = useThreadStorage({ prompts, isIncognito: settings.isIncognitoMode, threadId });
 
   const [creativityLevel, setCreativityLevel] = useState<CreativityLevel>(CreativityLevel.PRECISE);
 

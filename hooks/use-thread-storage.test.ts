@@ -52,6 +52,9 @@ describe('useThreadStorage', () => {
       if (queryFn.toString().includes('systemPrompts.toArray')) {
         return [];
       }
+      if (queryFn.toString().includes('threads.get')) {
+        return null;
+      }
       return undefined;
     });
     // Set up default mocked responses
@@ -412,15 +415,13 @@ describe('useThreadStorage', () => {
       isIncognitoThread: false,
     };
 
-    // Prevent useEffect from calling createThread by making thread count non-zero.
-    (db.threadSummaries.count as jest.Mock).mockResolvedValue(1);
     (db.threadSummaries.toArray as jest.Mock).mockResolvedValue([
       { id: 'test-thread', name: 'Old Name', lastUpdated: new Date('2000-01-01') },
     ]);
     (db.threads.get as jest.Mock).mockResolvedValue(existingThread);
     (db.threadSummaries.get as jest.Mock).mockResolvedValue(oldSummary);
 
-    const { result } = renderHook(() => useThreadStorage({}));
+    const { result } = renderHook(() => useThreadStorage({ threadId: existingThread.id }));
 
     await act(async () => {
       await result.current.actions.updateThread({ id: 'test-thread', name: 'Updated Name' });
@@ -431,5 +432,152 @@ describe('useThreadStorage', () => {
     const lastCallArg = putCalls[putCalls.length - 1][0];
     expect(lastCallArg.name).toBe('Updated Name');
     expect(new Date().getTime() - new Date(lastCallArg.lastUpdated).getTime()).toBeLessThan(1000);
+  });
+
+  it('should not create new thread if empty thread already exists during createThread', async () => {
+    // Mock an existing empty thread
+    const existingEmptyThread = {
+      id: 'existing-empty-thread',
+      name: 'New Chat',
+      branches: [
+        {
+          id: 1,
+          name: 'Main',
+          messages: [],
+          attachments: [],
+          createdAt: new Date(),
+          description: 'Initial conversation branch',
+        },
+      ],
+      currentBranchId: 1,
+    };
+
+    // Mock thread summaries to have one thread
+    (db.threadSummaries.toArray as jest.Mock).mockResolvedValue([
+      {
+        id: 'existing-empty-thread',
+        name: 'New Chat',
+        lastUpdated: new Date(),
+        isIncognitoThread: false,
+      },
+    ]);
+
+    // Mock thread count to be 1
+    (db.threadSummaries.count as jest.Mock).mockResolvedValue(1);
+
+    // Mock threads.get to return our existing empty thread
+    (db.threads.get as jest.Mock).mockImplementation((threadId) => {
+      if (threadId === 'existing-empty-thread') {
+        return Promise.resolve(existingEmptyThread);
+      }
+      return Promise.resolve(null);
+    });
+
+    const { result } = renderHook(() => useThreadStorage({}));
+
+    // Clear mocks to ensure we only track new calls after setup
+    jest.clearAllMocks();
+
+    // Try to create a new thread
+    await act(async () => {
+      await result.current.actions.createThread();
+    });
+
+    // Verify that no new thread was created
+    expect(db.threads.put).not.toHaveBeenCalled();
+
+    // Verify that switchThread was called with the existing empty thread's ID
+    expect(db.threads.get).toHaveBeenCalledWith('existing-empty-thread');
+  });
+
+  it('should create new thread when threadId does not exist during initialization', async () => {
+    // Mock thread count to be 0 initially
+    (db.threadSummaries.count as jest.Mock).mockResolvedValue(0);
+    // Mock that thread doesn't exist in DB
+    (db.threads.get as jest.Mock).mockResolvedValue(null);
+
+    const { result } = renderHook(() =>
+      useThreadStorage({
+        threadId: 'non-existent-thread-id',
+      }),
+    );
+
+    // Wait for initialization
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    // Verify a new thread was created
+    expect(db.threads.put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'test-uuid',
+        name: 'New Chat',
+        branches: expect.arrayContaining([
+          expect.objectContaining({
+            id: 1,
+            name: 'Main',
+            messages: [],
+          }),
+        ]),
+      }),
+    );
+
+    // Verify thread summary was created
+    expect(db.threadSummaries.put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'test-uuid',
+        name: 'New Chat',
+        isIncognitoThread: false,
+      }),
+    );
+  });
+
+  it('should create new thread when threadId is null during initialization', async () => {
+    // Mock thread count to be 0 initially
+    (db.threadSummaries.count as jest.Mock).mockResolvedValue(0);
+    // Mock that thread doesn't exist in DB
+    (db.threads.get as jest.Mock).mockResolvedValue(null);
+
+    // Clear mocks before rendering the hook
+    jest.clearAllMocks();
+
+    const { result } = renderHook(() =>
+      useThreadStorage({
+        threadId: null,
+      }),
+    );
+
+    // Wait for initialization effects to complete
+    await waitFor(() => {
+      expect(db.threads.put).toHaveBeenCalled();
+    });
+
+    // Now verify the specific calls
+    expect(db.threads.put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'test-uuid',
+        name: 'New Chat',
+        branches: expect.arrayContaining([
+          expect.objectContaining({
+            id: 1,
+            name: 'Main',
+            messages: [],
+          }),
+        ]),
+      }),
+    );
+
+    expect(db.threadSummaries.put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'test-uuid',
+        name: 'New Chat',
+        isIncognitoThread: false,
+      }),
+    );
+
+    // Verify that threads.get was called with the new UUID
+    // (since it checks if the newly created thread exists)
+    expect(db.threads.get).toHaveBeenCalledWith('test-uuid');
+    expect(db.threads.get).toHaveBeenCalledTimes(1);
   });
 });
