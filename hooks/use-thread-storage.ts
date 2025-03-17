@@ -44,7 +44,7 @@ export function useThreadStorage({
     DEFAULT_SYSTEM_PROMPT.id,
   );
 
-  const [currentThreadId, setCurrentThreadId] = useState<string>(threadId);
+  const [currentThreadId, setCurrentThreadId] = useState<string | null>(threadId);
   const isCreatingThreadRef = useRef(false);
 
   const threadSummaries = useLiveQuery(() => db.threadSummaries.toArray(), [], [] as ThreadSummary[]);
@@ -355,6 +355,8 @@ export function useThreadStorage({
       mounted = false;
       isCreatingThreadRef.current = false;
     };
+    // This effect runs only once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return {

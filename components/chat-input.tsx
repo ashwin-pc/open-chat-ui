@@ -92,6 +92,30 @@ export function ChatInput({
     return () => clearTimeout(timeout);
   }, [textareaRef]);
 
+  useEffect(() => {
+    // Only run once on component mount
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialMessage = urlParams.get('q');
+
+    if (initialMessage) {
+      // Set the input value
+      setInput(initialMessage);
+
+      // Use setTimeout to ensure the component is fully mounted
+      const timer = setTimeout(() => {
+        // Call the existing handleSend function
+        handleSend();
+
+        // Clean up the URL by removing the 'q' parameter
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('q');
+        window.history.replaceState({}, '', newUrl.toString());
+      }, 100); // Short delay to ensure everything is ready
+
+      return () => clearTimeout(timer);
+    }
+  }, [handleSend, setInput]);
+
   return (
     <div className={containerClassName}>
       <div className="container mx-auto p-2 md:p-4 h-full flex flex-col">
