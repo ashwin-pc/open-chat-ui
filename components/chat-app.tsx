@@ -26,6 +26,8 @@ import {
 } from '@/lib/utils/file';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from './ui/resizeable';
 import { Artifacts } from '@/components/artifacts';
+import { useDragDrop } from '@/hooks/use-drag-drop';
+import { DropOverlay } from './drop-overlay';
 
 interface ChatAppProps {
   apiClient: ChatApiInterface;
@@ -64,6 +66,15 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
       });
     },
   });
+
+  const { isDragging, handleDragOver, handleDragEnter, handleDragLeave, handleDrop } = useDragDrop();
+
+  const onFileDrop = async (files: FileList) => {
+    const fileEvent = {
+      target: { files },
+    } as unknown as React.ChangeEvent<HTMLInputElement>;
+    await handleFileUpload(fileEvent);
+  };
 
   useHotkeys('cancel-edit', {
     key: 'esc',
@@ -274,12 +285,20 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
               <ResizablePanelGroup direction="horizontal">
                 <ResizablePanel>
                   <div
+                    data-testid="chat-container" // added selector for e2e tests
                     style={{
                       maxWidth: settings.enableMaxChatWidth ? '100%' : '800px',
                       margin: settings.enableMaxChatWidth ? undefined : '0 auto',
+                      position: 'relative', // Add position relative for the overlay
                     }}
                     className="flex h-screen flex-col"
+                    onDragOver={handleDragOver}
+                    onDragEnter={handleDragEnter}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, onFileDrop)}
                   >
+                    {/* Render drop overlay when dragging */}
+                    {isDragging && <DropOverlay />}
                     <header className="flex items-center justify-between p-2 md:p-4 shrink-0">
                       <div className="flex items-center space-x-2 md:space-x-4">
                         <SidebarTrigger />
