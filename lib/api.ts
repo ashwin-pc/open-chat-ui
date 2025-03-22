@@ -93,7 +93,7 @@ export const createConversation = (
     });
   } else {
     const mockResponse = `Here is a detailed response that will be streamed word by word. This is simulating how a real LLM would generate text token by token. The response will grow longer with each polling request until it's complete.`;
-    
+
     ongoingResponses.set(id, {
       fullResponse: mockResponse,
       currentPosition: 0,

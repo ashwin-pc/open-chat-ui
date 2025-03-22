@@ -1,4 +1,5 @@
 import { db } from './db';
+import { v4 as uuidv4 } from 'uuid';
 import { ChatThread, ThreadSummary, Message, BedrockModelNames } from '../lib/types';
 
 interface LegacyConversation {
@@ -26,7 +27,17 @@ function convertLegacyToNewFormat(legacy: LegacyConversation): ChatThread {
   };
 }
 
-export async function runMigration(): Promise<void> {
+export function removeMigrationFlags() {
+  localStorage.removeItem('migrationDone');
+  localStorage.removeItem('attachmentIdsMigrationDone');
+}
+
+export async function runMigrations(): Promise<void> {
+  await migrateChatThreadsToDatabase();
+  await migrateAttachmentIds();
+}
+
+async function migrateChatThreadsToDatabase(): Promise<void> {
   try {
     if (localStorage.getItem('migrationDone') === 'true') {
       // Check if migration was done already
@@ -120,4 +131,58 @@ async function migrateThreads(threads: ChatThread[]): Promise<void> {
       await db.threadSummaries.put(summary);
     }),
   );
+}
+
+async function migrateAttachmentIds(): Promise<void> {
+  try {
+    if (localStorage.getItem('attachmentIdsMigrationDone') === 'true') {
+      console.log('Attachment IDs migration already completed');
+      return;
+    }
+
+    console.log('Starting attachment IDs migration...');
+    const threads: ChatThread[] = await db.threads.toArray();
+    let migrationNeeded = false;
+
+    const updatedThreads = threads.map((thread) => ({
+      ...thread,
+      branches: thread.branches?.map((branch) => ({
+        ...branch,
+        messages: branch.messages?.map((message) => {
+          if (!message.attachments?.length) {
+            return message;
+          }
+
+          const updatedAttachments = message.attachments.map((attachment) => {
+            if (!attachment.id) {
+              migrationNeeded = true;
+              return {
+                ...attachment,
+                id: uuidv4(),
+              };
+            }
+            return attachment;
+          });
+
+          return {
+            ...message,
+            attachments: updatedAttachments,
+          };
+        }),
+      })),
+    }));
+
+    if (migrationNeeded) {
+      // Only perform database updates if there were actually attachments without IDs
+      await Promise.all(updatedThreads.map((thread) => db.threads.put(thread)));
+      console.log('Attachment IDs migration completed');
+    } else {
+      console.log('No attachments needed migration');
+    }
+
+    localStorage.setItem('attachmentIdsMigrationDone', 'true');
+  } catch (error) {
+    console.error('Attachment IDs migration failed:', error);
+    // Don't set migration done flag so it can be retried
+  }
 }

@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useChatContext } from '@/contexts/chat-context';
-import { runMigration } from '@/lib/migration-utils';
+import { removeMigrationFlags, runMigrations } from '@/lib/migration-utils';
 import { db } from '@/lib/db';
 import { ChatThread, SystemPrompt, ThreadSummary } from '@/lib/types';
 
@@ -111,8 +111,8 @@ export function ChatManagement() {
           if (DIYA_CONVERSATIONS_backup) localStorage.setItem('DIYA_CONVERSATIONS_backup', DIYA_CONVERSATIONS_backup);
 
           // Reset migration flag and run migration for legacy data
-          localStorage.removeItem('migrationDone');
-          await runMigration();
+          removeMigrationFlags();
+          await runMigrations();
         }
 
         // Refresh the page to load the new data
@@ -127,8 +127,8 @@ export function ChatManagement() {
 
   const handleRemigrate = async () => {
     try {
-      localStorage.removeItem('migrationDone');
-      await runMigration();
+      removeMigrationFlags();
+      await runMigrations();
       window.location.reload();
     } catch (error) {
       console.error('Failed to remigrate:', error);

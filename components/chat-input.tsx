@@ -63,10 +63,28 @@ export function ChatInput({
   const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const pastedText = e.clipboardData.getData('text');
 
-    if (pastedText.length > TEXT_LENGTH_THRESHOLD && settings.largeTextPasteDetection) {
+    if (pastedText) {
+      if (pastedText.length > TEXT_LENGTH_THRESHOLD && settings.largeTextPasteDetection) {
+        e.preventDefault();
+        setPastedContent(pastedText);
+        setShowPasteDialog(true);
+      }
+      return;
+    }
+
+    const pastedFiles = Array.from(e.clipboardData.items)
+      .filter((item) => item.kind === 'file')
+      .map((item) => item.getAsFile())
+      .filter((file) => file !== null) as File[];
+
+    if (pastedFiles.length > 0) {
       e.preventDefault();
-      setPastedContent(pastedText);
-      setShowPasteDialog(true);
+      const filesEvent = {
+        target: {
+          files: pastedFiles,
+        },
+      } as unknown as React.ChangeEvent<HTMLInputElement>;
+      handleFileUpload(filesEvent);
     }
   };
 

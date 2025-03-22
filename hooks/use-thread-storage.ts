@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '../lib/db';
 import { useLocalStorage } from 'usehooks-ts';
 import { ChatThread, ThreadSummary, Branch, Message, BedrockModelNames, SystemPrompt } from '../lib/types';
-import { runMigration } from '../lib/migration-utils';
+import { runMigrations } from '../lib/migration-utils';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { toast } from 'sonner';
 
@@ -317,7 +317,7 @@ export function useThreadStorage({
 
     async function initialize() {
       try {
-        await runMigration();
+        await runMigrations();
 
         const promptsFromDB = await db.systemPrompts.toArray();
         if (promptsFromDB.length === 0) {

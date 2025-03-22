@@ -28,6 +28,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from './ui/resiz
 import { Artifacts } from '@/components/artifacts';
 import { useDragDrop } from '@/hooks/use-drag-drop';
 import { DropOverlay } from './drop-overlay';
+import { v4 as uuidv4 } from 'uuid';
 
 interface ChatAppProps {
   apiClient: ChatApiInterface;
@@ -210,6 +211,7 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
         setPendingAttachments((prev) => [
           ...prev,
           {
+            id: uuidv4(),
             name: file.name,
             content,
           },
@@ -221,8 +223,8 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
     }
   };
 
-  const handleRemoveAttachment = (fileName: string) => {
-    setPendingAttachments((prev) => prev.filter((f) => f.name !== fileName));
+  const handleRemoveAttachment = (fileId: string) => {
+    setPendingAttachments((prev) => prev.filter((f) => f.id !== fileId));
   };
 
   const handleModelChange = (model: BedrockModelNames) => {

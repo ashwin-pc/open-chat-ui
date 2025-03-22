@@ -15,6 +15,7 @@ export enum Roles {
 }
 
 export interface Attachment {
+  id: string;
   name: string;
   content: string; // Base64 or plain text
 }

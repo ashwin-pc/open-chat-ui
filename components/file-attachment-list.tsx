@@ -66,7 +66,7 @@ export function FileAttachmentList({ attachments, onRemove, className = '' }: Fi
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onRemove(file.name)}
+                      onClick={() => onRemove(file.id)}
                       className="h-6 w-6 hover:bg-transparent"
                     >
                       <X className="h-3 w-3" />

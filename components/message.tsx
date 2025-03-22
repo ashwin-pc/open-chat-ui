@@ -177,7 +177,7 @@ export const Message = memo(function Message({
                     return (
                       <img
                         className="max-h-[200px] object-cover rounded-lg shadow-sm"
-                        key={attachment.name}
+                        key={attachment.id}
                         src={attachment.content}
                         alt={attachment.name}
                         style={{
@@ -187,7 +187,7 @@ export const Message = memo(function Message({
                       />
                     );
                   }
-                  return <TextFilePreview key={attachment.name} filename={attachment.name} />;
+                  return <TextFilePreview key={attachment.id} filename={attachment.name} />;
                 })}
               </div>
             )}
