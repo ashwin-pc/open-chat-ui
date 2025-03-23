@@ -170,7 +170,7 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
     let totalTokens = 0;
     for (const attachment of pendingAttachments) {
       try {
-        if (isFileImage(attachment.name)) {
+        if (!isFileImage(attachment.name)) {
           totalTokens += getTokenCount(attachment.content);
         }
       } catch (error) {
