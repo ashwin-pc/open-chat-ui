@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mermaid from 'mermaid';
 import svgPanZoom from 'svg-pan-zoom';
-import { ZoomIn, ZoomOut, RotateCcw, Download } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Loading } from './loading';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { showErrorToast } from '../../lib/error-utils';
+import { FileError } from '../../lib/errors';
 
 interface MermaidPreviewProps {
   code: string;
@@ -17,7 +19,7 @@ const MemoizedContainer = React.memo(({ children }: { children: React.ReactNode 
 ));
 MemoizedContainer.displayName = 'MemoizedContainer';
 
-export const downloadMermaidSvg = async (code: string) => {
+export const downloadMermaidSvg = async (code: string, threadId: string) => {
   try {
     const { svg: svgString } = await mermaid.render('mermaid-download-' + Date.now(), code);
     const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
@@ -29,8 +31,10 @@ export const downloadMermaidSvg = async (code: string) => {
     URL.revokeObjectURL(url);
     toast.success('Diagram downloaded successfully');
   } catch (error) {
-    console.error('Failed to download SVG:', error);
-    toast.error('Failed to download diagram');
+    showErrorToast(
+      new FileError('Failed to download diagram'),
+      threadId
+    );
   }
 };
 
@@ -102,9 +106,9 @@ export function MermaidPreview({ code, theme, onError }: MermaidPreviewProps) {
 
         onError('');
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to render diagram';
-        setError(errorMessage);
-        onError(errorMessage);
+        const error = new FileError(err instanceof Error ? err.message : 'Failed to render diagram');
+        setError(error.message);
+        onError(error.message);
 
         if (containerRef.current) {
           containerRef.current.innerHTML = '';

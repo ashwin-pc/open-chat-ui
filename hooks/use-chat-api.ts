@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   Attachment,
   BedrockModelNames,
@@ -10,12 +10,13 @@ import {
   CREATIVITY_PARAMETERS,
 } from '@/lib/types';
 import { formatAttachmentMessage, formatAttachments } from '@/lib/utils/file';
-import { toast } from 'sonner';
 import { useChatContext } from '@/contexts/chat-context';
 import { anthropicDefaultArtifactPrompt } from '../../prompts/anthropic-default-artifact-prompt';
 import { systemPrompts } from '../../prompts';
 import { db } from '../lib/db';
 import { generateConversationTitle } from '../../utils/title-generation';
+import { showErrorToast } from '../lib/error-utils';
+import { NetworkError, APIError } from '../lib/errors';
 
 interface UseChatApiProps {
   apiClient: ChatApiInterface;
@@ -34,6 +35,10 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
   const timeoutRef = useRef<NodeJS.Timeout>();
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
 
+  const handleError = useCallback((error: unknown) => {
+    showErrorToast(error, currentThreadId);
+  }, [currentThreadId]);
+
   const pollForResponse = async (conversationId: string, updatedTime: number, currentMessages: Message[]) => {
     // Clear any existing timeout
     if (timeoutRef.current) {
@@ -42,7 +47,12 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
 
     setIsPolling(true);
     try {
-      const { status, latestResponse } = await apiClient.getLatestResponse(conversationId, updatedTime);
+      const response = await apiClient.getLatestResponse(conversationId, updatedTime);
+      if (!response) {
+        throw new APIError('Failed to get response from server');
+      }
+
+      const { status, latestResponse } = response;
 
       if (latestResponse) {
         setPartialResponse({
@@ -55,7 +65,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
         timeoutRef.current = setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 100);
       } else if (status === 'COMPLETE') {
         const botResponse: Message = {
-          text: latestResponse,
+          text: latestResponse || '',
           sender: Roles.ASSISTANT,
         };
 
@@ -77,8 +87,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
         setIsPolling(false);
       }
     } catch (error) {
-      // Show the error message directly from the API
-      toast.error(String(error));
+      handleError(error instanceof Error ? new NetworkError(error.message) : error);
       setPartialResponse(undefined);
       setIsPolling(false);
     }
@@ -118,8 +127,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
       model,
       systemContext,
       (error) => {
-        // Show the error message directly from the API
-        toast.error(String(error));
+        handleError(error);
         setIsPolling(false);
         setPartialResponse(undefined);
       },
@@ -163,7 +171,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
   const handleNewMessage = async (input: string, chatThread: ChatThread) => {
     const currentBranch = chatThread.branches.find((b) => b.id === chatThread.currentBranchId);
     if (!currentBranch) {
-      toast.error('Could not find current branch');
+      handleError('Could not find current branch');
       return;
     }
 
@@ -191,7 +199,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
         currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
       );
     } catch (error) {
-      toast.error(String(error));
+      handleError(error);
     }
   };
 
@@ -204,7 +212,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
   const handleEditMessage = async (input: string, chatThread: ChatThread, editIndex: number) => {
     const currentBranch = chatThread.branches.find((b) => b.id === chatThread.currentBranchId);
     if (!currentBranch) {
-      toast.error('Could not find current branch');
+      handleError('Could not find current branch');
       return;
     }
 
@@ -229,14 +237,14 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
         currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
       );
     } catch (error) {
-      toast.error(String(error));
+      handleError(error);
     }
   };
 
   const handleRestartFromMessage = async (chatThread: ChatThread, restartIndex: number) => {
     const currentBranch = chatThread.branches.find((b) => b.id === chatThread.currentBranchId);
     if (!currentBranch) {
-      toast.error('Could not find current branch');
+      handleError('Could not find current branch');
       return;
     }
 
@@ -254,7 +262,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
           currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
         );
       } catch (error) {
-        toast.error(String(error));
+        handleError(error);
       }
     }
   };
@@ -268,7 +276,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
     try {
       await apiClient.abortConversation(currentThreadId.toString());
     } catch (error) {
-      toast.error(String(error));
+      handleError(error);
     }
   };
 

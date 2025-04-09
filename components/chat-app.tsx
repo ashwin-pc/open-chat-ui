@@ -29,6 +29,8 @@ import { Artifacts } from '@/components/artifacts';
 import { useDragDrop } from '@/hooks/use-drag-drop';
 import { DropOverlay } from './drop-overlay';
 import { v4 as uuidv4 } from 'uuid';
+import { showErrorToast } from '../lib/error-utils';
+import { FileError } from '../lib/errors';
 
 interface ChatAppProps {
   apiClient: ChatApiInterface;
@@ -175,7 +177,10 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
           totalTokens += getTokenCount(attachment.content);
         }
       } catch (error) {
-        console.error(`Error processing existing file ${attachment.name}:`, error);
+        showErrorToast(
+          new FileError(`Error processing existing file ${attachment.name}: ${error instanceof Error ? error.message : String(error)}`),
+          currentThreadId
+        );
       }
     }
 
@@ -185,8 +190,11 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
         const maxSize = isImage ? MAX_IMAGE_SIZE : MAX_FILE_SIZE;
 
         if (file.size > maxSize) {
-          toast.error(`${file.name} exceeds ${isImage ? '30' : '5'}MB limit`);
-          return false;
+          showErrorToast(
+            new FileError(`${file.name} exceeds ${isImage ? '30' : '5'}MB limit`),
+            currentThreadId
+          );
+          continue;
         }
 
         const content = await parseFile(file);
@@ -195,13 +203,19 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
           // Token check for individual file
           const fileTokens = getTokenCount(content);
           if (fileTokens > MAX_TOKENS_PER_FILE) {
-            toast.error(`${file.name} exceeds token limit`);
+            showErrorToast(
+              new FileError(`${file.name} exceeds token limit`),
+              currentThreadId
+            );
             continue;
           }
 
           // Check combined token count
           if (totalTokens + fileTokens > MAX_TOKENS_PER_FILE) {
-            toast.error('Adding this file would exceed total token limit');
+            showErrorToast(
+              new FileError('Adding this file would exceed total token limit'),
+              currentThreadId
+            );
             continue;
           }
 
@@ -218,7 +232,10 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
         ]);
         toast.success(`${file.name} added successfully`);
       } catch (error) {
-        toast.error(`Error processing ${file.name}: ${error}`);
+        showErrorToast(
+          new FileError(`Error processing ${file.name}: ${error instanceof Error ? error.message : String(error)}`),
+          currentThreadId
+        );
       }
     }
   };

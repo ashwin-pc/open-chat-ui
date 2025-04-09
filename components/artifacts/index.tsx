@@ -16,10 +16,12 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import { downloadTextFile, getLanguageExtension, sanitizeFilename } from '@/components/artifacts/utils';
 import { useChatContext } from '@/contexts/chat-context';
+import { showErrorToast } from '../../lib/error-utils';
+import { FileError } from '../../lib/errors';
 import type { editor } from 'monaco-editor';
 
 export function Artifacts({ artifact, onChange }: ArtifactsProps) {
-  const { actions } = useChatContext();
+  const { actions, currentThreadId } = useChatContext();
   const { content, artifactType, title, codeLanguage } = artifact;
   const hasPreview =
     artifactType === ARTIFACT_TYPES.MERMAID ||
@@ -40,9 +42,12 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
   }, [content]);
 
   useEffect(() => {
+    // Cleanup function
+    const ref = alertTimeoutRef; // Store ref in variable
     return () => {
-      if (alertTimeoutRef.current) {
-        clearTimeout(alertTimeoutRef.current);
+      const timeout = ref.current;
+      if (timeout) {
+        clearTimeout(timeout);
       }
     };
   }, []);
@@ -61,8 +66,11 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
     try {
       await navigator.clipboard.writeText(currentCode);
       toast.success('Code copied to clipboard');
-    } catch (err) {
-      toast.error('Failed to copy code to clipboard');
+    } catch (error) {
+      showErrorToast(
+        new FileError('Failed to copy code to clipboard'),
+        currentThreadId
+      );
     }
   };
 
@@ -70,7 +78,7 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
     try {
       // For Mermaid in preview mode, use existing SVG download functionality
       if (view === 'preview' && artifactType === ARTIFACT_TYPES.MERMAID) {
-        downloadMermaidSvg(currentCode).then();
+        downloadMermaidSvg(currentCode, currentThreadId).then();
         return;
       }
 
@@ -89,9 +97,11 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
       const safeFilename = sanitizeFilename(title || 'code');
       downloadTextFile(currentCode, safeFilename, fileExtension);
       toast.success('File downloaded successfully');
-    } catch (err) {
-      toast.error('Failed to download file');
-      console.error('Download error:', err);
+    } catch (error) {
+      showErrorToast(
+        new FileError('Failed to download file'),
+        currentThreadId
+      );
     }
   };
 

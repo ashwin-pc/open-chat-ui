@@ -1,11 +1,12 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../lib/db';
 import { useLocalStorage } from 'usehooks-ts';
 import { ChatThread, ThreadSummary, Branch, Message, BedrockModelNames, SystemPrompt } from '../lib/types';
 import { runMigrations } from '../lib/migration-utils';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { toast } from 'sonner';
+import { showErrorToast } from '../lib/error-utils';
+import { APIError, toChatError } from '../lib/errors';
 
 // Move outside actions so it's available in hook scope
 const initializeEmptyThread = (): ChatThread => ({
@@ -266,7 +267,7 @@ export function useThreadStorage({
         const threadExists = await db.threads.get(threadId);
         if (!threadExists) {
           console.error(`Thread ${threadId} not found`);
-          toast.error('Chat thread not found');
+          showErrorToast(new APIError('Chat thread not found'), threadId);
           const currentUrl = new URL(window.location.href);
           currentUrl.searchParams.delete('thread');
           window.history.replaceState({}, '', currentUrl.toString());
@@ -341,11 +342,12 @@ export function useThreadStorage({
           }
         } else {
           // No thread ID in URL, always point to new thread
-          const threadCount = await db.threadSummaries.count();
+          const count = await db.threadSummaries.count();
           await actions.createThread();
         }
       } catch (error) {
         console.error('Failed to initialize thread storage:', error);
+        showErrorToast(toChatError(error), threadId || '');
       }
     }
 
