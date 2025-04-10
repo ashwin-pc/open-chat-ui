@@ -118,7 +118,13 @@ export function SidePanel() {
                   id="search-conversations"
                   placeholder="Search conversations..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    const newQuery = e.target.value;
+                    setSearchQuery(newQuery);
+                    if (newQuery && !searchQuery) {
+                      record({ name: 'SearchUsed' });
+                    }
+                  }}
                   className="pl-8 w-full"
               />
             </div>
