@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import {Plus, MessageSquare, MessageCircleDashed, ArrowLeft, Search} from 'lucide-react';
+import { Plus, MessageSquare, MessageCircleDashed, ArrowLeft, Search } from 'lucide-react';
 import { useChatContext } from '@/contexts/chat-context';
 import {
   Sidebar,
@@ -21,7 +21,7 @@ import { SettingsDialog } from './settings-dialog';
 import { ThreadGroup } from './thread-group';
 import { categorizeThreads } from '@/lib/utils/thread-utils';
 import { record } from 'aws-amplify/analytics';
-import { ThreadSummary, ChatThread } from "@/lib/types";
+import { ThreadSummary, ChatThread } from '@/lib/types';
 
 export function SidePanel() {
   const { threadSummaries, currentThreadId, actions, settings } = useChatContext();
@@ -76,20 +76,20 @@ export function SidePanel() {
   const categorized = categorizeThreads(filteredThreads);
 
   const EmptyState = () => (
-      <div className="flex flex-col items-center justify-center p-4 text-center text-muted-foreground">
-        <MessageSquare className="h-8 w-8 mb-2" />
-        {searchQuery ? (
-            <>
-              <h3 className="font-medium mb-1">No matching conversations</h3>
-              <p className="text-sm">Try different search terms</p>
-            </>
-        ) : (
-            <>
-              <h3 className="font-medium mb-1">No conversations yet</h3>
-              <p className="text-sm">Start a new chat to begin</p>
-            </>
-        )}
-      </div>
+    <div className="flex flex-col items-center justify-center p-4 text-center text-muted-foreground">
+      <MessageSquare className="h-8 w-8 mb-2" />
+      {searchQuery ? (
+        <>
+          <h3 className="font-medium mb-1">No matching conversations</h3>
+          <p className="text-sm">Try different search terms</p>
+        </>
+      ) : (
+        <>
+          <h3 className="font-medium mb-1">No conversations yet</h3>
+          <p className="text-sm">Start a new chat to begin</p>
+        </>
+      )}
+    </div>
   );
 
   return (
@@ -115,17 +115,17 @@ export function SidePanel() {
             <div className="relative w-full">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                  id="search-conversations"
-                  placeholder="Search conversations..."
-                  value={searchQuery}
-                  onChange={(e) => {
-                    const newQuery = e.target.value;
-                    setSearchQuery(newQuery);
-                    if (newQuery && !searchQuery) {
-                      record({ name: 'SearchUsed' });
-                    }
-                  }}
-                  className="pl-8 w-full"
+                id="search-conversations"
+                placeholder="Search conversations..."
+                value={searchQuery}
+                onChange={(e) => {
+                  const newQuery = e.target.value;
+                  setSearchQuery(newQuery);
+                  if (newQuery && !searchQuery) {
+                    record({ name: 'SearchUsed' });
+                  }
+                }}
+                className="pl-8 w-full"
               />
             </div>
           </SidebarMenuItem>
@@ -134,46 +134,46 @@ export function SidePanel() {
 
       <SidebarContent>
         {filteredThreads.length === 0 ? (
-            <EmptyState />
+          <EmptyState />
         ) : (
-            <SidebarGroup className="space-y-2">
-              {categorized.today.length > 0 && (
-                  <ThreadGroup
-                      title="Today"
-                      threads={categorized.today}
-                      currentThreadId={currentThreadId}
-                      actions={actions}
-                      handleRename={handleRename}
-                  />
-              )}
-              {categorized.lastWeek.length > 0 && (
-                  <ThreadGroup
-                      title="Last 7 Days"
-                      threads={categorized.lastWeek}
-                      currentThreadId={currentThreadId}
-                      actions={actions}
-                      handleRename={handleRename}
-                  />
-              )}
-              {categorized.lastMonth.length > 0 && (
-                  <ThreadGroup
-                      title="Last 30 Days"
-                      threads={categorized.lastMonth}
-                      currentThreadId={currentThreadId}
-                      actions={actions}
-                      handleRename={handleRename}
-                  />
-              )}
-              {categorized.older.length > 0 && (
-                  <ThreadGroup
-                      title="Older"
-                      threads={categorized.older}
-                      currentThreadId={currentThreadId}
-                      actions={actions}
-                      handleRename={handleRename}
-                  />
-              )}
-            </SidebarGroup>
+          <SidebarGroup className="space-y-2">
+            {categorized.today.length > 0 && (
+              <ThreadGroup
+                title="Today"
+                threads={categorized.today}
+                currentThreadId={currentThreadId}
+                actions={actions}
+                handleRename={handleRename}
+              />
+            )}
+            {categorized.lastWeek.length > 0 && (
+              <ThreadGroup
+                title="Last 7 Days"
+                threads={categorized.lastWeek}
+                currentThreadId={currentThreadId}
+                actions={actions}
+                handleRename={handleRename}
+              />
+            )}
+            {categorized.lastMonth.length > 0 && (
+              <ThreadGroup
+                title="Last 30 Days"
+                threads={categorized.lastMonth}
+                currentThreadId={currentThreadId}
+                actions={actions}
+                handleRename={handleRename}
+              />
+            )}
+            {categorized.older.length > 0 && (
+              <ThreadGroup
+                title="Older"
+                threads={categorized.older}
+                currentThreadId={currentThreadId}
+                actions={actions}
+                handleRename={handleRename}
+              />
+            )}
+          </SidebarGroup>
         )}
       </SidebarContent>
 

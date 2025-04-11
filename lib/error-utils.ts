@@ -19,10 +19,10 @@ interface ErrorReport {
 export const showErrorToast = (error: unknown, conversationId: string) => {
   const chatError = toChatError(error);
   const timestamp = new Date().toISOString();
-  
+
   // Log error to console and get logs
   const { errorMessage, stack, logs } = logError(chatError, conversationId);
-  
+
   const report: ErrorReport = {
     conversationId,
     timestamp,

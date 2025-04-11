@@ -31,6 +31,7 @@ import { DropOverlay } from './drop-overlay';
 import { v4 as uuidv4 } from 'uuid';
 import { showErrorToast } from '../lib/error-utils';
 import { FileError } from '../lib/errors';
+import { ShareButton } from './share-button';
 
 interface ChatAppProps {
   apiClient: ChatApiInterface;
@@ -329,6 +330,14 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
                           branches={currentThread.branches}
                           onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
                         />
+                        <ShareButton />
+                        <button
+                          onClick={toggleImmersive}
+                          className="rounded-md p-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          title="Toggle immersive mode"
+                        >
+                          {isImmersive ? 'Exit immersive' : 'Enter immersive'}
+                        </button>
                       </div>
                     </header>
                     <ScrollArea className="flex-grow flex flex-col p-2 md:p-4">

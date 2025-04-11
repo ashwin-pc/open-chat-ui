@@ -141,8 +141,8 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
   };
 
   const generateThreadTitle = async (
-    userMessage: string, 
-    assistantMessage: string, 
+    userMessage: string,
+    assistantMessage: string,
     threadId: string,
     model: BedrockModelNames
   ) => {
@@ -152,14 +152,14 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
         userMessage,
         assistantMessage
       );
-      
+
       // Update the thread summary with the new title
       const summary = await db.threadSummaries.get(threadId);
       if (summary) {
         summary.name = generatedTitle;
         summary.lastUpdated = new Date();
         await db.threadSummaries.put(summary);
-        
+
         actions.renameThread(threadId, generatedTitle);
       }
     } catch (error) {

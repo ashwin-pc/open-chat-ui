@@ -85,7 +85,7 @@ export const getRecentLogs = () => {
 export const logError = (error: Error | string, conversationId: string) => {
   const errorMessage = error instanceof Error ? error.message : error;
   const stack = error instanceof Error ? error.stack : undefined;
-  
+
   // Log to browser console with proper formatting
   console.group('Error in conversation:', conversationId);
   console.error('Error message:', errorMessage);
@@ -93,7 +93,7 @@ export const logError = (error: Error | string, conversationId: string) => {
     console.error('Stack trace:', stack);
   }
   console.groupEnd();
-  
+
   return {
     errorMessage,
     stack,

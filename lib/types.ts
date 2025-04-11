@@ -57,7 +57,7 @@ export interface ThreadSummary {
 }
 
 export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {
-  [BedrockModelNames.CLAUDE_V3_7_SONNET]: 'Claude 3.7 Sonnet (Backstreet\'s Back)',
+  [BedrockModelNames.CLAUDE_V3_7_SONNET]: "Claude 3.7 Sonnet (Backstreet's Back)",
   [BedrockModelNames.CLAUDE_V3_5_SONNET_V2]: 'Claude 3.5 Sonnet v2 (second best)',
   [BedrockModelNames.CLAUDE_V3_5_SONNET]: 'Claude 3.5 Sonnet (third best)',
   [BedrockModelNames.AMZN_NOVA_PRO]: `Amazon Nova Pro (homegrown hotshot)`,

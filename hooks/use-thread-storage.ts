@@ -7,6 +7,7 @@ import { runMigrations } from '../lib/migration-utils';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { showErrorToast } from '../lib/error-utils';
 import { APIError, toChatError } from '../lib/errors';
+import { getSharedThreadFromUrl } from '../lib/share-utils';
 
 // Move outside actions so it's available in hook scope
 const initializeEmptyThread = (): ChatThread => ({
@@ -308,6 +309,31 @@ export function useThreadStorage({
           });
         }
       },
+
+      createThreadFromShared: async (sharedThread: ChatThread): Promise<string | null> => {
+        let newThreadId: string | undefined;
+        try {
+          newThreadId = uuidv4();
+          const newThread: ChatThread = {
+            ...sharedThread,
+            id: newThreadId,
+          };
+
+          await db.threads.add(newThread);
+          await db.threadSummaries.add({
+            id: newThreadId,
+            name: newThread.name,
+            isIncognitoThread: isIncognito,
+            lastUpdated: new Date(),
+          });
+
+          return newThreadId;
+        } catch (error) {
+          console.error('Failed to create thread from shared data:', error);
+          showErrorToast(toChatError(error), newThreadId || '');
+          return null;
+        }
+      },
     }),
     [currentThread, currentThreadId, threadSummaries, setDefaultSystemPromptId, isIncognito],
   );
@@ -331,6 +357,17 @@ export function useThreadStorage({
 
         if (!mounted) return;
 
+        // Check for shared thread first
+        const sharedThread = getSharedThreadFromUrl();
+        if (sharedThread) {
+          const newThreadId = await actions.createThreadFromShared(sharedThread);
+          if (newThreadId) {
+            await actions.switchThread(newThreadId);
+            return;
+          }
+        }
+
+        // If no shared thread, proceed with normal initialization
         if (threadId) {
           // If thread ID exists in URL, try to load it
           const threadExists = await db.threads.get(threadId);
