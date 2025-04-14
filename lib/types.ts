@@ -28,6 +28,7 @@ export interface SystemPrompt {
 export type Message = {
   text: string;
   sender: Roles;
+  thinking?: string;
   attachments?: Attachment[]; // Use Attachment interface
 };
 

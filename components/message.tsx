@@ -1,5 +1,5 @@
-import { Copy, Edit, GitBranch, RotateCcw } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { Copy, Edit, GitBranch, RotateCcw, Eye, EyeOff } from 'lucide-react';
+import { memo, useCallback, useState } from 'react';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { Button } from './ui/button';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from './ui/context-menu';
@@ -47,6 +47,8 @@ interface MessageProps {
   message: {
     text: string;
     sender: string;
+    thinking?: string;
+    partialThinking?: string;
     attachments?: Attachment[];
   };
   index: number;
@@ -151,6 +153,7 @@ export const Message = memo(function Message({
   const handleEdit = useCallback(() => onEdit(index), [onEdit, index]);
   const handleRestart = useCallback(() => onRestart(index), [onRestart, index]);
   const handleBranch = useCallback(() => onBranch(index), [onBranch, index]);
+  const [showThinking, setShowThinking] = useState(true);
 
   return (
     <ContextMenu>
@@ -202,7 +205,39 @@ export const Message = memo(function Message({
                   prose-img:rounded-lg
                   dark:prose-invert`}
               >
+              
+                {(message.thinking || message.partialThinking) && !isHuman && (
+                  <div className="mt-2 pt-2 border-t border-border/30">
+                    {/* Display thinking content when toggled */}
+                    {showThinking && (
+                      <div className="mt-2 p-2 bg-muted/50 rounded text-sm text-muted-foreground">
+                        <MemoizedMarkdown text={message.thinking ? message.thinking : message.partialThinking} />
+                      </div>
+                    )}
+
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setShowThinking(!showThinking)}
+                      className="text-xs text-muted-foreground hover:text-foreground mt-2 flex items-center"
+                    >
+                      {showThinking ? (
+                        <>
+                          <EyeOff className="h-3 w-3 mr-1" />
+                          Hide thinking
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-3 w-3 mr-1" />
+                          Show thinking
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
                 <MemoizedMarkdown text={displayText} />
+
                 {isPartial && (
                   <div className="h-4 w-4 absolute top-2 left-2" data-testid="typing-indicator">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
@@ -244,6 +279,21 @@ export const Message = memo(function Message({
               <Copy className="mr-2 h-4 w-4" />
               Copy to clipboard
             </ContextMenuItem>
+            {message.thinking && (
+              <ContextMenuItem onClick={() => setShowThinking(!showThinking)}>
+                {showThinking ? (
+                  <>
+                    <EyeOff className="mr-2 h-4 w-4" />
+                    Hide thinking
+                  </>
+                ) : (
+                  <>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Show thinking
+                  </>
+                )}
+              </ContextMenuItem>
+            )}
           </>
         )}
       </ContextMenuContent>

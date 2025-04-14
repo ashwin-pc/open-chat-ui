@@ -113,6 +113,7 @@ export function MessageList({
             text: partialResponse.text,
             sender: Roles.ASSISTANT,
             attachments: [],
+            thinking: partialResponse.thinking,
           }}
           index={messages.length}
           editingMessageId={null}

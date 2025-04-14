@@ -17,6 +17,7 @@ import { db } from '../lib/db';
 import { generateConversationTitle } from '../../utils/title-generation';
 import { showErrorToast } from '../lib/error-utils';
 import { NetworkError, APIError } from '../lib/errors';
+import { extractThinking, extractRealAnswer, hasThinkTag } from '../../utils/thinkingUtil';
 
 interface UseChatApiProps {
   apiClient: ChatApiInterface;
@@ -26,6 +27,7 @@ interface UseChatApiProps {
 export interface PartialResponse {
   threadId: string;
   text: string;
+  thinking?: string;
 }
 
 export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
@@ -55,22 +57,41 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
       const { status, latestResponse } = response;
 
       if (latestResponse) {
+        let partialText = latestResponse;
+        let partialThinking = undefined;
+        
+        if (hasThinkTag(partialText)) {
+          partialThinking = extractThinking(partialText);
+          partialText = extractRealAnswer(partialText);
+        }
+
         setPartialResponse({
           threadId: conversationId,
-          text: latestResponse,
+          text: partialText,
+          thinking: partialThinking, // Add thinking to partial response
         });
       }
 
       if (status === 'PENDING') {
         timeoutRef.current = setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 100);
       } else if (status === 'COMPLETE') {
+        let responseText = latestResponse || '';
+        let thinking = undefined;
+
+        // Process thinking tags if present
+        if (hasThinkTag(responseText)) {
+          thinking = extractThinking(responseText);
+          responseText = extractRealAnswer(responseText);
+        }
+      
         const botResponse: Message = {
-          text: latestResponse || '',
+          text: responseText,
           sender: Roles.ASSISTANT,
+          thinking: thinking,
         };
 
-        const updatedMessages = [...currentMessages, botResponse];
-        onUpdateMessages(updatedMessages);
+  const updatedMessages = [...currentMessages, botResponse];
+  onUpdateMessages(updatedMessages);
 
         // Generate title only after we have the complete assistant response
         // Check if this is the first message in the thread (messageHistory.length was 0)
