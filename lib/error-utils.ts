@@ -30,7 +30,7 @@ export const showErrorToast = (error: unknown, conversationId: string) => {
     errorType: chatError.name,
     errorCode: chatError.code,
     stack,
-    logs
+    logs,
   };
 
   toast.error(errorMessage, {

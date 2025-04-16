@@ -31,10 +31,7 @@ export const downloadMermaidSvg = async (code: string, threadId: string) => {
     URL.revokeObjectURL(url);
     toast.success('Diagram downloaded successfully');
   } catch (error) {
-    showErrorToast(
-      new FileError('Failed to download diagram'),
-      threadId
-    );
+    showErrorToast(new FileError('Failed to download diagram'), threadId);
   }
 };
 

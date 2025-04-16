@@ -12,9 +12,12 @@ export function ShareButton() {
 
     try {
       if (!isThreadShareable(currentThread)) {
-        toast.error('Thread too large for URL sharing. Consider exporting as file instead. Contact @prsarma or @vkrisv or check #diya-amazon-internal-chatbot if this seems incorrect.', {
-          duration: 5000,
-        });
+        toast.error(
+          'Thread too large for URL sharing. Consider exporting as file instead. Contact @prsarma or @vkrisv or check #diya-amazon-internal-chatbot if this seems incorrect.',
+          {
+            duration: 5000,
+          },
+        );
         return;
       }
 
@@ -35,12 +38,7 @@ export function ShareButton() {
   };
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={handleShare}
-      title="Share thread"
-    >
+    <Button variant="ghost" size="icon" onClick={handleShare} title="Share thread">
       <Share2 className="h-4 w-4" />
     </Button>
   );

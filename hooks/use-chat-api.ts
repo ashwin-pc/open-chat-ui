@@ -37,9 +37,12 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
   const timeoutRef = useRef<NodeJS.Timeout>();
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
 
-  const handleError = useCallback((error: unknown) => {
-    showErrorToast(error, currentThreadId);
-  }, [currentThreadId]);
+  const handleError = useCallback(
+    (error: unknown) => {
+      showErrorToast(error, currentThreadId);
+    },
+    [currentThreadId],
+  );
 
   const pollForResponse = async (conversationId: string, updatedTime: number, currentMessages: Message[]) => {
     // Clear any existing timeout
@@ -59,7 +62,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
       if (latestResponse) {
         let partialText = latestResponse;
         let partialThinking = undefined;
-        
+
         if (hasThinkTag(partialText)) {
           partialThinking = extractThinking(partialText);
           partialText = extractRealAnswer(partialText);
@@ -83,15 +86,15 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
           thinking = extractThinking(responseText);
           responseText = extractRealAnswer(responseText);
         }
-      
+
         const botResponse: Message = {
           text: responseText,
           sender: Roles.ASSISTANT,
           thinking: thinking,
         };
 
-  const updatedMessages = [...currentMessages, botResponse];
-  onUpdateMessages(updatedMessages);
+        const updatedMessages = [...currentMessages, botResponse];
+        onUpdateMessages(updatedMessages);
 
         // Generate title only after we have the complete assistant response
         // Check if this is the first message in the thread (messageHistory.length was 0)
@@ -165,14 +168,10 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
     userMessage: string,
     assistantMessage: string,
     threadId: string,
-    model: BedrockModelNames
+    model: BedrockModelNames,
   ) => {
     try {
-      const generatedTitle = await generateConversationTitle(
-        apiClient,
-        userMessage,
-        assistantMessage
-      );
+      const generatedTitle = await generateConversationTitle(apiClient, userMessage, assistantMessage);
 
       // Update the thread summary with the new title
       const summary = await db.threadSummaries.get(threadId);
@@ -184,7 +183,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
         actions.renameThread(threadId, generatedTitle);
       }
     } catch (error) {
-      console.error("Failed to generate title:", error);
+      console.error('Failed to generate title:', error);
       // No need to show an error toast here as it's not critical
     }
   };

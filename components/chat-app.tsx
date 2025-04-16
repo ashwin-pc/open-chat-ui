@@ -179,8 +179,12 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
         }
       } catch (error) {
         showErrorToast(
-          new FileError(`Error processing existing file ${attachment.name}: ${error instanceof Error ? error.message : String(error)}`),
-          currentThreadId
+          new FileError(
+            `Error processing existing file ${attachment.name}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          ),
+          currentThreadId,
         );
       }
     }
@@ -191,10 +195,7 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
         const maxSize = isImage ? MAX_IMAGE_SIZE : MAX_FILE_SIZE;
 
         if (file.size > maxSize) {
-          showErrorToast(
-            new FileError(`${file.name} exceeds ${isImage ? '30' : '5'}MB limit`),
-            currentThreadId
-          );
+          showErrorToast(new FileError(`${file.name} exceeds ${isImage ? '30' : '5'}MB limit`), currentThreadId);
           continue;
         }
 
@@ -204,19 +205,13 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
           // Token check for individual file
           const fileTokens = getTokenCount(content);
           if (fileTokens > MAX_TOKENS_PER_FILE) {
-            showErrorToast(
-              new FileError(`${file.name} exceeds token limit`),
-              currentThreadId
-            );
+            showErrorToast(new FileError(`${file.name} exceeds token limit`), currentThreadId);
             continue;
           }
 
           // Check combined token count
           if (totalTokens + fileTokens > MAX_TOKENS_PER_FILE) {
-            showErrorToast(
-              new FileError('Adding this file would exceed total token limit'),
-              currentThreadId
-            );
+            showErrorToast(new FileError('Adding this file would exceed total token limit'), currentThreadId);
             continue;
           }
 
@@ -235,7 +230,7 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
       } catch (error) {
         showErrorToast(
           new FileError(`Error processing ${file.name}: ${error instanceof Error ? error.message : String(error)}`),
-          currentThreadId
+          currentThreadId,
         );
       }
     }

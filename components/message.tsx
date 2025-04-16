@@ -205,7 +205,6 @@ export const Message = memo(function Message({
                   prose-img:rounded-lg
                   dark:prose-invert`}
               >
-              
                 {(message.thinking || message.partialThinking) && !isHuman && (
                   <div className="mt-2 pt-2 border-t border-border/30">
                     {/* Display thinking content when toggled */}
@@ -215,9 +214,9 @@ export const Message = memo(function Message({
                       </div>
                     )}
 
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setShowThinking(!showThinking)}
                       className="text-xs text-muted-foreground hover:text-foreground mt-2 flex items-center"
                     >

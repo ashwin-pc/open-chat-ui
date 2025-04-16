@@ -59,10 +59,7 @@ export function ThreadGroup({ title, threads, currentThreadId, actions, handleRe
       <SidebarMenu>
         {threads.map((thread) => (
           <SidebarMenuItem key={thread.id}>
-            <SidebarMenuButton
-              isActive={currentThreadId === thread.id}
-              onClick={() => actions.switchThread(thread.id)}
-            >
+            <SidebarMenuButton isActive={currentThreadId === thread.id} onClick={() => actions.switchThread(thread.id)}>
               {thread.isIncognitoThread ? <MessageCircleDashed /> : ''}
               <span>{thread.name}</span>
             </SidebarMenuButton>

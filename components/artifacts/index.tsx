@@ -67,10 +67,7 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
       await navigator.clipboard.writeText(currentCode);
       toast.success('Code copied to clipboard');
     } catch (error) {
-      showErrorToast(
-        new FileError('Failed to copy code to clipboard'),
-        currentThreadId
-      );
+      showErrorToast(new FileError('Failed to copy code to clipboard'), currentThreadId);
     }
   };
 
@@ -98,10 +95,7 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
       downloadTextFile(currentCode, safeFilename, fileExtension);
       toast.success('File downloaded successfully');
     } catch (error) {
-      showErrorToast(
-        new FileError('Failed to download file'),
-        currentThreadId
-      );
+      showErrorToast(new FileError('Failed to download file'), currentThreadId);
     }
   };
 

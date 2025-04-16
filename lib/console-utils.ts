@@ -75,10 +75,10 @@ const formatValue = (value: any): string => {
 };
 
 export const getRecentLogs = () => {
-  return consoleBuffer.map(entry => ({
+  return consoleBuffer.map((entry) => ({
     timestamp: entry.timestamp,
     level: entry.level,
-    message: entry.args.map(arg => formatValue(arg)).join(' ')
+    message: entry.args.map((arg) => formatValue(arg)).join(' '),
   }));
 };
 
@@ -97,6 +97,6 @@ export const logError = (error: Error | string, conversationId: string) => {
   return {
     errorMessage,
     stack,
-    logs: getRecentLogs()
+    logs: getRecentLogs(),
   };
 };
