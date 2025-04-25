@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Input } from './ui/input';
 import { toast } from 'sonner';
 import { useChatContext } from '@/contexts/chat-context';
+import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
 
 interface ChatInputProps {
   isImmersive: boolean;
@@ -145,9 +146,28 @@ export function ChatInput({
         {/* Controls - always visible */}
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="h-8 w-8">
-              <Paperclip className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="h-8 w-8">
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs whitespace-pre-line">
+                <span className="font-semibold">Attach files</span>
+                <br />
+                <span>
+                  Common types: txt, md, csv, json, code, images, ipynb, and more.<br />
+                  <a
+                    href="https://code.amazon.com/packages/DiyaChatbotUI/blobs/heads/mainline/--/src/open-ui/lib/utils/file.ts#L8"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline text-xs text-muted-foreground"
+                  >
+                    See full supported file list
+                  </a>
+                </span>
+              </TooltipContent>
+            </Tooltip>
             <Select
               value={selectedModel}
               onValueChange={(value: BedrockModelNames) => {
