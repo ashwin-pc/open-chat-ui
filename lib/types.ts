@@ -1,5 +1,6 @@
 export enum BedrockModelNames {
   CLAUDE_V3_7_SONNET = 'eu.anthropic.claude-3-7-sonnet-20250219-v1:0',
+  AMZN_NOVA_PREMIER = 'us.amazon.nova-premier-v1:0',
   CLAUDE_V3_5_SONNET_V2 = 'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
   CLAUDE_V3_5_SONNET = 'us.anthropic.claude-3-5-sonnet-20240620-v1:0',
   AMZN_NOVA_PRO = 'us.amazon.nova-pro-v1:0',
@@ -59,6 +60,7 @@ export interface ThreadSummary {
 
 export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {
   [BedrockModelNames.CLAUDE_V3_7_SONNET]: "Claude 3.7 Sonnet (Backstreet's Back)",
+  [BedrockModelNames.AMZN_NOVA_PREMIER]: 'Amazon Nova Premier (Long Context King)',
   [BedrockModelNames.CLAUDE_V3_5_SONNET_V2]: 'Claude 3.5 Sonnet v2 (second best)',
   [BedrockModelNames.CLAUDE_V3_5_SONNET]: 'Claude 3.5 Sonnet (third best)',
   [BedrockModelNames.AMZN_NOVA_PRO]: `Amazon Nova Pro (homegrown hotshot)`,
