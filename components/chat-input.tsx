@@ -156,7 +156,8 @@ export function ChatInput({
                 <span className="font-semibold">Attach files</span>
                 <br />
                 <span>
-                  Common types: txt, md, csv, json, code, images, ipynb, and more.<br />
+                  Common types: txt, md, csv, json, code, images, ipynb, and more.
+                  <br />
                   <a
                     href="https://code.amazon.com/packages/DiyaChatbotUI/blobs/heads/mainline/--/src/open-ui/lib/utils/file.ts#L8"
                     target="_blank"

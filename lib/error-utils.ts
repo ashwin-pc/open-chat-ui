@@ -1,5 +1,5 @@
 import { toast } from 'sonner';
-import { toChatError } from './errors';
+import { APIError, ChatError, NetworkError, toChatError } from './errors';
 import { logError } from './console-utils';
 
 interface ErrorReport {
@@ -33,8 +33,11 @@ export const showErrorToast = (error: unknown, conversationId: string) => {
     logs,
   };
 
+  const shouldPersist =
+    chatError instanceof NetworkError || chatError instanceof APIError || chatError instanceof ChatError;
+
   toast.error(errorMessage, {
-    duration: Infinity, // Toast stays until dismissed
+    duration: shouldPersist ? Infinity : 2000, // persist only user errors
     action: {
       label: 'Report',
       onClick: () => {
