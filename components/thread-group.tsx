@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { ChatContextType } from '@/contexts/chat-context';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction } from '@/components/ui/sidebar';
 import { MessageCircleDashed, MoreHorizontal, Pencil, Trash2, Share2 } from 'lucide-react';
@@ -20,7 +21,7 @@ interface ThreadGroupProps {
   handleRename: (threadId: string, currentName: string) => void;
 }
 
-export function ThreadGroup({ title, threads, currentThreadId, actions, handleRename }: ThreadGroupProps) {
+function ThreadGroupComponent({ title, threads, currentThreadId, actions, handleRename }: ThreadGroupProps) {
   if (threads.length === 0) return null;
 
   const handleShare = async (threadId: string) => {
@@ -105,3 +106,6 @@ export function ThreadGroup({ title, threads, currentThreadId, actions, handleRe
     </div>
   );
 }
+
+// Use memo to avoid unnecessary re-renders
+export const ThreadGroup = memo(ThreadGroupComponent);

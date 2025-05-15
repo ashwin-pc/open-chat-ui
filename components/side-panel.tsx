@@ -1,3 +1,4 @@
+import { memo, useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Plus, MessageSquare, MessageCircleDashed, ArrowLeft, Search } from 'lucide-react';
 import { useChatContext } from '@/contexts/chat-context';
@@ -12,8 +13,7 @@ import {
   useSidebar,
   SidebarFooter,
 } from '@/components/ui/sidebar';
-import { Input } from '@/components/ui/input'; // Add Input component import
-import { useState, useMemo } from 'react'; // Add useState and useMemo
+import { Input } from '@/components/ui/input';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { ThemeToggle } from './theme-toggle';
 import { ShortcutsDialog } from './shortcuts-dialog';
@@ -21,9 +21,9 @@ import { SettingsDialog } from './settings-dialog';
 import { ThreadGroup } from './thread-group';
 import { categorizeThreads } from '@/lib/utils/thread-utils';
 import { record } from 'aws-amplify/analytics';
-import { ThreadSummary, ChatThread } from '@/lib/types';
+import { ThreadSummary } from '@/lib/types';
 
-export function SidePanel() {
+function SidePanelComponent() {
   const { threadSummaries, currentThreadId, actions, settings } = useChatContext();
   const { toggleSidebar } = useSidebar();
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,7 +73,7 @@ export function SidePanel() {
     });
   }, [threadSummaries, searchQuery]);
 
-  const categorized = categorizeThreads(filteredThreads);
+  const categorized = useMemo(() => categorizeThreads(filteredThreads), [filteredThreads]);
 
   const EmptyState = () => (
     <div className="flex flex-col items-center justify-center p-4 text-center text-muted-foreground">
@@ -201,3 +201,6 @@ export function SidePanel() {
     </Sidebar>
   );
 }
+
+// Use memo to avoid unnecessary re-renders
+export const SidePanel = memo(SidePanelComponent);

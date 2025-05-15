@@ -31,7 +31,6 @@ import { DropOverlay } from './drop-overlay';
 import { v4 as uuidv4 } from 'uuid';
 import { showErrorToast } from '../lib/error-utils';
 import { FileError } from '../lib/errors';
-import { ShareButton } from './share-button';
 
 interface ChatAppProps {
   apiClient: ChatApiInterface;
@@ -125,7 +124,7 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
         }
         await handleNewMessage(input, currentThread);
       }
-      setInput('');
+      setInput(''); 
     }
   };
 
@@ -369,9 +368,6 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
                     </ResizablePanel>
                   </>
                 )}
-                {/* Enable the code below when artifacts are active */}
-                {/* <ResizableHandle />
-                <ResizablePanel>Placeholder for artifacts panel</ResizablePanel> */}
               </ResizablePanelGroup>
               <Toaster />
             </SidebarInset>
