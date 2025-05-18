@@ -580,4 +580,123 @@ describe('useThreadStorage', () => {
     expect(db.threads.get).toHaveBeenCalledWith('test-uuid');
     expect(db.threads.get).toHaveBeenCalledTimes(1);
   });
+
+  it('should toggle pin status without affecting lastUpdated timestamp', async () => {
+    // Mock an existing thread with a specific lastUpdated time
+    const originalDate = new Date('2024-01-01');
+    const existingThread = {
+      id: 'test-thread',
+      name: 'Test Thread',
+      lastUpdated: originalDate,
+      isPinned: false,
+    };
+
+    // Mock useLiveQuery to return our thread summary
+    (useLiveQuery as jest.Mock).mockImplementation((queryFn) => {
+      if (queryFn.toString().includes('threadSummaries.toArray')) {
+        return [existingThread];
+      }
+      if (queryFn.toString().includes('systemPrompts.toArray')) {
+        return [];
+      }
+      return undefined;
+    });
+
+    // Mock direct DB calls
+    (db.threadSummaries.get as jest.Mock).mockResolvedValue(existingThread);
+    (db.threadSummaries.count as jest.Mock).mockResolvedValue(1);
+
+    const { result } = renderHook(() => useThreadStorage({}));
+
+    // Clear any initialization calls
+    jest.clearAllMocks();
+
+    // Pin the thread
+    await act(async () => {
+      await result.current.actions.toggleThreadPin('test-thread');
+    });
+
+    // Check the call to put for pinning
+    expect(db.threadSummaries.put).toHaveBeenCalledWith({
+      id: 'test-thread',
+      name: 'Test Thread',
+      isPinned: true,
+      lastUpdated: originalDate,
+    });
+
+    // Update the mock for the pinned state
+    const pinnedThread = { ...existingThread, isPinned: true };
+    (db.threadSummaries.get as jest.Mock).mockResolvedValue(pinnedThread);
+    (useLiveQuery as jest.Mock).mockImplementation((queryFn) => {
+      if (queryFn.toString().includes('threadSummaries.toArray')) {
+        return [pinnedThread];
+      }
+      if (queryFn.toString().includes('systemPrompts.toArray')) {
+        return [];
+      }
+      return undefined;
+    });
+
+    // Clear mocks again before unpinning
+    jest.clearAllMocks();
+
+    // Unpin the thread
+    await act(async () => {
+      await result.current.actions.toggleThreadPin('test-thread');
+    });
+
+    // Check the call to put for unpinning
+    expect(db.threadSummaries.put).toHaveBeenCalledWith({
+      id: 'test-thread',
+      name: 'Test Thread',
+      isPinned: false,
+      lastUpdated: originalDate,
+    });
+  });
+
+  it('should maintain pin status when renaming thread', async () => {
+    // Mock an existing pinned thread
+    const existingThread = {
+      id: 'test-thread',
+      name: 'Old Name',
+      branches: [
+        {
+          id: 1,
+          name: 'Main',
+          messages: [],
+          attachments: [],
+          createdAt: new Date(),
+          description: 'Initial conversation branch',
+        },
+      ],
+      currentBranchId: 1,
+    };
+
+    const existingSummary = {
+      id: 'test-thread',
+      name: 'Old Name',
+      lastUpdated: new Date(),
+      isPinned: true,
+      isIncognitoThread: false,
+    };
+
+    (db.threads.get as jest.Mock).mockResolvedValue(existingThread);
+    (db.threadSummaries.get as jest.Mock).mockResolvedValue(existingSummary);
+
+    const { result } = renderHook(() => useThreadStorage({}));
+
+    // Rename the thread
+    await act(async () => {
+      await result.current.actions.renameThread('test-thread', 'New Name');
+    });
+
+    // Verify that the pin status was maintained
+    expect(db.threadSummaries.put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'test-thread',
+        name: 'New Name',
+        isPinned: true,
+      }),
+    );
+  });
 });

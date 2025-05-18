@@ -137,6 +137,15 @@ function SidePanelComponent() {
           <EmptyState />
         ) : (
           <SidebarGroup className="space-y-2">
+            {categorized.pinned.length > 0 && (
+              <ThreadGroup
+                title="Pinned"
+                threads={categorized.pinned}
+                currentThreadId={currentThreadId}
+                actions={actions}
+                handleRename={handleRename}
+              />
+            )}
             {categorized.today.length > 0 && (
               <ThreadGroup
                 title="Today"

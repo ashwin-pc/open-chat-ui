@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { ChatContextType } from '@/contexts/chat-context';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarMenuAction } from '@/components/ui/sidebar';
-import { MessageCircleDashed, MoreHorizontal, Pencil, Trash2, Share2 } from 'lucide-react';
+import { MessageCircleDashed, MoreHorizontal, Pencil, Trash2, Share2, Pin } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,6 +71,15 @@ function ThreadGroupComponent({ title, threads, currentThreadId, actions, handle
                 </SidebarMenuAction>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="right" align="start">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    actions.toggleThreadPin(thread.id);
+                  }}
+                >
+                  <Pin className="h-4 w-4" />
+                  <span>{thread.isPinned ? 'Unpin Thread' : 'Pin Thread'}</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();

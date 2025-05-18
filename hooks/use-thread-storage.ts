@@ -134,6 +134,18 @@ export function useThreadStorage({
         }
       },
 
+      toggleThreadPin: async (threadId: string): Promise<void> => {
+        const currentSummary = await db.threadSummaries.get(threadId);
+        if (!currentSummary) return;
+
+        const updatedSummary: ThreadSummary = {
+          ...currentSummary,
+          isPinned: !currentSummary.isPinned,
+        };
+
+        await db.threadSummaries.put(updatedSummary);
+      },
+
       updateThread: async (threadUpdate: Partial<ChatThread> & { id: string }): Promise<void> => {
         const latest = await db.threads.get(threadUpdate.id);
         if (!latest) return;
@@ -153,6 +165,7 @@ export function useThreadStorage({
           name: mergedThread.name,
           lastUpdated: new Date(), // updated to current time
           isIncognitoThread: currentSummary?.isIncognitoThread,
+          isPinned: currentSummary?.isPinned, // preserve the pinned status
         };
         await db.threadSummaries.put(summary);
 

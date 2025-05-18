@@ -2,6 +2,7 @@ import { isToday, isWithinInterval, subDays } from 'date-fns';
 import { ThreadSummary } from '../types';
 
 export type CategoryThreads = {
+  pinned: ThreadSummary[];
   today: ThreadSummary[];
   lastWeek: ThreadSummary[];
   lastMonth: ThreadSummary[];
@@ -15,6 +16,11 @@ export const categorizeThreads = (threads: ThreadSummary[]): CategoryThreads => 
 
   return sortedThreads.reduce(
     (acc: CategoryThreads, thread) => {
+      // First check if thread is pinned
+      if (thread.isPinned) {
+        acc.pinned.push(thread);
+        return acc;
+      }
       const threadDate = thread.lastUpdated;
 
       if (isToday(threadDate)) {
@@ -40,6 +46,7 @@ export const categorizeThreads = (threads: ThreadSummary[]): CategoryThreads => 
       return acc;
     },
     {
+      pinned: [],
       today: [],
       lastWeek: [],
       lastMonth: [],

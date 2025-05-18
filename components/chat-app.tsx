@@ -124,7 +124,7 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
         }
         await handleNewMessage(input, currentThread);
       }
-      setInput(''); 
+      setInput('');
     }
   };
 

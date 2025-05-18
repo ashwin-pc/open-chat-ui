@@ -56,6 +56,7 @@ export interface ThreadSummary {
   name: string;
   lastUpdated: Date;
   isIncognitoThread?: boolean;
+  isPinned?: boolean;
 }
 
 export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {
