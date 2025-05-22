@@ -1,4 +1,6 @@
 export enum BedrockModelNames {
+  CLAUDE_V4_OPUS = 'us.anthropic.claude-opus-4-20250514-v1:0',
+  CLAUDE_V4_SONNET = 'us.anthropic.claude-sonnet-4-20250514-v1:0',
   CLAUDE_V3_7_SONNET = 'eu.anthropic.claude-3-7-sonnet-20250219-v1:0',
   AMZN_NOVA_PREMIER = 'us.amazon.nova-premier-v1:0',
   CLAUDE_V3_5_SONNET_V2 = 'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
@@ -60,10 +62,12 @@ export interface ThreadSummary {
 }
 
 export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {
-  [BedrockModelNames.CLAUDE_V3_7_SONNET]: "Claude 3.7 Sonnet (Backstreet's Back)",
+  [BedrockModelNames.CLAUDE_V4_OPUS]: "Claude 4 Opus (🤑)",
+  [BedrockModelNames.CLAUDE_V4_SONNET]: "Claude 4 Sonnet (new brain)",
+  [BedrockModelNames.CLAUDE_V3_7_SONNET]: "Claude 3.7 Sonnet (second best)",
   [BedrockModelNames.AMZN_NOVA_PREMIER]: 'Amazon Nova Premier (Long Context King)',
-  [BedrockModelNames.CLAUDE_V3_5_SONNET_V2]: 'Claude 3.5 Sonnet v2 (second best)',
-  [BedrockModelNames.CLAUDE_V3_5_SONNET]: 'Claude 3.5 Sonnet (third best)',
+  [BedrockModelNames.CLAUDE_V3_5_SONNET_V2]: 'Claude 3.5 Sonnet v2 (third best)',
+  [BedrockModelNames.CLAUDE_V3_5_SONNET]: 'Claude 3.5 Sonnet (last gen)',
   [BedrockModelNames.AMZN_NOVA_PRO]: `Amazon Nova Pro (homegrown hotshot)`,
   [BedrockModelNames.CARA]: 'Amazon Writing & Culture (fine-tuned assistance)',
   [BedrockModelNames.CLAUDE_V3_5_HAIKU]: `Claude 3.5 Haiku (i'm fast)`,
