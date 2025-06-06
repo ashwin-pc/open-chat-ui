@@ -1,5 +1,5 @@
 export enum BedrockModelNames {
-  CLAUDE_V4_OPUS = 'us.anthropic.claude-opus-4-20250514-v1:0',
+  CLAUDE_V4_OPUS = 'anthropic.claude-opus-4-20250514-v1:0',
   CLAUDE_V4_SONNET = 'us.anthropic.claude-sonnet-4-20250514-v1:0',
   CLAUDE_V3_7_SONNET = 'eu.anthropic.claude-3-7-sonnet-20250219-v1:0',
   AMZN_NOVA_PREMIER = 'us.amazon.nova-premier-v1:0',
