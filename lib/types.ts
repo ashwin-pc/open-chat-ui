@@ -1,5 +1,4 @@
 export enum BedrockModelNames {
-  CLAUDE_V4_OPUS = 'anthropic.claude-opus-4-20250514-v1:0',
   CLAUDE_V4_SONNET = 'us.anthropic.claude-sonnet-4-20250514-v1:0',
   CLAUDE_V3_7_SONNET = 'eu.anthropic.claude-3-7-sonnet-20250219-v1:0',
   AMZN_NOVA_PREMIER = 'us.amazon.nova-premier-v1:0',
@@ -62,7 +61,6 @@ export interface ThreadSummary {
 }
 
 export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {
-  [BedrockModelNames.CLAUDE_V4_OPUS]: "Claude 4 Opus (🥇 Best model)",
   [BedrockModelNames.CLAUDE_V4_SONNET]: "Claude 4 Sonnet (🥈 Second best)",
   [BedrockModelNames.CLAUDE_V3_7_SONNET]: "Claude 3.7 Sonnet (🥉 Third Best)",
   [BedrockModelNames.CLAUDE_V3_5_SONNET_V2]: 'Claude 3.5 Sonnet v2 (Fourth best - and the only one bedrock has sufficient TPS for us)',
