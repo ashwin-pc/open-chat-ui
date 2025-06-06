@@ -62,14 +62,14 @@ export interface ThreadSummary {
 }
 
 export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {
-  [BedrockModelNames.CLAUDE_V4_OPUS]: "Claude 4 Opus (🤑)",
-  [BedrockModelNames.CLAUDE_V4_SONNET]: "Claude 4 Sonnet (new brain)",
-  [BedrockModelNames.CLAUDE_V3_7_SONNET]: "Claude 3.7 Sonnet (second best)",
-  [BedrockModelNames.AMZN_NOVA_PREMIER]: 'Amazon Nova Premier (Long Context King)',
-  [BedrockModelNames.CLAUDE_V3_5_SONNET_V2]: 'Claude 3.5 Sonnet v2 (third best)',
+  [BedrockModelNames.CLAUDE_V4_OPUS]: "Claude 4 Opus (🥇 Best model)",
+  [BedrockModelNames.CLAUDE_V4_SONNET]: "Claude 4 Sonnet (🥈 The Runner-up)",
+  [BedrockModelNames.CLAUDE_V3_7_SONNET]: "Claude 3.7 Sonnet (🥉 The Third Best)",
+  [BedrockModelNames.CLAUDE_V3_5_SONNET_V2]: 'Claude 3.5 Sonnet v2 (Fourth best - and the only one bedrock has sufficient TPS for us)',
+  [BedrockModelNames.AMZN_NOVA_PREMIER]: 'Amazon Nova Premier (for very very long chats)',
   [BedrockModelNames.CLAUDE_V3_5_SONNET]: 'Claude 3.5 Sonnet (last gen)',
-  [BedrockModelNames.AMZN_NOVA_PRO]: `Amazon Nova Pro (homegrown hotshot)`,
-  [BedrockModelNames.CARA]: 'Amazon Writing & Culture (fine-tuned assistance)',
+  [BedrockModelNames.AMZN_NOVA_PRO]: `Amazon Nova Pro (the old guard)`,
+  [BedrockModelNames.CARA]: 'Amazon Writing & Culture (the writing assistant)',
   [BedrockModelNames.CLAUDE_V3_5_HAIKU]: `Claude 3.5 Haiku (i'm fast)`,
 };
 
