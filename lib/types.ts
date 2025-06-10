@@ -61,9 +61,9 @@ export interface ThreadSummary {
 }
 
 export const BedrockModelDisplayNames: Record<BedrockModelNames, string> = {
-  [BedrockModelNames.CLAUDE_V4_SONNET]: "Claude 4 Sonnet (🥈 Second best)",
-  [BedrockModelNames.CLAUDE_V3_7_SONNET]: "Claude 3.7 Sonnet (🥉 Third Best)",
-  [BedrockModelNames.CLAUDE_V3_5_SONNET_V2]: 'Claude 3.5 Sonnet v2 (Fourth best - and the only one bedrock has sufficient TPS for us)',
+  [BedrockModelNames.CLAUDE_V4_SONNET]: "Claude 4 Sonnet (🥈 Second best, expect errors sometimes - low tps)",
+  [BedrockModelNames.CLAUDE_V3_7_SONNET]: "Claude 3.7 Sonnet (🥉 Third Best, expect errors sometimes - low tps)",
+  [BedrockModelNames.CLAUDE_V3_5_SONNET_V2]: 'Claude 3.5 Sonnet v2 (Fourth best - only bedrock model with sufficient tps)',
   [BedrockModelNames.AMZN_NOVA_PREMIER]: 'Amazon Nova Premier (for very very long chats)',
   [BedrockModelNames.CLAUDE_V3_5_SONNET]: 'Claude 3.5 Sonnet (last gen)',
   [BedrockModelNames.AMZN_NOVA_PRO]: `Amazon Nova Pro (the old guard)`,
