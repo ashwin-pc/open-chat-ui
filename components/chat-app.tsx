@@ -114,7 +114,7 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
   const handleSend = async () => {
     if (input.trim()) {
       if (editingMessageId !== null) {
-        await handleEditMessage(input, currentThread, editingMessageId);
+        await handleEditMessage(input, currentThread, editingMessageId, pendingAttachments);
         setEditingMessageId(null);
         setEditingInputBackup('');
       } else {

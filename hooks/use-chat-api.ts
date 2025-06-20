@@ -228,8 +228,14 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
    * @param input new message
    * @param chatThread Chat thread
    * @param editIndex Position of the message to edit
+   * @param attachments Current attachments to save with the message
    */
-  const handleEditMessage = async (input: string, chatThread: ChatThread, editIndex: number) => {
+  const handleEditMessage = async (
+    input: string,
+    chatThread: ChatThread,
+    editIndex: number,
+    attachments: Attachment[],
+  ) => {
     const currentBranch = chatThread.branches.find((b) => b.id === chatThread.currentBranchId);
     if (!currentBranch) {
       handleError('Could not find current branch');
@@ -240,6 +246,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
     const newMessage: Message = {
       ...originalMessage,
       text: input,
+      attachments: attachments,
     };
 
     const updatedMessages = [...currentBranch.messages.slice(0, editIndex), newMessage];
