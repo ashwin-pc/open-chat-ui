@@ -1,10 +1,11 @@
-import { createContext, useContext, useMemo, ReactNode, useState, useEffect, useCallback } from 'react';
-import { SystemPrompt, CreativityLevel } from '@/lib/types';
+import { createContext, useContext, useMemo, ReactNode, useState, useEffect, useCallback, useRef } from 'react';
+import { SystemPrompt, CreativityLevel, Message, Attachment, Roles } from '@/lib/types';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { useLocalStorage } from 'usehooks-ts';
 import { UseThreadData, useThreadStorage } from '@/hooks/use-thread-storage';
 import { Artifact } from '@/components/artifacts/types';
 import { record } from 'aws-amplify/analytics';
+import { getTokenCount, formatAttachmentMessage } from '@/lib/utils/file';
 
 type Settings = {
   cmdToSend: boolean;
@@ -12,15 +13,24 @@ type Settings = {
   largeTextPasteDetection: boolean;
   enableMaxChatWidth: boolean;
   useArtifacts: boolean;
+  showTokenCounter: boolean;
+};
+
+type TokenCounts = {
+  conversationTokens: number;
+  currentInputTokens: number;
+  totalTokens: number;
 };
 
 export interface ChatContextType extends Omit<UseThreadData, 'actions'> {
   settings: Settings;
   creativityLevel: CreativityLevel;
   currentArtifact: Artifact | null;
+  tokenCounts: TokenCounts;
   actions: UseThreadData['actions'] & {
     updateSettings: (newSettings: Partial<Settings>) => void;
     setCurrentArtifact: (artifact: Artifact | null) => void;
+    calculateTokens: (currentInput?: string, currentAttachments?: Attachment[]) => TokenCounts;
   };
   setCreativityLevel: (level: CreativityLevel) => void;
 }
@@ -42,10 +52,25 @@ export function ChatProvider({
     largeTextPasteDetection: false,
     enableMaxChatWidth: true,
     useArtifacts: false,
+    showTokenCounter: false,
   });
 
   // Right panel artifact
   const [currentArtifact, setCurrentArtifact] = useState<Artifact | null>(null);
+
+  // Token counting state
+  const [tokenCounts, setTokenCounts] = useState<TokenCounts>({
+    conversationTokens: 0,
+    currentInputTokens: 0,
+    totalTokens: 0,
+  });
+
+  // Cache for conversation tokens to avoid recalculating
+  const conversationTokenCacheRef = useRef<{
+    branchId: number | undefined;
+    messageCount: number;
+    tokens: number;
+  }>({ branchId: undefined, messageCount: 0, tokens: 0 });
 
   const {
     threadSummaries,
@@ -67,6 +92,59 @@ export function ChatProvider({
     },
     [setSettings],
   );
+
+  // Token calculation function with caching
+  const calculateTokens = useCallback(
+    (currentInput = '', currentAttachments: Attachment[] = []): TokenCounts => {
+      // Calculate tokens from all conversation messages with caching
+      let conversationTokens = 0;
+      const currentBranchId = currentBranch?.id;
+      const messageCount = currentBranch?.messages?.length || 0;
+      
+      // Check if we can use cached conversation tokens
+      if (
+        conversationTokenCacheRef.current.branchId === currentBranchId &&
+        conversationTokenCacheRef.current.messageCount === messageCount &&
+        messageCount > 0
+      ) {
+        conversationTokens = conversationTokenCacheRef.current.tokens;
+      } else {
+        // Recalculate and cache conversation tokens
+        if (currentBranch?.messages) {
+          conversationTokens = currentBranch.messages.reduce((total, message) => {
+            const messageContent = formatAttachmentMessage(message);
+            return total + getTokenCount(messageContent);
+          }, 0);
+        }
+        
+        // Update cache
+        conversationTokenCacheRef.current = {
+          branchId: currentBranchId,
+          messageCount,
+          tokens: conversationTokens,
+        };
+      }
+
+      // Calculate tokens from current input and attachments
+      const currentInputContent = currentAttachments.length > 0 
+        ? formatAttachmentMessage({ text: currentInput, sender: Roles.HUMAN, attachments: currentAttachments })
+        : currentInput;
+      const currentInputTokens = getTokenCount(currentInputContent);
+
+      const totalTokens = conversationTokens + currentInputTokens;
+
+      const newTokenCounts = {
+        conversationTokens,
+        currentInputTokens,
+        totalTokens,
+      };
+
+      setTokenCounts(newTokenCounts);
+      return newTokenCounts;
+    },
+    [currentBranch?.messages, currentBranch?.id],
+  );
+
 
   // Side effect to react to incognito mode changes
   useEffect(() => {
@@ -121,8 +199,9 @@ export function ChatProvider({
       ...threadActions,
       updateSettings,
       setCurrentArtifact,
+      calculateTokens,
     }),
-    [threadActions, updateSettings], // threadSummaries is not needed here now
+    [threadActions, updateSettings, calculateTokens],
   );
 
   return (
@@ -140,6 +219,7 @@ export function ChatProvider({
         creativityLevel,
         setCreativityLevel,
         currentArtifact,
+        tokenCounts,
       }}
     >
       {children}

@@ -15,7 +15,7 @@ import { anthropicDefaultArtifactPrompt } from '../../prompts/anthropic-default-
 import { systemPrompts } from '../../prompts';
 import { db } from '../lib/db';
 import { generateConversationTitle } from '../../utils/title-generation';
-import { showErrorToast } from '../lib/error-utils';
+import { showErrorToast, TokenInfo } from '../lib/error-utils';
 import { NetworkError, APIError } from '../lib/errors';
 import { extractThinking, extractRealAnswer, hasThinkTag } from '../../utils/thinkingUtil';
 import { toast } from 'sonner';
@@ -32,7 +32,7 @@ export interface PartialResponse {
 }
 
 export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
-  const { currentSystemPrompt, currentThreadId, creativityLevel, actions, settings } = useChatContext();
+  const { currentSystemPrompt, currentThreadId, creativityLevel, actions, settings, tokenCounts } = useChatContext();
   const [isPolling, setIsPolling] = useState(false);
   const [partialResponse, setPartialResponse] = useState<PartialResponse>();
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -40,9 +40,27 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
 
   const handleError = useCallback(
     (error: unknown) => {
-      showErrorToast(error, currentThreadId);
+      // Get conversation tokens from current context - no need to recalculate
+      const conversationTokens = tokenCounts.conversationTokens;
+      
+      // Simple token breakdown for error report
+      const tokenBreakdown = `## Token Usage Report
+
+**Conversation Tokens**: ${conversationTokens.toLocaleString()}
+- All messages in this thread (including attachments and images)
+
+*Note: This shows tokens used in the conversation when the error occurred.*`;
+
+      const tokenInfo: TokenInfo = {
+        conversationTokens,
+        currentInputTokens: 0, // Not relevant for error context
+        totalTokens: conversationTokens,
+        tokenBreakdown,
+      };
+      
+      showErrorToast(error, currentThreadId, tokenInfo);
     },
-    [currentThreadId],
+    [currentThreadId, tokenCounts.conversationTokens],
   );
 
   const pollForResponse = async (conversationId: string, updatedTime: number, currentMessages: Message[]) => {
@@ -77,7 +95,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
       }
 
       if (status === 'PENDING') {
-        timeoutRef.current = setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 100);
+        timeoutRef.current = setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 1000);
       } else if (status === 'COMPLETE') {
         let responseText = latestResponse || '';
         let thinking = undefined;
@@ -188,28 +206,10 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
       conversationTime,
       model,
       systemContext,
-      (error, canAbort, conversationId) => {
-        if (canAbort && conversationId) {
-          // Show error with abort action
-          const errorWithAbort = new Error(error);
-          (errorWithAbort as any).actions = [
-            {
-              label: 'Abort',
-              action: async () => {
-                try {
-                  await apiClient.abortConversation(conversationId);
-                  toast.success('Conversation aborted. You can now retry sending your message.');
-                } catch (abortError) {
-                  toast.error('Failed to abort conversation. Please try again.');
-                }
-              },
-              variant: 'outline'
-            }
-          ];
-          handleError(errorWithAbort);
-        } else {
-          handleError(error);
-        }
+      (error) => {
+        
+        handleError(error);
+        
         setPartialResponse({
           threadId: currentThreadId,
           text: 'I will keep thinking, but you can abort this conversation.',

@@ -10,6 +10,13 @@ export interface ErrorAction {
   variant?: 'default' | 'secondary' | 'outline' | 'ghost';
 }
 
+export interface TokenInfo {
+  conversationTokens: number;
+  currentInputTokens: number;
+  totalTokens: number;
+  tokenBreakdown: string;
+}
+
 interface ErrorReport {
   conversationId: string;
   timestamp: string;
@@ -17,6 +24,7 @@ interface ErrorReport {
   errorType: string;
   errorCode?: string;
   stack?: string;
+  tokenInfo?: TokenInfo;
   logs: Array<{
     timestamp: string;
     level: string;
@@ -24,7 +32,7 @@ interface ErrorReport {
   }>;
 }
 
-export const showErrorToast = (error: unknown, conversationId: string) => {
+export const showErrorToast = (error: unknown, conversationId: string, tokenInfo?: TokenInfo) => {
   const chatError = toChatError(error);
   const timestamp = new Date().toISOString();
 
@@ -38,6 +46,7 @@ export const showErrorToast = (error: unknown, conversationId: string) => {
     errorType: chatError.name,
     errorCode: chatError.code,
     stack,
+    tokenInfo,
     logs,
   };
 

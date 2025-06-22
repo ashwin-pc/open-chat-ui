@@ -109,6 +109,20 @@ export function SettingsDialog() {
                   onCheckedChange={(checked: boolean) => actions.updateSettings({ enableMaxChatWidth: checked })}
                 />
               </div>
+              {/* Token Counter toggle */}
+              <div className="flex items-center justify-between">
+                <Label htmlFor="show-token-counter" className="flex flex-col space-y-1">
+                  <span>Show Token Counter</span>
+                  <span className="text-sm text-muted-foreground">
+                    Display real-time token count in the chat input area (includes images).
+                  </span>
+                </Label>
+                <Switch
+                  id="show-token-counter"
+                  checked={settings.showTokenCounter}
+                  onCheckedChange={(checked: boolean) => actions.updateSettings({ showTokenCounter: checked })}
+                />
+              </div>
             </div>
           </TabsContent>
           <TabsContent value="system-prompts" className="p-0 h-full mt-0">

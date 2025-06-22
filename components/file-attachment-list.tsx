@@ -21,6 +21,7 @@ interface AttachmentWithTokens extends Attachment {
 export function FileAttachmentList({ attachments, onRemove, className = '' }: FileAttachmentListProps) {
   const [attachmentsWithTokens, setAttachmentsWithTokens] = useState<AttachmentWithTokens[]>([]);
   const [totalTokens, setTotalTokens] = useState(0);
+  const [totalTokensIncludingImages, setTotalTokensIncludingImages] = useState(0);
 
   useEffect(() => {
     const processFiles = async () => {
@@ -39,6 +40,9 @@ export function FileAttachmentList({ attachments, onRemove, className = '' }: Fi
       setAttachmentsWithTokens(processed);
       setTotalTokens(
         processed.filter((p) => !isFileImage(p.name)).reduce((sum, file) => sum + (file.tokenCount || 0), 0),
+      );
+      setTotalTokensIncludingImages(
+        processed.reduce((sum, file) => sum + (file.tokenCount || 0), 0),
       );
     };
 
@@ -72,16 +76,21 @@ export function FileAttachmentList({ attachments, onRemove, className = '' }: Fi
                       <X className="h-3 w-3" />
                     </Button>
                   </div>
-                  {!isImage && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Tokens: {file.tokenCount?.toLocaleString() || '...'}
-                    </div>
-                  )}
-                  {isImage && (
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Size: {formatFileSize(file.sizeInBytes ?? 0)}
-                    </div>
-                  )}
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {isImage ? (
+                      <>
+                        <div>Tokens: {file.tokenCount?.toLocaleString() || '...'}</div>
+                        <div>Size: {formatFileSize(file.sizeInBytes ?? 0)}</div>
+                        {(file.sizeInBytes ?? 0) > 500 * 1024 && (
+                          <div className="text-yellow-600 dark:text-yellow-400 font-medium">
+                            ⚠️ Large image may slow processing
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div>Tokens: {file.tokenCount?.toLocaleString() || '...'}</div>
+                    )}
+                  </div>
                   {file.progress !== undefined && file.progress < 100 && (
                     <Progress value={file.progress} className="h-1 mt-2" />
                   )}

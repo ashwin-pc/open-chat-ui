@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { FileAttachmentList } from './file-attachment-list';
 import { BedrockModelNames, BedrockModelDisplayNames, Attachment } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Input } from './ui/input';
@@ -48,7 +48,7 @@ export function ChatInput({
   selectedModel,
   onModelChange,
 }: ChatInputProps) {
-  const { settings } = useChatContext();
+  const { settings, tokenCounts, actions } = useChatContext();
   const containerClassName = isImmersive
     ? 'fixed inset-0 bg-background/80 backdrop-blur-sm transition-all duration-300 opacity-100 z-50'
     : 'bg-background relative before:absolute before:inset-x-0 before:top-[-20px] before:h-[20px] before:bg-gradient-to-b before:from-transparent before:to-background before:z-10';
@@ -135,6 +135,37 @@ export function ChatInput({
     }
   }, [handleSend, setInput]);
 
+  // Debounced token calculation
+  const debounceTimeoutRef = useRef<NodeJS.Timeout>();
+  
+  const debouncedCalculateTokens = useCallback(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    debounceTimeoutRef.current = setTimeout(() => {
+      actions.calculateTokens(input, attachments);
+    }, 300); // 300ms debounce
+  }, [input, attachments, actions]);
+
+  // Only calculate tokens when the setting is enabled
+  useEffect(() => {
+    if (settings.showTokenCounter) {
+      debouncedCalculateTokens();
+    }
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, [debouncedCalculateTokens, settings.showTokenCounter]);
+
+  // Calculate immediately when attachments change (only if setting enabled)
+  useEffect(() => {
+    if (settings.showTokenCounter) {
+      actions.calculateTokens(input, attachments);
+    }
+  }, [attachments.length, actions, input, attachments, settings.showTokenCounter]);
+
   return (
     <div className={containerClassName}>
       <div className="container mx-auto p-2 md:p-4 h-full flex flex-col">
@@ -207,6 +238,17 @@ export function ChatInput({
             <span className="sr-only">{isImmersive ? 'Minimize' : 'Maximize'}</span>
           </Button>
         </div>
+
+        {/* Token Counter - only show if setting is enabled */}
+        {settings.showTokenCounter && (
+          <div className="text-xs text-muted-foreground mb-2 flex justify-between items-center">
+            <div className="space-x-4">
+              <span>Conversation: {tokenCounts.conversationTokens.toLocaleString()}</span>
+              <span>Current: {tokenCounts.currentInputTokens.toLocaleString()}</span>
+              <span className="font-medium">Total: {tokenCounts.totalTokens.toLocaleString()}</span>
+            </div>
+          </div>
+        )}
 
         {/* Main content area */}
         <div className="relative flex-grow flex flex-col min-h-0">
