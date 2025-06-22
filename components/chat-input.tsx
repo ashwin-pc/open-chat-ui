@@ -176,13 +176,27 @@ export function ChatInput({
                 saveModelSelection(value);
               }}
             >
-              <SelectTrigger className="h-8">
-                <SelectValue placeholder="Select model">{BedrockModelDisplayNames[selectedModel]}</SelectValue>
+              <SelectTrigger className="h-8 max-w-[150px] md:max-w-[280px]">
+                <SelectValue placeholder="Select model" className="truncate">
+                  {/* Extract main name before parenthesis for mobile display */}
+                  <span className="md:hidden">
+                    {BedrockModelDisplayNames[selectedModel].split('(')[0].trim()}
+                  </span>
+                  {/* Show full name on larger screens */}
+                  <span className="hidden md:inline">
+                    {BedrockModelDisplayNames[selectedModel]}
+                  </span>
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(BedrockModelDisplayNames).map(([model, displayName]) => (
-                  <SelectItem key={model} value={model}>
-                    {displayName}
+                  <SelectItem key={model} value={model} className="flex flex-col items-start">
+                    <span className="font-medium">{displayName.split('(')[0].trim()}</span>
+                    {displayName.includes('(') && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {displayName.match(/\(([^)]+)\)/)?.[1]}
+                      </span>
+                    )}
                   </SelectItem>
                 ))}
               </SelectContent>
