@@ -114,7 +114,7 @@ export interface ChatApiInterface {
     updatedTime: number,
     model: BedrockModelNames,
     systemContext: string,
-    onError: (error: string) => void,
+    onError: (error: string, canAbort?: boolean, conversationId?: string) => void,
     modelInferenceParams?: ModelInferenceParameters,
   ) => void;
 }

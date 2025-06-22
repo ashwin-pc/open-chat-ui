@@ -18,6 +18,7 @@ import { generateConversationTitle } from '../../utils/title-generation';
 import { showErrorToast } from '../lib/error-utils';
 import { NetworkError, APIError } from '../lib/errors';
 import { extractThinking, extractRealAnswer, hasThinkTag } from '../../utils/thinkingUtil';
+import { toast } from 'sonner';
 
 interface UseChatApiProps {
   apiClient: ChatApiInterface;
@@ -59,8 +60,8 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
 
       const { status, latestResponse } = response;
 
-      if (latestResponse) {
-        let partialText = latestResponse;
+      if (latestResponse !== undefined) {
+        let partialText = latestResponse === '' ? 'Generating...' : latestResponse;
         let partialThinking = undefined;
 
         if (hasThinkTag(partialText)) {
@@ -111,7 +112,44 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
         setIsPolling(false);
       }
     } catch (error) {
-      handleError(error instanceof Error ? new NetworkError(error.message) : error);
+      // Create a new error with actions
+      const errorWithActions = error instanceof Error ? new NetworkError(error.message) : error;
+      
+      // Add actions array with multiple options
+      (errorWithActions as any).actions = [
+        {
+          label: 'Keep checking',
+          action: () => {
+            // Restart polling with the same parameters
+            setIsPolling(true);
+            setPartialResponse({
+              threadId: conversationId,
+              text: 'Retrying...',
+            });
+            setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 1000);
+          },
+          variant: 'secondary' // Use secondary styling
+        },
+        {
+          label: 'Abort',
+          action: async () => {
+            try {
+              setIsPolling(false);
+              setPartialResponse(undefined);
+              if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+              }
+              await apiClient.abortConversation(conversationId);
+              toast.success('Conversation aborted. You can now retry sending your message.');
+            } catch (abortError) {
+              toast.error('Failed to abort conversation. Please try again.');
+            }
+          },
+          variant: 'outline' // Use outline styling
+        }
+      ];
+      
+      handleError(errorWithActions);
       setPartialResponse(undefined);
       setIsPolling(false);
     }
@@ -131,7 +169,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
     setIsPolling(true);
     setPartialResponse({
       threadId: currentThreadId.toString(),
-      text: '',
+      text: '🤔 Thinking...',
     });
     const artifactPrompt =
       systemPrompts.find((prompt) => prompt.name === 'anthropic-artifact-default') || anthropicDefaultArtifactPrompt;
@@ -150,10 +188,32 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
       conversationTime,
       model,
       systemContext,
-      (error) => {
-        handleError(error);
-        setIsPolling(false);
-        setPartialResponse(undefined);
+      (error, canAbort, conversationId) => {
+        if (canAbort && conversationId) {
+          // Show error with abort action
+          const errorWithAbort = new Error(error);
+          (errorWithAbort as any).actions = [
+            {
+              label: 'Abort',
+              action: async () => {
+                try {
+                  await apiClient.abortConversation(conversationId);
+                  toast.success('Conversation aborted. You can now retry sending your message.');
+                } catch (abortError) {
+                  toast.error('Failed to abort conversation. Please try again.');
+                }
+              },
+              variant: 'outline'
+            }
+          ];
+          handleError(errorWithAbort);
+        } else {
+          handleError(error);
+        }
+        setPartialResponse({
+          threadId: currentThreadId,
+          text: 'I will keep thinking, but you can abort this conversation.',
+        });
       },
       modelInferenceParams,
     );

@@ -369,7 +369,7 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
                   </>
                 )}
               </ResizablePanelGroup>
-              <Toaster />
+              <Toaster position="top-center" />
             </SidebarInset>
           </>
         )}
