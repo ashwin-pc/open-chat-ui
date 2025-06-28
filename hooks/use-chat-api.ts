@@ -42,7 +42,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
     (error: unknown) => {
       // Get conversation tokens from current context - no need to recalculate
       const conversationTokens = tokenCounts.conversationTokens;
-      
+
       // Simple token breakdown for error report
       const tokenBreakdown = `## Token Usage Report
 
@@ -57,7 +57,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
         totalTokens: conversationTokens,
         tokenBreakdown,
       };
-      
+
       showErrorToast(error, currentThreadId, tokenInfo);
     },
     [currentThreadId, tokenCounts.conversationTokens],
@@ -132,7 +132,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
     } catch (error) {
       // Create a new error with actions
       const errorWithActions = error instanceof Error ? new NetworkError(error.message) : error;
-      
+
       // Add actions array with multiple options
       (errorWithActions as any).actions = [
         {
@@ -146,7 +146,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
             });
             setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 1000);
           },
-          variant: 'secondary' // Use secondary styling
+          variant: 'secondary', // Use secondary styling
         },
         {
           label: 'Abort',
@@ -163,10 +163,10 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
               toast.error('Failed to abort conversation. Please try again.');
             }
           },
-          variant: 'outline' // Use outline styling
-        }
+          variant: 'outline', // Use outline styling
+        },
       ];
-      
+
       handleError(errorWithActions);
       setPartialResponse(undefined);
       setIsPolling(false);
@@ -207,9 +207,8 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
       model,
       systemContext,
       (error) => {
-        
         handleError(error);
-        
+
         setPartialResponse({
           threadId: currentThreadId,
           text: 'I will keep thinking, but you can abort this conversation.',

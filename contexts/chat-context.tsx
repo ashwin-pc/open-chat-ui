@@ -100,7 +100,7 @@ export function ChatProvider({
       let conversationTokens = 0;
       const currentBranchId = currentBranch?.id;
       const messageCount = currentBranch?.messages?.length || 0;
-      
+
       // Check if we can use cached conversation tokens
       if (
         conversationTokenCacheRef.current.branchId === currentBranchId &&
@@ -116,7 +116,7 @@ export function ChatProvider({
             return total + getTokenCount(messageContent);
           }, 0);
         }
-        
+
         // Update cache
         conversationTokenCacheRef.current = {
           branchId: currentBranchId,
@@ -126,9 +126,10 @@ export function ChatProvider({
       }
 
       // Calculate tokens from current input and attachments
-      const currentInputContent = currentAttachments.length > 0 
-        ? formatAttachmentMessage({ text: currentInput, sender: Roles.HUMAN, attachments: currentAttachments })
-        : currentInput;
+      const currentInputContent =
+        currentAttachments.length > 0
+          ? formatAttachmentMessage({ text: currentInput, sender: Roles.HUMAN, attachments: currentAttachments })
+          : currentInput;
       const currentInputTokens = getTokenCount(currentInputContent);
 
       const totalTokens = conversationTokens + currentInputTokens;
@@ -144,7 +145,6 @@ export function ChatProvider({
     },
     [currentBranch?.messages, currentBranch?.id],
   );
-
 
   // Side effect to react to incognito mode changes
   useEffect(() => {

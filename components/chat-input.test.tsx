@@ -49,22 +49,14 @@ describe('ChatInput Token Counter', () => {
 
   // Helper function to render with TooltipProvider
   const renderWithTooltip = (component: React.ReactElement) => {
-    const view = render(
-      <TooltipProvider>
-        {component}
-      </TooltipProvider>
-    );
-    
+    const view = render(<TooltipProvider>{component}</TooltipProvider>);
+
     // Override rerender to wrap with TooltipProvider
     const { rerender: originalRerender, ...rest } = view;
     const wrappedRerender = (newComponent: React.ReactElement) => {
-      return originalRerender(
-        <TooltipProvider>
-          {newComponent}
-        </TooltipProvider>
-      );
+      return originalRerender(<TooltipProvider>{newComponent}</TooltipProvider>);
     };
-    
+
     return { ...rest, rerender: wrappedRerender };
   };
 
@@ -90,7 +82,7 @@ describe('ChatInput Token Counter', () => {
   beforeEach(() => {
     jest.useFakeTimers();
     jest.clearAllMocks();
-    
+
     // Default mock context
     mockUseChatContext.mockReturnValue({
       settings: {
@@ -206,13 +198,13 @@ describe('ChatInput Token Counter', () => {
       renderWithTooltip(<ChatInput {...defaultProps} setInput={setInputMock} />);
 
       const textarea = screen.getByRole('textbox');
-      
+
       // Clear initial calls
       mockCalculateTokens.mockClear();
 
       // Type multiple characters quickly
       userEvent.type(textarea, 'Hello');
-      
+
       // Should not have calculated tokens yet (within debounce period)
       expect(mockCalculateTokens).not.toHaveBeenCalled();
 
@@ -232,7 +224,7 @@ describe('ChatInput Token Counter', () => {
       const setInputMock = jest.fn((value) => {
         currentInput = value;
       });
-      
+
       mockUseChatContext.mockReturnValue({
         ...mockUseChatContext(),
         settings: {
@@ -241,15 +233,17 @@ describe('ChatInput Token Counter', () => {
         },
       });
 
-      const { rerender } = renderWithTooltip(<ChatInput {...defaultProps} input={currentInput} setInput={setInputMock} />);
+      const { rerender } = renderWithTooltip(
+        <ChatInput {...defaultProps} input={currentInput} setInput={setInputMock} />,
+      );
 
       const textarea = screen.getByRole('textbox');
-      
+
       // Wait for initial mount calculations to complete
       act(() => {
         jest.advanceTimersByTime(300);
       });
-      
+
       // Clear initial calls after mount
       mockCalculateTokens.mockClear();
 
@@ -257,11 +251,11 @@ describe('ChatInput Token Counter', () => {
       userEvent.type(textarea, 'H');
       currentInput = 'H';
       rerender(<ChatInput {...defaultProps} input={currentInput} setInput={setInputMock} />);
-      
+
       // Should have calculated immediately due to attachments useEffect
       expect(mockCalculateTokens).toHaveBeenCalledTimes(1);
       expect(mockCalculateTokens).toHaveBeenCalledWith('H', []);
-      
+
       mockCalculateTokens.mockClear();
 
       // Type another character and update the input prop
@@ -290,7 +284,7 @@ describe('ChatInput Token Counter', () => {
 
       // Type characters
       userEvent.type(textarea, 'Hello');
-      
+
       // Advance time
       act(() => {
         jest.advanceTimersByTime(500);
@@ -303,9 +297,7 @@ describe('ChatInput Token Counter', () => {
 
   describe('Attachment Token Calculation', () => {
     it('should calculate tokens immediately when attachments change and setting is enabled', async () => {
-      const mockAttachments = [
-        { id: '1', name: 'test.txt', content: 'test content' }
-      ];
+      const mockAttachments = [{ id: '1', name: 'test.txt', content: 'test content' }];
 
       mockUseChatContext.mockReturnValue({
         ...mockUseChatContext(),
@@ -330,9 +322,7 @@ describe('ChatInput Token Counter', () => {
     });
 
     it('should not calculate tokens for attachments when setting is disabled', async () => {
-      const mockAttachments = [
-        { id: '1', name: 'test.txt', content: 'test content' }
-      ];
+      const mockAttachments = [{ id: '1', name: 'test.txt', content: 'test content' }];
 
       mockUseChatContext.mockReturnValue({
         ...mockUseChatContext(),
@@ -420,10 +410,10 @@ describe('ChatInput Token Counter', () => {
       rerender(<ChatInput {...defaultProps} setInput={jest.fn()} />);
 
       const textarea = screen.getByRole('textbox');
-      
+
       // Type something
       userEvent.type(textarea, 'Test');
-      
+
       // Advance time
       act(() => {
         jest.advanceTimersByTime(500);

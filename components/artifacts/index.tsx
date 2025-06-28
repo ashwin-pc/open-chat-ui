@@ -8,13 +8,14 @@ import { downloadMermaidSvg, MermaidPreview } from './mermaid-preview';
 import { Loading } from './loading';
 import { ErrorBoundary } from './error-boundary';
 import { ArtifactsProps, ARTIFACT_TYPES, ViewType } from './types';
-import { X, Copy, Download, Code, Eye, AlertCircle } from 'lucide-react';
+import { X, Copy, Download, Code, Eye, AlertCircle, Globe } from 'lucide-react';
 import { MarkdownPreview } from '@/components/artifacts/markdown-preview';
 import { SvgPreview } from './svg-preview';
+import { ReactAppPreview } from './react-app-preview';
 import { useTheme } from '@/contexts/theme-context';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { downloadTextFile, getLanguageExtension, sanitizeFilename } from '@/components/artifacts/utils';
+import { downloadTextFile, getLanguageExtension, sanitizeFilename, createReactAppHtml } from '@/components/artifacts/utils';
 import { useChatContext } from '@/contexts/chat-context';
 import { showErrorToast } from '../../lib/error-utils';
 import { FileError } from '../../lib/errors';
@@ -26,7 +27,8 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
   const hasPreview =
     artifactType === ARTIFACT_TYPES.MERMAID ||
     artifactType === ARTIFACT_TYPES.MARKDOWN ||
-    artifactType === ARTIFACT_TYPES.SVG;
+    artifactType === ARTIFACT_TYPES.SVG ||
+    artifactType === ARTIFACT_TYPES.REACT_APP;
 
   const [view, setView] = useState<ViewType>('code');
   const [currentCode, setCurrentCode] = useState<string>(content);
@@ -87,6 +89,8 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
         fileExtension = 'mmd';
       } else if (artifactType === ARTIFACT_TYPES.SVG) {
         fileExtension = 'svg';
+      } else if (artifactType === ARTIFACT_TYPES.REACT_APP) {
+        fileExtension = 'jsx';
       } else if (artifactType === ARTIFACT_TYPES.CODE && codeLanguage) {
         fileExtension = getLanguageExtension(codeLanguage);
       }
@@ -98,6 +102,33 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
       showErrorToast(new FileError('Failed to download file'), currentThreadId);
     }
   };
+
+  const handleDownloadHtml = () => {
+    try {
+      // Create standalone HTML for React app
+      const standaloneHtml = createReactAppHtml(currentCode, theme, { 
+        standalone: true, 
+        title: title || 'React App' 
+      });
+      const safeFilename = sanitizeFilename(title || 'react-app');
+      
+      // Download as HTML file
+      const blob = new Blob([standaloneHtml], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${safeFilename}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success('HTML file exported successfully');
+    } catch (error) {
+      showErrorToast(new FileError('Failed to export HTML file'), currentThreadId);
+    }
+  };
+
 
   return (
     <ErrorBoundary>
@@ -153,7 +184,7 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
               {!isEditorReady && <Loading />}
               <Editor
                 height="100%"
-                defaultLanguage={codeLanguage || 'text'}
+                defaultLanguage={artifactType === ARTIFACT_TYPES.REACT_APP ? 'javascript' : codeLanguage || 'text'}
                 value={currentCode}
                 onChange={handleCodeChange}
                 onMount={handleEditorDidMount}
@@ -183,14 +214,23 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
             <SvgPreview content={currentCode} theme={theme} onError={setError} />
           )}
 
+          {view === 'preview' && artifactType === ARTIFACT_TYPES.REACT_APP && (
+            <ReactAppPreview content={currentCode} theme={theme} onError={setError} />
+          )}
+
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
             <div className="flex gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-2 rounded-full border shadow-lg">
-              <Button variant="ghost" size="sm" onClick={handleCopyCode}>
+              <Button variant="ghost" size="sm" onClick={handleCopyCode} title="Copy code">
                 <Copy className="h-4 w-4 mr-1" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleDownload}>
+              <Button variant="ghost" size="sm" onClick={handleDownload} title="Download JSX">
                 <Download className="h-4 w-4 mr-1" />
               </Button>
+              {view === 'preview' && artifactType === ARTIFACT_TYPES.REACT_APP && (
+                <Button variant="ghost" size="sm" onClick={handleDownloadHtml} title="Export HTML">
+                  <Globe className="h-4 w-4 mr-1" />
+                </Button>
+              )}
             </div>
           </div>
         </div>

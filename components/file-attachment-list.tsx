@@ -41,9 +41,7 @@ export function FileAttachmentList({ attachments, onRemove, className = '' }: Fi
       setTotalTokens(
         processed.filter((p) => !isFileImage(p.name)).reduce((sum, file) => sum + (file.tokenCount || 0), 0),
       );
-      setTotalTokensIncludingImages(
-        processed.reduce((sum, file) => sum + (file.tokenCount || 0), 0),
-      );
+      setTotalTokensIncludingImages(processed.reduce((sum, file) => sum + (file.tokenCount || 0), 0));
     };
 
     processFiles();

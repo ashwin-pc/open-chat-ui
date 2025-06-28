@@ -137,7 +137,7 @@ export function ChatInput({
 
   // Debounced token calculation
   const debounceTimeoutRef = useRef<NodeJS.Timeout>();
-  
+
   const debouncedCalculateTokens = useCallback(() => {
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
@@ -210,13 +210,9 @@ export function ChatInput({
               <SelectTrigger className="h-8 max-w-[150px] md:max-w-[280px]">
                 <SelectValue placeholder="Select model" className="truncate">
                   {/* Extract main name before parenthesis for mobile display */}
-                  <span className="md:hidden">
-                    {BedrockModelDisplayNames[selectedModel].split('(')[0].trim()}
-                  </span>
+                  <span className="md:hidden">{BedrockModelDisplayNames[selectedModel].split('(')[0].trim()}</span>
                   {/* Show full name on larger screens */}
-                  <span className="hidden md:inline">
-                    {BedrockModelDisplayNames[selectedModel]}
-                  </span>
+                  <span className="hidden md:inline">{BedrockModelDisplayNames[selectedModel]}</span>
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>

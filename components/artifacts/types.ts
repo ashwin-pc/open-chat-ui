@@ -3,6 +3,7 @@ export const ARTIFACT_TYPES = {
   MERMAID: 'application/vnd.ant.mermaid',
   MARKDOWN: 'text/markdown',
   SVG: 'image/svg+xml',
+  REACT_APP: 'application/vnd.ant.react-app',
 } as const;
 
 export type ArtifactType = (typeof ARTIFACT_TYPES)[keyof typeof ARTIFACT_TYPES];
