@@ -132,7 +132,7 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
 
   return (
     <ErrorBoundary>
-      <div className="flex flex-col h-full relative">
+      <div className="flex flex-col h-full relative" data-testid="artifact-panel">
         <div className="flex items-center justify-between p-2 border-b">
           <div className="font-medium truncate">{title || 'Untitled'}</div>
 
@@ -147,6 +147,7 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
                     'h-7 rounded-full text-sm transition-all duration-200',
                     view === 'preview' ? 'bg-muted shadow-sm scale-105' : 'hover:bg-muted/50',
                   )}
+                  data-testid="artifact-preview-button"
                 >
                   <Eye className="h-3.5 w-3.5 mr-1" />
                   Preview
@@ -159,13 +160,14 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
                     'h-7 rounded-full text-sm transition-all duration-200',
                     view === 'code' ? 'bg-muted shadow-sm scale-105' : 'hover:bg-muted/50',
                   )}
+                  data-testid="artifact-code-button"
                 >
                   <Code className="h-3.5 w-3.5 mr-1" />
                   Code
                 </Button>
               </div>
             )}
-            <Button variant="ghost" size="icon" onClick={() => actions.setCurrentArtifact(null)} className="h-8 w-8">
+            <Button variant="ghost" size="icon" onClick={() => actions.setCurrentArtifact(null)} className="h-8 w-8" data-testid="artifact-close-button">
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -220,14 +222,14 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
 
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
             <div className="flex gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-2 rounded-full border shadow-lg">
-              <Button variant="ghost" size="sm" onClick={handleCopyCode} title="Copy code">
+              <Button variant="ghost" size="sm" onClick={handleCopyCode} title="Copy code" data-testid="artifact-copy-button">
                 <Copy className="h-4 w-4 mr-1" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleDownload} title="Download JSX">
+              <Button variant="ghost" size="sm" onClick={handleDownload} title="Download JSX" data-testid="artifact-download-button">
                 <Download className="h-4 w-4 mr-1" />
               </Button>
               {view === 'preview' && artifactType === ARTIFACT_TYPES.REACT_APP && (
-                <Button variant="ghost" size="sm" onClick={handleDownloadHtml} title="Export HTML">
+                <Button variant="ghost" size="sm" onClick={handleDownloadHtml} title="Export HTML" data-testid="artifact-export-html-button">
                   <Globe className="h-4 w-4 mr-1" />
                 </Button>
               )}
