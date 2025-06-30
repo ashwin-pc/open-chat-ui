@@ -18,6 +18,7 @@ import { useHotkeys } from '@/hooks/use-hotkeys';
 import { ThemeToggle } from './theme-toggle';
 import { ShortcutsDialog } from './shortcuts-dialog';
 import { SettingsDialog } from './settings-dialog';
+import { ProjectInfoDialog } from './project-info';
 import { ThreadGroup } from './thread-group';
 import { categorizeThreads } from '@/lib/utils/thread-utils';
 import { record } from 'aws-amplify/analytics';
@@ -36,7 +37,7 @@ function SidePanelComponent() {
   });
 
   useHotkeys('search', {
-    key: 'cmd+k',
+    key: '/',
     description: 'Search conversations',
     scope: 'Global',
     callback: () => document.getElementById('search-conversations')?.focus(),
@@ -201,8 +202,9 @@ function SidePanelComponent() {
           Back to Legacy UI
         </Button>
 
-        <div className="grid grid-cols-3 gap-4 justify-items-center">
+        <div className="grid grid-cols-4 gap-2 justify-items-center">
           <ShortcutsDialog />
+          <ProjectInfoDialog />
           <ThemeToggle />
           <SettingsDialog />
         </div>

@@ -9,7 +9,7 @@ export function useMessageInput() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useHotkeys('focus-chat-input', {
-    key: 'cmd+k',
+    key: '.',
     description: 'Focus chat input',
     scope: 'Global',
     callback: () => textareaRef.current?.focus(),

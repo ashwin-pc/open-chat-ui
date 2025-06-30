@@ -41,11 +41,37 @@ class HotkeyService {
 
 export const hotkeyService = new HotkeyService();
 
+// Helper function to check if hotkeys should be ignored when typing in input fields
+function shouldIgnoreHotkey(event: KeyboardEvent): boolean {
+  const activeElement = document.activeElement;
+  
+  if (!activeElement) return false;
+  
+  // Check if the active element is an input field
+  const tagName = activeElement.tagName.toLowerCase();
+  const isInputField = tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+  const isContentEditable = activeElement.getAttribute('contenteditable') === 'true';
+  
+  // If not in an input field, don't ignore
+  if (!isInputField && !isContentEditable) return false;
+  
+  // Allow hotkeys with modifier keys to work even in input fields
+  const hasModifier = event.ctrlKey || event.altKey || event.metaKey;
+  
+  // Ignore single-key hotkeys when typing in input fields, but allow modifier combinations
+  return !hasModifier;
+}
+
 export function useHotkeys(id: string, shortcut: Shortcut) {
   useEffect(() => {
     hotkeyService.register(id, shortcut);
 
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Check if we should ignore this hotkey because user is typing in an input field
+      if (shouldIgnoreHotkey(event)) {
+        return;
+      }
+
       const combo = [];
 
       if (event.ctrlKey) combo.push('ctrl');
