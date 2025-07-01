@@ -30,25 +30,32 @@ function ContributorAvatar({ username, commitCount, rank }: ContributorAvatarPro
   };
 
   return (
-    <div className="relative group">
-      <Avatar className="h-12 w-12 border-2 border-border hover:border-primary transition-colors cursor-pointer">
-        <AvatarImage 
-          src={`https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=${username}`} 
-          className="object-cover" 
-          alt={username} 
-        />
-        <AvatarFallback className={`text-white font-bold text-sm ${getFallbackColor(rank)}`}>
-          {initials}
-        </AvatarFallback>
-      </Avatar>
-      
-      {/* Tooltip */}
-      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-popover border rounded shadow-md text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-        <div className="font-medium">{username}</div>
-        <div className="text-muted-foreground">{commitCount.toLocaleString()} commits</div>
+      <div className="relative group">
+        <a
+            href={`https://phonetool.amazon.com/users/${username}`}
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+          <Avatar className="h-12 w-12 border-2 border-border hover:border-primary transition-colors cursor-pointer">
+            <AvatarImage
+                src={`https://internal-cdn.amazon.com/badgephotos.amazon.com/?uid=${username}`}
+                className="object-cover"
+                alt={username}
+            />
+            <AvatarFallback className={`text-white font-bold text-sm ${getFallbackColor(rank)}`}>
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+        </a>
+
+          {/* Tooltip */}
+          <div
+              className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-popover border rounded shadow-md text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+            <div className="font-medium">{username}</div>
+            <div className="text-muted-foreground">{commitCount.toLocaleString()} commits</div>
+          </div>
       </div>
-    </div>
-  );
+);
 }
 
 export function ContributorsSection() {
