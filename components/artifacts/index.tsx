@@ -138,7 +138,15 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
     <ErrorBoundary>
       <div className="flex flex-col h-full relative" data-testid="artifact-panel">
         <div className="flex items-center justify-between p-2 border-b">
-          <div className="font-medium truncate">{title || 'Untitled'}</div>
+          <div className="flex items-center gap-2">
+            <div className="font-medium truncate">{title || 'Untitled'}</div>
+            {artifact.isStreaming && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <div className="animate-spin h-3 w-3 border border-current border-t-transparent rounded-full" />
+                Generating...
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center gap-2">
             {hasPreview && (
@@ -147,9 +155,11 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
                   variant="ghost"
                   size="sm"
                   onClick={() => setView('preview')}
+                  disabled={artifact.isStreaming}
                   className={cn(
                     'h-7 rounded-full text-sm transition-all duration-200',
                     view === 'preview' ? 'bg-muted shadow-sm scale-105' : 'hover:bg-muted/50',
+                    artifact.isStreaming && 'opacity-50 cursor-not-allowed',
                   )}
                   data-testid="artifact-preview-button"
                 >

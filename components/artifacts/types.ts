@@ -33,6 +33,7 @@ export interface Artifact {
   artifactType: ArtifactType | null;
   codeLanguage: string | null;
   content: string;
+  isStreaming?: boolean;
 }
 
 export interface ArtifactsProps {

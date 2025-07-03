@@ -18,6 +18,7 @@ import { generateConversationTitle } from '../../utils/title-generation';
 import { showErrorToast, TokenInfo } from '../lib/error-utils';
 import { NetworkError, APIError } from '../lib/errors';
 import { extractThinking, extractRealAnswer, hasThinkTag } from '../../utils/thinkingUtil';
+import { parseArtifact } from '@/components/artifacts/artifact-parser';
 import { toast } from 'sonner';
 
 interface UseChatApiProps {
@@ -32,7 +33,8 @@ export interface PartialResponse {
 }
 
 export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
-  const { currentSystemPrompt, currentThreadId, creativityLevel, actions, settings, tokenCounts } = useChatContext();
+  const { currentSystemPrompt, currentThreadId, creativityLevel, actions, settings, tokenCounts, currentArtifact } =
+    useChatContext();
   const [isPolling, setIsPolling] = useState(false);
   const [partialResponse, setPartialResponse] = useState<PartialResponse>();
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -79,25 +81,41 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
       const { status, latestResponse } = response;
 
       if (latestResponse !== undefined) {
-        let partialText = latestResponse === '' ? 'Generating...' : latestResponse;
+        // Parse artifacts from response using unified parser
+        const parsed = parseArtifact(latestResponse);
+
+        let displayText = parsed.cleanMessage || (latestResponse === '' ? 'Generating...' : latestResponse);
         let partialThinking = undefined;
 
-        if (hasThinkTag(partialText)) {
-          partialThinking = extractThinking(partialText);
-          partialText = extractRealAnswer(partialText);
+        if (hasThinkTag(displayText)) {
+          partialThinking = extractThinking(displayText);
+          displayText = extractRealAnswer(displayText);
+        }
+
+        // Auto-open artifact panel when first artifact is detected
+        if (parsed.hasStreamingArtifacts && !currentArtifact) {
+          actions.setCurrentArtifact(parsed.artifacts[0]); // Already has isStreaming flag
+        }
+
+        // Update existing streaming artifact with new content
+        if (parsed.artifacts.length > 0 && currentArtifact?.isStreaming) {
+          actions.setCurrentArtifact(parsed.artifacts[0]); // Already has isStreaming flag
         }
 
         setPartialResponse({
           threadId: conversationId,
-          text: partialText,
-          thinking: partialThinking, // Add thinking to partial response
+          text: displayText,
+          thinking: partialThinking,
         });
       }
 
       if (status === 'PENDING') {
         timeoutRef.current = setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 1000);
       } else if (status === 'COMPLETE') {
-        let responseText = latestResponse || '';
+        // Parse final response using unified parser
+        const finalParsed = parseArtifact(latestResponse || '');
+
+        let responseText = finalParsed.cleanMessage || latestResponse || '';
         let thinking = undefined;
 
         // Process thinking tags if present
@@ -107,13 +125,23 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
         }
 
         const botResponse: Message = {
-          text: responseText,
+          text: latestResponse || '', // Use original response for message storage
           sender: Roles.ASSISTANT,
           thinking: thinking,
         };
 
         const updatedMessages = [...currentMessages, botResponse];
         onUpdateMessages(updatedMessages);
+
+        // Finalize streaming artifact by removing isStreaming flag and ensuring final content
+        // Always update if we have a complete artifact, regardless of current state
+        if (finalParsed.artifacts.length > 0) {
+          const finalArtifact = {
+            ...finalParsed.artifacts[0],
+            isStreaming: false,
+          };
+          actions.setCurrentArtifact(finalArtifact);
+        }
 
         // Generate title only after we have the complete assistant response
         // Check if this is the first message in the thread (messageHistory.length was 0)

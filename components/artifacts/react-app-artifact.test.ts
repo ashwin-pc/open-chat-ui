@@ -27,6 +27,7 @@ This creates an interactive todo application.`;
   return <div>Todo App</div>;
 }`,
         codeLanguage: null,
+        isStreaming: false,
       });
       expect(result.cleanMessage).toBe("Here's a React todo app:\n\n\n\nThis creates an interactive todo application.");
     });
