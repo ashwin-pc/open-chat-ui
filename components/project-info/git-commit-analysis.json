@@ -90,10 +90,7 @@
   },
   "summary": {
     "total_repositories": 2,
-    "repositories": [
-      "DiyaChatbotLambda",
-      "DiyaChatbotUI"
-    ],
+    "repositories": ["DiyaChatbotLambda", "DiyaChatbotUI"],
     "total_unique_authors": 36,
     "total_commits": 508
   }

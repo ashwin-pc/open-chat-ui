@@ -26,7 +26,7 @@ export function ChangelogSection() {
 
   // Load changelog data on component mount
   useEffect(() => {
-    loadChangelog().then(data => {
+    loadChangelog().then((data) => {
       setChangelogData(data);
       setChangelogLoading(false);
     });
@@ -39,46 +39,53 @@ export function ChangelogSection() {
         groupedEntries: {},
         visibleGroups: {},
         hasMoreEntries: false,
-        totalEntries: 0
+        totalEntries: 0,
       };
     }
 
     // Map type values to display names
     const getDisplayType = (type: string) => {
       switch (type) {
-        case 'feature': return 'Features';
-        case 'improvement': return 'Improvements';
-        case 'bugfix': return 'Bug Fixes';
-        case 'documentation': return 'Documentation';
-        case 'maintenance': return 'Maintenance';
-        case 'security': return 'Security';
-        default: return type.charAt(0).toUpperCase() + type.slice(1);
+        case 'feature':
+          return 'Features';
+        case 'improvement':
+          return 'Improvements';
+        case 'bugfix':
+          return 'Bug Fixes';
+        case 'documentation':
+          return 'Documentation';
+        case 'maintenance':
+          return 'Maintenance';
+        case 'security':
+          return 'Security';
+        default:
+          return type.charAt(0).toUpperCase() + type.slice(1);
       }
     };
 
     // Format date for display
     const formatDate = (dateString: string) => {
       const date = new Date(dateString);
-      return date.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
       });
     };
 
     // Group entries by date, keeping them sorted by date (newest first)
-    const sortedEntries = [...changelogData.entries].sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
+    const sortedEntries = [...changelogData.entries].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
     );
 
     const groupedEntries: { [key: string]: Array<{ type: string; title: string }> } = {};
     let totalEntries = 0;
 
-    sortedEntries.forEach(dateEntry => {
+    sortedEntries.forEach((dateEntry) => {
       const formattedDate = formatDate(dateEntry.date);
-      groupedEntries[formattedDate] = dateEntry.changes.map(change => ({
+      groupedEntries[formattedDate] = dateEntry.changes.map((change) => ({
         ...change,
-        type: getDisplayType(change.type)
+        type: getDisplayType(change.type),
       }));
       totalEntries += dateEntry.changes.length;
     });
@@ -90,7 +97,7 @@ export function ChangelogSection() {
 
     for (const [date, entries] of Object.entries(groupedEntries)) {
       if (currentCount >= maxEntries) break;
-      
+
       const remainingSlots = maxEntries - currentCount;
       visibleGroups[date] = entries.slice(0, remainingSlots);
       currentCount += visibleGroups[date].length;
@@ -102,7 +109,7 @@ export function ChangelogSection() {
       groupedEntries,
       visibleGroups,
       hasMoreEntries,
-      totalEntries
+      totalEntries,
     };
   }, [changelogData, expandedChangelog]);
 
@@ -110,13 +117,9 @@ export function ChangelogSection() {
     <section>
       <h3 className="text-lg font-semibold mb-4 text-foreground">What&apos;s New</h3>
       {changelogLoading ? (
-        <div className="text-sm text-muted-foreground">
-          Loading changelog...
-        </div>
+        <div className="text-sm text-muted-foreground">Loading changelog...</div>
       ) : Object.keys(processedChangelogData.visibleGroups).length === 0 ? (
-        <div className="text-sm text-muted-foreground">
-          No changelog entries available.
-        </div>
+        <div className="text-sm text-muted-foreground">No changelog entries available.</div>
       ) : (
         <div className="space-y-2">
           {Object.entries(processedChangelogData.visibleGroups).map(([date, entries]) => (
@@ -136,7 +139,7 @@ export function ChangelogSection() {
               </div>
             </div>
           ))}
-          
+
           {processedChangelogData.hasMoreEntries && (
             <Button
               variant="ghost"

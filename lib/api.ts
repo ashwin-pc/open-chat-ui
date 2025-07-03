@@ -116,9 +116,9 @@ export const clearAllConversations = (): void => {
 // Helper function to generate mock responses with artifacts for testing
 function generateMockResponse(message: string): string {
   const lowerMessage = message.toLowerCase();
-  
+
   // Use explicit artifact type detection with specific, non-overlapping keywords
-  
+
   // Python artifacts - specific language keyword
   if (lowerMessage.includes('python')) {
     return `Here's a Python function for you:
@@ -142,7 +142,7 @@ print(find_primes(20))  # Output: [2, 3, 5, 7, 11, 13, 17, 19]
 
 This function finds all prime numbers up to n.`;
   }
-  
+
   // JavaScript artifacts - specific language keywords only
   if (lowerMessage.includes('javascript') || lowerMessage.includes(' js ')) {
     return `I'll create a JavaScript function for you:
@@ -158,7 +158,7 @@ console.log(addNumbers(5, 3)); // Output: 8
 
 This function takes two parameters and returns their sum.`;
   }
-  
+
   // Mermaid artifacts - specific tool name
   if (lowerMessage.includes('mermaid')) {
     return `I'll create a flowchart diagram for you:
@@ -174,7 +174,7 @@ flowchart TD
 
 This flowchart shows a simple decision process with branching logic.`;
   }
-  
+
   // Markdown artifacts - specific format keywords
   if (lowerMessage.includes('markdown') || lowerMessage.includes(' md ')) {
     return `I'll create a markdown guide for you:
@@ -211,7 +211,7 @@ fetch('/api/users')
 
 This guide covers the basics of REST API design and usage.`;
   }
-  
+
   // Animated SVG artifacts - check for animation keywords first
   if (lowerMessage.includes('animated') && lowerMessage.includes('svg')) {
     return `I'll create an animated SVG logo for you:
@@ -241,7 +241,7 @@ This guide covers the basics of REST API design and usage.`;
 
 This animated SVG features rotating elements, color transitions, and pulsing effects.`;
   }
-  
+
   // Static SVG artifacts - specific format keyword
   if (lowerMessage.includes('svg')) {
     return `I'll create an SVG illustration for you:
@@ -266,7 +266,7 @@ This animated SVG features rotating elements, color transitions, and pulsing eff
 
 This SVG shows a simple house with a door, windows, and a red roof.`;
   }
-  
+
   // React artifacts - specific framework keyword
   if (lowerMessage.includes('react')) {
     return `I'll create a React counter app for you:
@@ -305,7 +305,7 @@ function App() {
 
 This React app includes increment, decrement, and reset functionality.`;
   }
-  
+
   // Default response without artifacts
   return `Here is a detailed response that will be streamed word by word. This is simulating how a real LLM would generate text token by token. The response will grow longer with each polling request until it's complete.`;
 }

@@ -30,9 +30,9 @@ export function ReactAppPreview({ content, theme, onError }: ReactAppPreviewProp
     setConsoleOutput([]);
     setIsRunning(true);
 
-    const sandboxHtml = createReactAppHtml(content, theme, { 
-      includeConsoleLogging: true, 
-      includePostMessage: true 
+    const sandboxHtml = createReactAppHtml(content, theme, {
+      includeConsoleLogging: true,
+      includePostMessage: true,
     });
     const blob = new Blob([sandboxHtml], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
@@ -60,7 +60,6 @@ export function ReactAppPreview({ content, theme, onError }: ReactAppPreviewProp
       handleRun();
     }, 100);
   };
-
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {

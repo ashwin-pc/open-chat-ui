@@ -62,15 +62,15 @@ export interface ReactAppHtmlOptions {
 }
 
 export const createReactAppHtml = (
-  jsxCode: string, 
+  jsxCode: string,
   theme: 'light' | 'dark',
-  options: ReactAppHtmlOptions = {}
+  options: ReactAppHtmlOptions = {},
 ): string => {
   const {
     standalone = false,
     title = standalone ? 'React App' : 'React App Preview',
     includeConsoleLogging = !standalone,
-    includePostMessage = !standalone
+    includePostMessage = !standalone,
   } = options;
 
   const safeTitle = standalone ? sanitizeFilename(title) : title;
@@ -111,12 +111,16 @@ export const createReactAppHtml = (
       margin: 20px;
       border: 1px solid #fecaca;
     }
-    ${theme === 'dark' ? `
+    ${
+      theme === 'dark'
+        ? `
       .error-boundary {
         background-color: #1f2937;
         color: #ef4444;
         border-color: #374151;
-      }` : ''}
+      }`
+        : ''
+    }
   </style>
 </head>
 <body>
@@ -140,12 +144,20 @@ export const createReactAppHtml = (
       }
 
       componentDidCatch(error, errorInfo) {
-        ${includeConsoleLogging ? 'console.error(\'React Error:\', error, errorInfo);' : '// Error logging disabled for standalone export'}
-        ${includePostMessage ? `window.parent?.postMessage({ 
+        ${
+          includeConsoleLogging
+            ? "console.error('React Error:', error, errorInfo);"
+            : '// Error logging disabled for standalone export'
+        }
+        ${
+          includePostMessage
+            ? `window.parent?.postMessage({ 
           type: 'error', 
           message: error.toString(),
           stack: error.stack 
-        }, '*');` : '// PostMessage disabled for standalone export'}
+        }, '*');`
+            : '// PostMessage disabled for standalone export'
+        }
       }
 
       render() {
@@ -161,21 +173,29 @@ export const createReactAppHtml = (
       }
     }
 
-    ${includeConsoleLogging ? `
+    ${
+      includeConsoleLogging
+        ? `
     // Console override to capture logs
     const originalConsole = { ...console };
     ['log', 'warn', 'error', 'info'].forEach(method => {
       console[method] = (...args) => {
         originalConsole[method](...args);
-        ${includePostMessage ? `window.parent?.postMessage({ 
+        ${
+          includePostMessage
+            ? `window.parent?.postMessage({ 
           type: 'console', 
           level: method,
           message: args.map(arg => 
             typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
           ).join(' ')
-        }, '*');` : ''}
+        }, '*');`
+            : ''
+        }
       };
-    });` : ''}
+    });`
+        : ''
+    }
 
     // User's React Component
     try {
@@ -217,10 +237,14 @@ export const createReactAppHtml = (
           <p>\${error.message}</p>
         </div>
       \`;
-      ${includePostMessage ? `window.parent?.postMessage({ 
+      ${
+        includePostMessage
+          ? `window.parent?.postMessage({ 
         type: 'error', 
         message: error.message 
-      }, '*');` : ''}
+      }, '*');`
+          : ''
+      }
     }
   </script>
 </body>

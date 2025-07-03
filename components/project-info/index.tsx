@@ -43,7 +43,7 @@ export function ProjectInfoDialog() {
             Learn about recent updates, important links, and the amazing team behind this project
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="space-y-8">
           {/* What's New Section */}
           <ChangelogSection />

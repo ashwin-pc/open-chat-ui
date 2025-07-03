@@ -15,7 +15,12 @@ import { ReactAppPreview } from './react-app-preview';
 import { useTheme } from '@/contexts/theme-context';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { downloadTextFile, getLanguageExtension, sanitizeFilename, createReactAppHtml } from '@/components/artifacts/utils';
+import {
+  downloadTextFile,
+  getLanguageExtension,
+  sanitizeFilename,
+  createReactAppHtml,
+} from '@/components/artifacts/utils';
 import { useChatContext } from '@/contexts/chat-context';
 import { showErrorToast } from '../../lib/error-utils';
 import { FileError } from '../../lib/errors';
@@ -106,12 +111,12 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
   const handleDownloadHtml = () => {
     try {
       // Create standalone HTML for React app
-      const standaloneHtml = createReactAppHtml(currentCode, theme, { 
-        standalone: true, 
-        title: title || 'React App' 
+      const standaloneHtml = createReactAppHtml(currentCode, theme, {
+        standalone: true,
+        title: title || 'React App',
       });
       const safeFilename = sanitizeFilename(title || 'react-app');
-      
+
       // Download as HTML file
       const blob = new Blob([standaloneHtml], { type: 'text/html' });
       const url = URL.createObjectURL(blob);
@@ -122,13 +127,12 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      
+
       toast.success('HTML file exported successfully');
     } catch (error) {
       showErrorToast(new FileError('Failed to export HTML file'), currentThreadId);
     }
   };
-
 
   return (
     <ErrorBoundary>
@@ -167,7 +171,13 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
                 </Button>
               </div>
             )}
-            <Button variant="ghost" size="icon" onClick={() => actions.setCurrentArtifact(null)} className="h-8 w-8" data-testid="artifact-close-button">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => actions.setCurrentArtifact(null)}
+              className="h-8 w-8"
+              data-testid="artifact-close-button"
+            >
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -222,14 +232,32 @@ export function Artifacts({ artifact, onChange }: ArtifactsProps) {
 
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2">
             <div className="flex gap-2 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-4 py-2 rounded-full border shadow-lg">
-              <Button variant="ghost" size="sm" onClick={handleCopyCode} title="Copy code" data-testid="artifact-copy-button">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCopyCode}
+                title="Copy code"
+                data-testid="artifact-copy-button"
+              >
                 <Copy className="h-4 w-4 mr-1" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleDownload} title="Download JSX" data-testid="artifact-download-button">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDownload}
+                title="Download JSX"
+                data-testid="artifact-download-button"
+              >
                 <Download className="h-4 w-4 mr-1" />
               </Button>
               {view === 'preview' && artifactType === ARTIFACT_TYPES.REACT_APP && (
-                <Button variant="ghost" size="sm" onClick={handleDownloadHtml} title="Export HTML" data-testid="artifact-export-html-button">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleDownloadHtml}
+                  title="Export HTML"
+                  data-testid="artifact-export-html-button"
+                >
                   <Globe className="h-4 w-4 mr-1" />
                 </Button>
               )}

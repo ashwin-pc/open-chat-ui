@@ -210,7 +210,7 @@ export const Message = memo(function Message({
                     {/* Display thinking content when toggled */}
                     {showThinking && (
                       <div className="mt-2 p-2 bg-muted/50 rounded text-sm text-muted-foreground">
-                        <MemoizedMarkdown text={message.thinking ? message.thinking : message.partialThinking} />
+                        <MemoizedMarkdown text={message.thinking ? message.thinking : message.partialThinking || ''} />
                       </div>
                     )}
 

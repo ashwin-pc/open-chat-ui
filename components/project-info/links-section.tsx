@@ -5,26 +5,26 @@ import { ProjectLink } from './types';
 // Project links
 const projectLinks: ProjectLink[] = [
   {
-    title: "Slack",
-    description: "Talk to the community and get support",
+    title: 'Slack',
+    description: 'Talk to the community and get support',
     icon: Slack,
-    url: "https://amazon.enterprise.slack.com/archives/C06D7DQH2CQ",
-    external: true
+    url: 'https://amazon.enterprise.slack.com/archives/C06D7DQH2CQ',
+    external: true,
   },
   {
-    title: "Repository",
-    description: "Source code and project files",
+    title: 'Repository',
+    description: 'Source code and project files',
     icon: Code,
-    url: "https://code.amazon.com/packages/DiyaChatbotUI/trees/mainline",
-    external: true
+    url: 'https://code.amazon.com/packages/DiyaChatbotUI/trees/mainline',
+    external: true,
   },
   {
-    title: "Issues & Feature Requests",
-    description: "Submit bugs, issues, and feature requests",
+    title: 'Issues & Feature Requests',
+    description: 'Submit bugs, issues, and feature requests',
     icon: MessageSquare,
-    url: "https://quip-amazon.com/1EYbA28Fau2r/Diya-Backlog", 
-    external: true
-  }
+    url: 'https://quip-amazon.com/1EYbA28Fau2r/Diya-Backlog',
+    external: true,
+  },
 ];
 
 export function LinksSection() {
@@ -38,15 +38,13 @@ export function LinksSection() {
             <a
               key={index}
               href={link.url}
-              target={link.external ? "_blank" : "_self"}
-              rel={link.external ? "noopener noreferrer" : undefined}
+              target={link.external ? '_blank' : '_self'}
+              rel={link.external ? 'noopener noreferrer' : undefined}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted hover:bg-accent text-sm font-medium text-foreground hover:text-accent-foreground transition-colors group"
             >
               <IconComponent className="h-3.5 w-3.5" />
               {link.title}
-              {link.external && (
-                <ExternalLink className="h-3 w-3 opacity-60" />
-              )}
+              {link.external && <ExternalLink className="h-3 w-3 opacity-60" />}
             </a>
           );
         })}

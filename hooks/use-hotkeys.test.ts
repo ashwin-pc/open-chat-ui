@@ -33,7 +33,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       expect(hotkeyService.getShortcuts()).toHaveLength(1);
@@ -54,7 +54,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       expect(hotkeyService.getShortcuts()).toHaveLength(1);
@@ -72,7 +72,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       expect(hotkeyService.getShortcuts()[0].key).toBe('k');
@@ -92,7 +92,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       act(() => {
@@ -113,7 +113,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       act(() => {
@@ -134,7 +134,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       const event = new KeyboardEvent('keydown', {
@@ -157,7 +157,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       const event = new KeyboardEvent('keydown', {
@@ -182,7 +182,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       act(() => {
@@ -204,7 +204,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       act(() => {
@@ -226,7 +226,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       act(() => {
@@ -248,7 +248,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       act(() => {
@@ -270,7 +270,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       act(() => {
@@ -293,7 +293,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       // Press 'k' without cmd
@@ -333,7 +333,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       inputElement.focus();
@@ -356,7 +356,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       textareaElement.focus();
@@ -379,7 +379,7 @@ describe('useHotkeys', () => {
           description: 'Test modifier hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       inputElement.focus();
@@ -403,13 +403,13 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       const contentEditableDiv = document.createElement('div');
       contentEditableDiv.setAttribute('contenteditable', 'true');
       document.body.appendChild(contentEditableDiv);
-      
+
       // Make the div focusable
       contentEditableDiv.tabIndex = -1;
       contentEditableDiv.focus();
@@ -434,7 +434,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       // Focus body to ensure no input is focused
@@ -460,7 +460,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       // Should trigger with lowercase
@@ -482,7 +482,7 @@ describe('useHotkeys', () => {
           description: 'Test hotkey',
           scope: 'Global',
           callback: mockCallback,
-        })
+        }),
       );
 
       act(() => {
@@ -563,13 +563,13 @@ describe('useHotkeyList', () => {
 
   it('should return registered shortcuts', () => {
     const mockCallback = jest.fn();
-    
+
     // Setup the list hook first to listen for changes
     const { result } = renderHook(() => useHotkeyList());
-    
+
     // Verify initially empty
     expect(result.current).toHaveLength(0);
-    
+
     // Register a hotkey and it should be reflected in the list
     renderHook(() =>
       useHotkeys('test-hotkey', {
@@ -577,7 +577,7 @@ describe('useHotkeyList', () => {
         description: 'Test hotkey',
         scope: 'Global',
         callback: mockCallback,
-      })
+      }),
     );
 
     // Now the list should have the registered shortcut
@@ -603,7 +603,7 @@ describe('useHotkeyList', () => {
         description: 'Test hotkey',
         scope: 'Global',
         callback: mockCallback,
-      })
+      }),
     );
 
     expect(result.current).toHaveLength(1);
@@ -646,7 +646,7 @@ describe('HotkeyService', () => {
   it('should notify listeners when shortcuts change', () => {
     const listener = jest.fn();
     const mockCallback = jest.fn();
-    
+
     hotkeyService.subscribe(listener);
 
     const shortcut = {
@@ -687,7 +687,7 @@ describe('HotkeyService', () => {
   it('should allow unsubscribing listeners', () => {
     const listener = jest.fn();
     const mockCallback = jest.fn();
-    
+
     const unsubscribe = hotkeyService.subscribe(listener);
     unsubscribe();
 
