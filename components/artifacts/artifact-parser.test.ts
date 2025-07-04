@@ -270,5 +270,36 @@ console.log("minimal");
     test('should handle empty string', () => {
       expect(cleanStreamingTextAsMessage('')).toBe('');
     });
+
+    // Tests for legacy <think> tag support (regression prevention)
+    test('should remove complete legacy think tags and their content', () => {
+      const input = 'Hello <think>some thinking</think> world';
+      expect(cleanStreamingTextAsMessage(input)).toBe('Hello  world');
+    });
+
+    test('should remove everything after incomplete legacy think tag (streaming case)', () => {
+      const input = 'Hello <think>streaming thinking response';
+      expect(cleanStreamingTextAsMessage(input)).toBe('Hello ');
+    });
+
+    test('should handle mixed legacy think and antThinking tags', () => {
+      const input = 'Hello <think>legacy</think> More <antThinking>modern</antThinking> text';
+      expect(cleanStreamingTextAsMessage(input)).toBe('Hello  More  text');
+    });
+
+    test('should handle multiple legacy think tags', () => {
+      const input = 'Start <think>first</think> Middle <think>second</think> End';
+      expect(cleanStreamingTextAsMessage(input)).toBe('Start  Middle  End');
+    });
+
+    test('should handle nested-like content within think tags', () => {
+      const input = 'Text <think>I need to think about <antArtifact>nested content</antArtifact></think> more';
+      expect(cleanStreamingTextAsMessage(input)).toBe('Text  more');
+    });
+
+    test('should handle mixed complete and incomplete think tags', () => {
+      const input = 'Hello <think>complete</think> More <think>streaming';
+      expect(cleanStreamingTextAsMessage(input)).toBe('Hello  More ');
+    });
   });
 });

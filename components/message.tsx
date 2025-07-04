@@ -206,10 +206,10 @@ export const Message = memo(function Message({
                   dark:prose-invert`}
               >
                 {(message.thinking || message.partialThinking) && !isHuman && (
-                  <div className="mt-2 pt-2 border-t border-border/30">
+                  <div className="border-t border-border/30">
                     {/* Display thinking content when toggled */}
                     {showThinking && (
-                      <div className="mt-2 p-2 bg-muted/50 rounded text-sm text-muted-foreground">
+                      <div className="p-2 bg-muted/50 rounded text-sm text-muted-foreground">
                         <MemoizedMarkdown text={message.thinking ? message.thinking : message.partialThinking || ''} />
                       </div>
                     )}

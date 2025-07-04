@@ -125,7 +125,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
         }
 
         const botResponse: Message = {
-          text: latestResponse || '', // Use original response for message storage
+          text: responseText, // Use cleaned response text without thinking tags
           sender: Roles.ASSISTANT,
           thinking: thinking,
         };

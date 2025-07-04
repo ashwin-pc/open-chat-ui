@@ -80,11 +80,11 @@ export function parseArtifact(response: string): ParsedResponse {
 }
 
 export const cleanStreamingTextAsMessage = (text: string): string => {
-  // First remove any complete tag pairs
-  let cleanedText = text.replace(/<(antArtifact|antThinking)[\s\S]*?<\/\1>/g, '');
+  // First remove any complete tag pairs (including legacy think tags)
+  let cleanedText = text.replace(/<(antArtifact|antThinking|think)[\s\S]*?<\/\1>/g, '');
 
   // Then handle any remaining opening tags by removing everything after them. This is for streaming response
-  cleanedText = cleanedText.replace(/<(antArtifact|antThinking)[\s\S]*$/, '');
+  cleanedText = cleanedText.replace(/<(antArtifact|antThinking|think)[\s\S]*$/, '');
 
   return cleanedText;
 };
