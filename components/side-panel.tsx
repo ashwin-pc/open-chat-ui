@@ -188,7 +188,10 @@ function SidePanelComponent() {
       </SidebarContent>
 
       <SidebarFooter>
-        <Button className="w-full" variant="outline" onClick={() => actions.createThread()}>
+        <Button className="w-full" variant="outline" onClick={() => {
+          actions.setCurrentArtifact(null);
+          actions.createThread();
+        }}>
           {settings.isIncognitoMode ? (
             <MessageCircleDashed className="h-4 w-4 mr-2" />
           ) : (

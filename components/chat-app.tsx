@@ -322,7 +322,10 @@ export function ChatApp({ apiClient, prompts }: ChatAppProps) {
                         <BranchSelector
                           currentBranchId={currentThread.currentBranchId}
                           branches={currentThread.branches}
-                          onBranchChange={(branchId) => actions.switchBranch(currentThreadId, branchId)}
+                          onBranchChange={(branchId) => {
+                            actions.setCurrentArtifact(null);
+                            actions.switchBranch(currentThreadId, branchId);
+                          }}
                         />
                       </div>
                     </header>

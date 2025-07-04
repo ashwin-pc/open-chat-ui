@@ -168,6 +168,7 @@ export function ChatProvider({
     description: 'Create new thread',
     scope: 'Global',
     callback: () => {
+      setCurrentArtifact(null);
       threadActions.createThread();
     },
   });
@@ -179,6 +180,7 @@ export function ChatProvider({
     callback: () => {
       const currentIndex = threadSummaries.findIndex((t) => t.id === currentThreadId);
       const nextIndex = (currentIndex + 1) % threadSummaries.length;
+      setCurrentArtifact(null);
       actions.switchThread(threadSummaries[nextIndex].id);
     },
   });
@@ -190,6 +192,7 @@ export function ChatProvider({
     callback: () => {
       const currentIndex = threadSummaries.findIndex((t) => t.id === currentThreadId);
       const prevIndex = (currentIndex - 1 + threadSummaries.length) % threadSummaries.length;
+      setCurrentArtifact(null);
       actions.switchThread(threadSummaries[prevIndex].id);
     },
   });
