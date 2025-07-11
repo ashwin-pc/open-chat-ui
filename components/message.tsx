@@ -9,7 +9,7 @@ import remarkBreaks from 'remark-breaks';
 import { Attachment, Roles } from '@/lib/types';
 import { CodeBlock } from './code-block';
 import { ArtifactButton } from '@/components/artifact-button';
-import { cleanStreamingTextAsMessage, parseArtifact } from '@/components/artifacts/artifact-parser';
+import { cleanStreamingTextAsMessage } from '@/components/artifacts/artifact-parser';
 import { Artifact } from '@/components/artifacts/types';
 import { useSidebar } from '@/components/ui/sidebar';
 import { useChatContext } from '@/contexts/chat-context';
@@ -50,6 +50,7 @@ interface MessageProps {
     thinking?: string;
     partialThinking?: string;
     attachments?: Attachment[];
+    artifacts?: Artifact[];
   };
   index: number;
   editingMessageId: number | null;
@@ -141,7 +142,7 @@ export const Message = memo(function Message({
   };
 
   const displayText = cleanStreamingTextAsMessage(message.text);
-  const parsedArtifact = parseArtifact(message.text);
+  const messageArtifacts = message.artifacts || [];
   const isAfterEditPoint = editingMessageId !== null && index > editingMessageId;
   const isHuman = message.sender === Roles.HUMAN;
 
@@ -296,9 +297,9 @@ export const Message = memo(function Message({
           </>
         )}
       </ContextMenuContent>
-      {parsedArtifact.artifacts.length > 0 && (
+      {messageArtifacts.length > 0 && (
         <div className="flex flex-wrap gap-2 mt-2">
-          {parsedArtifact.artifacts.map((artifact, idx) => (
+          {messageArtifacts.map((artifact: Artifact, idx: number) => (
             <ArtifactButton key={idx} artifact={artifact} onShowArtifact={handleShowArtifact} />
           ))}
         </div>

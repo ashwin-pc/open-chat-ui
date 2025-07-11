@@ -32,6 +32,7 @@ export type Message = {
   sender: Roles;
   thinking?: string;
   attachments?: Attachment[]; // Use Attachment interface
+  artifacts?: import('@/components/artifacts/types').Artifact[];
 };
 
 export type Branch = {

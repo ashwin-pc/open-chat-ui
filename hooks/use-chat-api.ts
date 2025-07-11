@@ -84,7 +84,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
         // Parse artifacts from response using unified parser
         const parsed = parseArtifact(latestResponse);
 
-        let displayText = parsed.cleanMessage || (latestResponse === '' ? 'Generating...' : latestResponse);
+        let displayText = parsed.cleanMessage || (latestResponse === '' ? '✨ Generating...' : latestResponse);
         let partialThinking = undefined;
 
         if (hasThinkTag(displayText)) {
@@ -128,6 +128,7 @@ export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
           text: responseText, // Use cleaned response text without thinking tags
           sender: Roles.ASSISTANT,
           thinking: thinking,
+          artifacts: finalParsed.artifacts.length > 0 ? finalParsed.artifacts : undefined,
         };
 
         const updatedMessages = [...currentMessages, botResponse];
