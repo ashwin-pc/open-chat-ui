@@ -60,10 +60,13 @@ function ThreadGroupComponent({ title, threads, currentThreadId, actions, handle
       <SidebarMenu>
         {threads.map((thread) => (
           <SidebarMenuItem key={thread.id}>
-            <SidebarMenuButton isActive={currentThreadId === thread.id} onClick={() => {
-              actions.setCurrentArtifact(null);
-              actions.switchThread(thread.id);
-            }}>
+            <SidebarMenuButton
+              isActive={currentThreadId === thread.id}
+              onClick={() => {
+                actions.setCurrentArtifact(null);
+                actions.switchThread(thread.id);
+              }}
+            >
               {thread.isIncognitoThread ? <MessageCircleDashed /> : ''}
               <span>{thread.name}</span>
             </SidebarMenuButton>
