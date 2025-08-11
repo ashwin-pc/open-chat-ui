@@ -3,3 +3,5 @@ export { ChatApp } from './components/chat-app';
 export type { ChatApiInterface, Message, ChatThread, Branch } from './lib/types';
 export { ChatProvider } from './contexts/chat-context';
 export { ThemeProvider } from './contexts/theme-context';
+export { NoopAnalyticsProvider } from './lib/analytics';
+export type { AnalyticsEvent, AnalyticsProvider } from './lib/analytics';

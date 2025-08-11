@@ -4,7 +4,8 @@ import { useHotkeys } from '@/hooks/use-hotkeys';
 import { useLocalStorage } from 'usehooks-ts';
 import { UseThreadData, useThreadStorage } from '@/hooks/use-thread-storage';
 import { Artifact } from '@/components/artifacts/types';
-import { record } from 'aws-amplify/analytics';
+import { AnalyticsProvider } from '@/lib/analytics/types';
+import { NoopAnalyticsProvider } from '@/lib/analytics/providers/noop-provider';
 import { getTokenCount, formatAttachmentMessage } from '@/lib/utils/file';
 
 type Settings = {
@@ -27,6 +28,7 @@ export interface ChatContextType extends Omit<UseThreadData, 'actions'> {
   creativityLevel: CreativityLevel;
   currentArtifact: Artifact | null;
   tokenCounts: TokenCounts;
+  analyticsProvider: AnalyticsProvider;
   actions: UseThreadData['actions'] & {
     updateSettings: (newSettings: Partial<Settings>) => void;
     setCurrentArtifact: (artifact: Artifact | null) => void;
@@ -41,10 +43,12 @@ export function ChatProvider({
   children,
   prompts,
   threadId,
+  analyticsProvider,
 }: {
   children: ReactNode;
   prompts?: SystemPrompt[];
   threadId?: string | null;
+  analyticsProvider?: AnalyticsProvider;
 }) {
   const [settings, setSettings] = useLocalStorage<Settings>('settings', {
     cmdToSend: false,
@@ -84,6 +88,9 @@ export function ChatProvider({
   } = useThreadStorage({ prompts, isIncognito: settings.isIncognitoMode, threadId });
 
   const [creativityLevel, setCreativityLevel] = useState<CreativityLevel>(CreativityLevel.PRECISE);
+
+  // Use provided analytics provider or default to no-op
+  const analytics = useMemo(() => analyticsProvider || new NoopAnalyticsProvider(), [analyticsProvider]);
 
   // Define updateSettings with useCallback to ensure stable reference
   const updateSettings = useCallback(
@@ -158,10 +165,19 @@ export function ChatProvider({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.isIncognitoMode]);
 
-  // Record page load event
+  // Initialize analytics and record page load event
   useEffect(() => {
-    record({ name: 'WebPageLoad', attributes: { page: 'New UI' } });
-  }, []);
+    const initializeAnalytics = async () => {
+      try {
+        await analytics.initialize();
+        analytics.track({ name: 'WebPageLoad', attributes: { page: 'New UI' } });
+      } catch (error) {
+        console.warn('Failed to initialize analytics:', error);
+      }
+    };
+    
+    initializeAnalytics();
+  }, [analytics]);
 
   useHotkeys('new-thread', {
     key: 'ctrl+n',
@@ -223,6 +239,7 @@ export function ChatProvider({
         setCreativityLevel,
         currentArtifact,
         tokenCounts,
+        analyticsProvider: analytics,
       }}
     >
       {children}

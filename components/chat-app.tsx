@@ -11,6 +11,7 @@ import { ChatInput } from './chat-input';
 import { MessageList } from './message-list';
 import { useHotkeys } from '@/hooks/use-hotkeys';
 import { BedrockModelNames, ChatApiInterface, Roles, SystemPrompt, ThreadSummary } from '@/lib/types';
+import { AnalyticsProvider } from '@/lib/analytics/types';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from './ui/sidebar';
 import { ThemeProvider } from '@/contexts/theme-context';
 import { Toaster } from './ui/sonner';
@@ -35,9 +36,10 @@ import { FileError } from '../lib/errors';
 interface ChatAppProps {
   apiClient: ChatApiInterface;
   prompts?: SystemPrompt[];
+  analyticsProvider?: AnalyticsProvider;
 }
 
-export function ChatApp({ apiClient, prompts }: ChatAppProps) {
+export function ChatApp({ apiClient, prompts, analyticsProvider }: ChatAppProps) {
   const { settings, actions, threadSummaries, currentBranch, currentThread, currentThreadId, currentArtifact } =
     useChatContext();
   const [loaded, setLoaded] = useState(false);

@@ -21,11 +21,10 @@ import { SettingsDialog } from './settings-dialog';
 import { ProjectInfoDialog } from './project-info';
 import { ThreadGroup } from './thread-group';
 import { categorizeThreads } from '@/lib/utils/thread-utils';
-import { record } from 'aws-amplify/analytics';
 import { ThreadSummary } from '@/lib/types';
 
 function SidePanelComponent() {
-  const { threadSummaries, currentThreadId, actions, settings } = useChatContext();
+  const { threadSummaries, currentThreadId, actions, settings, analyticsProvider } = useChatContext();
   const { toggleSidebar } = useSidebar();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -51,7 +50,7 @@ function SidePanelComponent() {
   };
 
   const goToLegacyUI = () => {
-    record({ name: 'ClickedLegacyUI' });
+    analyticsProvider.track({ name: 'ClickedLegacyUI' });
     window.location.href = window.location.origin;
   };
 
@@ -123,7 +122,7 @@ function SidePanelComponent() {
                   const newQuery = e.target.value;
                   setSearchQuery(newQuery);
                   if (newQuery && !searchQuery) {
-                    record({ name: 'SearchUsed' });
+                    analyticsProvider.track({ name: 'SearchUsed' });
                   }
                 }}
                 className="pl-8 w-full"
