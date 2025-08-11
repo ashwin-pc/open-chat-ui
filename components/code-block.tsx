@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { dracula, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import { coy, dracula } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Copy } from 'lucide-react';
 import { useTheme } from '@/contexts/theme-context';
 
@@ -18,11 +18,15 @@ export const CodeBlock = ({ language, value }: CodeBlockProps) => {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-  const style = theme === 'dark' ? dracula : vs;
+  const style = theme === 'dark' ? dracula : coy;
 
   return (
     <div className="relative">
-      <SyntaxHighlighter language={language} style={style}>
+      <SyntaxHighlighter
+        language={language}
+        style={style}
+        codeTagProps={{ style: { wordBreak: 'break-all', whiteSpace: 'pre-wrap' } }}
+      >
         {value}
       </SyntaxHighlighter>
       <button onClick={handleCopy} className="absolute top-2 right-2 text-foreground p-0 rounded">

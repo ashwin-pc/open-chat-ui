@@ -1,8 +1,9 @@
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Message as MessageType } from '@/lib/types';
+import { Message as MessageType, Roles } from '@/lib/types';
 import React, { Suspense, useEffect, useRef } from 'react';
 import { PartialResponse } from '@/hooks/use-chat-api';
 import { BotAvatar, Message } from './message';
+import { CreativitySelector } from './creativity-selector';
 
 // Lazy load the EmptyAnimation component
 const EmptyAnimation = React.lazy(() => import('./empty-animation'));
@@ -26,9 +27,10 @@ interface MessageListProps {
 function Welcome() {
   return (
     <div className="flex flex-col items-center justify-center h-full space-y-4 text-center animate-fade-in">
-      <Suspense fallback={<LoadingFallback />}>
+      {/* TODO: Commenting out for now. If no pushback, will remove this since the empty screen is now pretty busy */}
+      {/* <Suspense fallback={<LoadingFallback />}>
         <EmptyAnimation />
-      </Suspense>
+      </Suspense> */}
       <h2 className="text-2xl font-semibold tracking-tight">Hi there!</h2>
       <p className="text-muted-foreground max-w-sm">
         Start a conversation by typing a message below. Press{' '}
@@ -38,6 +40,9 @@ function Welcome() {
         <kbd className="px-2 py-0.5 bg-muted rounded text-xs font-mono">⌘/</kbd> or{' '}
         <kbd className="px-2 py-0.5 bg-muted rounded text-xs font-mono">Ctrl+/</kbd> to view all shortcuts.
       </p>
+      <div className="w-full max-w-2xl mt-8">
+        <CreativitySelector />
+      </div>
     </div>
   );
 }
@@ -103,44 +108,23 @@ export function MessageList({
 
       {/* Only show partial response if this is the current thread */}
       {partialResponse?.threadId === threadId && (
-        <div className="flex justify-start mb-4 relative group">
-          <div className="flex items-start space-x-2">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback>
-                <BotAvatar />
-              </AvatarFallback>
-            </Avatar>
-            <div className="bg-trasnparent rounded-lg p-3">
-              <p className="whitespace-pre-wrap break-words">{partialResponse.text}</p>
-              <div className="h-4 w-4 absolute bottom-2 right-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <Message
+          message={{
+            text: partialResponse.text,
+            sender: Roles.ASSISTANT,
+            attachments: [],
+            thinking: partialResponse.thinking,
+          }}
+          index={messages.length}
+          editingMessageId={null}
+          onRestart={onRestart}
+          onEdit={onEdit}
+          onBranch={onBranch}
+          isPartial={true}
+        />
       )}
 
-      {/* Only show loading indicator if this is the current thread */}
-      {partialResponse?.threadId === threadId && isPolling && partialResponse.text === '' && (
-        <div className="flex justify-start mb-4">
-          <div className="flex items-center space-x-2">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback>
-                <BotAvatar />
-              </AvatarFallback>
-            </Avatar>
-            <div className="bg-muted rounded-lg p-3">
-              <div className="flex space-x-2">
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div ref={messagesEndRef} />
+      <div ref={messagesEndRef} data-testid="messages-end-ref" />
     </>
   );
 }

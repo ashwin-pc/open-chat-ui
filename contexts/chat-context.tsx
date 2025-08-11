@@ -1,61 +1,191 @@
-// contexts/ChatContext.tsx
-import { createContext, useContext, useMemo, ReactNode } from 'react';
-import { v4 as uuidv4 } from 'uuid';
-import { Message, ChatThread, Branch, BedrockModelNames } from '../lib/types';
-import { useHotkeys } from '../hooks/use-hotkeys';
+import { createContext, useContext, useMemo, ReactNode, useState, useEffect, useCallback, useRef } from 'react';
+import { SystemPrompt, CreativityLevel, Message, Attachment, Roles } from '@/lib/types';
+import { useHotkeys } from '@/hooks/use-hotkeys';
 import { useLocalStorage } from 'usehooks-ts';
+import { UseThreadData, useThreadStorage } from '@/hooks/use-thread-storage';
+import { Artifact } from '@/components/artifacts/types';
+import { AnalyticsProvider } from '@/lib/analytics/types';
+import { NoopAnalyticsProvider } from '@/lib/analytics/providers/noop-provider';
+import { getTokenCount, formatAttachmentMessage } from '@/lib/utils/file';
 
-export interface ChatContextType {
-  chatThreads: ChatThread[];
-  currentThreadId: string;
-  currentThread: ChatThread;
-  currentBranch: Branch;
-  actions: {
-    createThread: () => void;
-    deleteThread: (threadId: string) => void;
-    updateThread: (threadId: string, updates: Partial<ChatThread>) => void;
-    createBranch: (threadId: string, messages: Message[], attachments: File[]) => void;
-    updateBranch: (threadId: string, branchId: number, updates: Partial<Branch>) => void;
-    switchBranch: (threadId: string, branchId: number) => void;
-    switchThread: (threadId: string) => void;
-    addAttachments: (threadId: string, branchId: number, files: File[]) => void;
-    removeAttachment: (threadId: string, branchId: number, fileName: string) => void;
-    updateBranchModel: (threadId: string, branchId: number, model: BedrockModelNames) => void;
+type Settings = {
+  cmdToSend: boolean;
+  isIncognitoMode: boolean;
+  largeTextPasteDetection: boolean;
+  enableMaxChatWidth: boolean;
+  useArtifacts: boolean;
+  showTokenCounter: boolean;
+};
+
+type TokenCounts = {
+  conversationTokens: number;
+  currentInputTokens: number;
+  totalTokens: number;
+};
+
+export interface ChatContextType extends Omit<UseThreadData, 'actions'> {
+  settings: Settings;
+  creativityLevel: CreativityLevel;
+  currentArtifact: Artifact | null;
+  tokenCounts: TokenCounts;
+  analyticsProvider: AnalyticsProvider;
+  actions: UseThreadData['actions'] & {
+    updateSettings: (newSettings: Partial<Settings>) => void;
+    setCurrentArtifact: (artifact: Artifact | null) => void;
+    calculateTokens: (currentInput?: string, currentAttachments?: Attachment[]) => TokenCounts;
   };
+  setCreativityLevel: (level: CreativityLevel) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
-export function ChatProvider({ children }: { children: ReactNode }) {
-  const initialThread = {
-    id: uuidv4(),
-    name: 'New Chat',
-    branches: [
-      {
-        id: 1,
-        name: 'Main',
-        messages: [],
-        attachments: [],
-        createdAt: new Date(),
-        description: 'Initial conversation branch',
-      },
-    ],
-    currentBranchId: 1,
-  };
+export function ChatProvider({
+  children,
+  prompts,
+  threadId,
+  analyticsProvider,
+}: {
+  children: ReactNode;
+  prompts?: SystemPrompt[];
+  threadId?: string | null;
+  analyticsProvider?: AnalyticsProvider;
+}) {
+  const [settings, setSettings] = useLocalStorage<Settings>('settings', {
+    cmdToSend: false,
+    isIncognitoMode: false,
+    largeTextPasteDetection: false,
+    enableMaxChatWidth: true,
+    useArtifacts: false,
+    showTokenCounter: false,
+  });
 
-  const [chatThreads, setChatThreads] = useLocalStorage<ChatThread[]>('chatThreads', [initialThread], {
-    initializeWithValue: false,
+  // Right panel artifact
+  const [currentArtifact, setCurrentArtifact] = useState<Artifact | null>(null);
+
+  // Token counting state
+  const [tokenCounts, setTokenCounts] = useState<TokenCounts>({
+    conversationTokens: 0,
+    currentInputTokens: 0,
+    totalTokens: 0,
   });
-  const [currentThreadId, setCurrentThreadId] = useLocalStorage<string>('currentThreadId', initialThread.id, {
-    initializeWithValue: false,
-  });
+
+  // Cache for conversation tokens to avoid recalculating
+  const conversationTokenCacheRef = useRef<{
+    branchId: number | undefined;
+    messageCount: number;
+    tokens: number;
+  }>({ branchId: undefined, messageCount: 0, tokens: 0 });
+
+  const {
+    threadSummaries,
+    currentThreadId,
+    currentThread,
+    currentBranch,
+    systemPrompts,
+    defaultSystemPromptId,
+    currentSystemPrompt,
+    actions: threadActions,
+  } = useThreadStorage({ prompts, isIncognito: settings.isIncognitoMode, threadId });
+
+  const [creativityLevel, setCreativityLevel] = useState<CreativityLevel>(CreativityLevel.PRECISE);
+
+  // Use provided analytics provider or default to no-op
+  const analytics = useMemo(() => analyticsProvider || new NoopAnalyticsProvider(), [analyticsProvider]);
+
+  // Define updateSettings with useCallback to ensure stable reference
+  const updateSettings = useCallback(
+    (newSettings: Partial<Settings>) => {
+      setSettings((prev) => ({ ...prev, ...newSettings }));
+    },
+    [setSettings],
+  );
+
+  // Token calculation function with caching
+  const calculateTokens = useCallback(
+    (currentInput = '', currentAttachments: Attachment[] = []): TokenCounts => {
+      // Calculate tokens from all conversation messages with caching
+      let conversationTokens = 0;
+      const currentBranchId = currentBranch?.id;
+      const messageCount = currentBranch?.messages?.length || 0;
+
+      // Check if we can use cached conversation tokens
+      if (
+        conversationTokenCacheRef.current.branchId === currentBranchId &&
+        conversationTokenCacheRef.current.messageCount === messageCount &&
+        messageCount > 0
+      ) {
+        conversationTokens = conversationTokenCacheRef.current.tokens;
+      } else {
+        // Recalculate and cache conversation tokens
+        if (currentBranch?.messages) {
+          conversationTokens = currentBranch.messages.reduce((total, message) => {
+            const messageContent = formatAttachmentMessage(message);
+            return total + getTokenCount(messageContent);
+          }, 0);
+        }
+
+        // Update cache
+        conversationTokenCacheRef.current = {
+          branchId: currentBranchId,
+          messageCount,
+          tokens: conversationTokens,
+        };
+      }
+
+      // Calculate tokens from current input and attachments
+      const currentInputContent =
+        currentAttachments.length > 0
+          ? formatAttachmentMessage({ text: currentInput, sender: Roles.HUMAN, attachments: currentAttachments })
+          : currentInput;
+      const currentInputTokens = getTokenCount(currentInputContent);
+
+      const totalTokens = conversationTokens + currentInputTokens;
+
+      const newTokenCounts = {
+        conversationTokens,
+        currentInputTokens,
+        totalTokens,
+      };
+
+      setTokenCounts(newTokenCounts);
+      return newTokenCounts;
+    },
+    [currentBranch?.messages, currentBranch?.id],
+  );
+
+  // Side effect to react to incognito mode changes
+  useEffect(() => {
+    if (!settings.isIncognitoMode) {
+      // When turning off incognito, delete all incognito threads
+      threadSummaries
+        .filter((summary) => summary.isIncognitoThread)
+        .forEach((thread) => threadActions.deleteThread(thread.id));
+    }
+    // We only want to run this effect when isIncognitoMode changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.isIncognitoMode]);
+
+  // Initialize analytics and record page load event
+  useEffect(() => {
+    const initializeAnalytics = async () => {
+      try {
+        await analytics.initialize();
+        analytics.track({ name: 'WebPageLoad', attributes: { page: 'New UI' } });
+      } catch (error) {
+        console.warn('Failed to initialize analytics:', error);
+      }
+    };
+    
+    initializeAnalytics();
+  }, [analytics]);
 
   useHotkeys('new-thread', {
-    key: '/',
+    key: 'ctrl+n',
     description: 'Create new thread',
     scope: 'Global',
     callback: () => {
-      actions.createThread();
+      setCurrentArtifact(null);
+      threadActions.createThread();
     },
   });
 
@@ -64,9 +194,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     description: 'Next thread',
     scope: 'Global',
     callback: () => {
-      const currentIndex = chatThreads.findIndex((t) => t.id === currentThreadId);
-      const nextIndex = (currentIndex + 1) % chatThreads.length;
-      setCurrentThreadId(chatThreads[nextIndex].id);
+      const currentIndex = threadSummaries.findIndex((t) => t.id === currentThreadId);
+      const nextIndex = (currentIndex + 1) % threadSummaries.length;
+      setCurrentArtifact(null);
+      actions.switchThread(threadSummaries[nextIndex].id);
     },
   });
 
@@ -75,175 +206,40 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     description: 'Previous thread',
     scope: 'Global',
     callback: () => {
-      const currentIndex = chatThreads.findIndex((t) => t.id === currentThreadId);
-      const prevIndex = (currentIndex - 1 + chatThreads.length) % chatThreads.length;
-      setCurrentThreadId(chatThreads[prevIndex].id);
+      const currentIndex = threadSummaries.findIndex((t) => t.id === currentThreadId);
+      const prevIndex = (currentIndex - 1 + threadSummaries.length) % threadSummaries.length;
+      setCurrentArtifact(null);
+      actions.switchThread(threadSummaries[prevIndex].id);
     },
   });
 
-  const currentThread = chatThreads.find((t) => t.id === currentThreadId) || chatThreads[0];
-  const currentBranch =
-    currentThread.branches.find((b) => b.id === currentThread.currentBranchId) || currentThread.branches[0];
-
   const actions = useMemo(
     () => ({
-      // Update the createThread action in chat-context.tsx
-      createThread: () => {
-        // Find first empty thread (thread with no messages in its first branch)
-        const emptyThread = chatThreads.find((thread) => thread.branches[0]?.messages.length === 0);
-
-        if (emptyThread) {
-          // Switch to existing empty thread
-          setCurrentThreadId(emptyThread.id);
-        } else {
-          // Create new thread only if no empty thread exists
-          const newThread = {
-            id: uuidv4(),
-            name: 'New Chat',
-            branches: [
-              {
-                id: 1,
-                name: 'Main',
-                messages: [],
-                attachments: [],
-                createdAt: new Date(),
-                description: 'Initial conversation branch',
-              },
-            ],
-            currentBranchId: 1,
-          };
-          setChatThreads((prev) => [...prev, newThread]);
-          setCurrentThreadId(newThread.id);
-        }
-      },
-
-      deleteThread: (threadId: string) => {
-        if (chatThreads.length > 1) {
-          const newThreads = chatThreads.filter((t) => t.id !== threadId);
-          setChatThreads(newThreads);
-          if (currentThreadId === threadId) {
-            setCurrentThreadId(newThreads[0].id);
-          }
-        }
-      },
-
-      updateThread: (threadId: string, updates: Partial<ChatThread>) => {
-        setChatThreads((threads) =>
-          threads.map((thread) => (thread.id === threadId ? { ...thread, ...updates } : thread)),
-        );
-      },
-
-      createBranch: (threadId: string, messages: Message[], attachments: File[]) => {
-        const thread = chatThreads.find((t) => t.id === threadId);
-        if (!thread) return;
-
-        const newBranchId = Math.max(...thread.branches.map((b) => b.id)) + 1;
-        const newBranch: Branch = {
-          id: newBranchId,
-          name: `Branch ${newBranchId}`,
-          messages,
-          attachments,
-          createdAt: new Date(),
-          description: `Branched from message: "${messages[messages.length - 1]?.text.slice(0, 50)}..."`,
-        };
-
-        setChatThreads((threads) =>
-          threads.map((t) =>
-            t.id === threadId
-              ? {
-                  ...t,
-                  branches: [...t.branches, newBranch],
-                  currentBranchId: newBranchId,
-                }
-              : t,
-          ),
-        );
-      },
-
-      updateBranch: (threadId: string, branchId: number, updates: Partial<Branch>) => {
-        setChatThreads((threads) =>
-          threads.map((thread) =>
-            thread.id === threadId
-              ? {
-                  ...thread,
-                  branches: thread.branches.map((branch) =>
-                    branch.id === branchId ? { ...branch, ...updates } : branch,
-                  ),
-                }
-              : thread,
-          ),
-        );
-      },
-
-      switchBranch: (threadId: string, branchId: number) => {
-        setChatThreads((threads) =>
-          threads.map((thread) => (thread.id === threadId ? { ...thread, currentBranchId: branchId } : thread)),
-        );
-      },
-
-      switchThread: (threadId: string) => {
-        setCurrentThreadId(threadId);
-      },
-
-      addAttachments: (threadId: string, branchId: number, files: File[]) => {
-        setChatThreads((threads) =>
-          threads.map((thread) =>
-            thread.id === threadId
-              ? {
-                  ...thread,
-                  branches: thread.branches.map((branch) =>
-                    branch.id === branchId ? { ...branch, attachments: [...branch.attachments, ...files] } : branch,
-                  ),
-                }
-              : thread,
-          ),
-        );
-      },
-
-      removeAttachment: (threadId: string, branchId: number, fileName: string) => {
-        setChatThreads((threads) =>
-          threads.map((thread) =>
-            thread.id === threadId
-              ? {
-                  ...thread,
-                  branches: thread.branches.map((branch) =>
-                    branch.id === branchId
-                      ? {
-                          ...branch,
-                          attachments: branch.attachments.filter((file) => file.name !== fileName),
-                        }
-                      : branch,
-                  ),
-                }
-              : thread,
-          ),
-        );
-      },
-
-      updateBranchModel: (threadId: string, branchId: number, model: BedrockModelNames) => {
-        setChatThreads((threads) =>
-          threads.map((thread) =>
-            thread.id === threadId
-              ? {
-                  ...thread,
-                  branches: thread.branches.map((branch) => (branch.id === branchId ? { ...branch, model } : branch)),
-                }
-              : thread,
-          ),
-        );
-      },
+      ...threadActions,
+      updateSettings,
+      setCurrentArtifact,
+      calculateTokens,
     }),
-    [chatThreads, currentThreadId],
+    [threadActions, updateSettings, calculateTokens],
   );
 
   return (
     <ChatContext.Provider
       value={{
-        chatThreads,
+        threadSummaries,
         currentThreadId,
         currentThread,
         currentBranch,
+        systemPrompts,
+        defaultSystemPromptId,
+        currentSystemPrompt,
         actions,
+        settings,
+        creativityLevel,
+        setCreativityLevel,
+        currentArtifact,
+        tokenCounts,
+        analyticsProvider: analytics,
       }}
     >
       {children}
@@ -251,8 +247,8 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export const useChat = () => {
+export const useChatContext = () => {
   const context = useContext(ChatContext);
-  if (!context) throw new Error('useChat must be used within ChatProvider');
+  if (!context) throw new Error('useChatContext must be used within ChatProvider');
   return context;
 };

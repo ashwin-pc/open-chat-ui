@@ -8,17 +8,30 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Keyboard } from 'lucide-react';
-import { useHotkeyList } from '@/hooks/use-hotkeys';
+import { useHotkeyList, useHotkeys } from '@/hooks/use-hotkeys';
 import { groupBy } from '@/lib/utils';
+import { useState, useCallback, useMemo } from 'react';
 
-interface ShortcutsDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
+export function ShortcutsDialog() {
   const shortcuts = useHotkeyList();
   const groupedShortcuts = groupBy(shortcuts, 'scope');
+  const [open, setOpen] = useState(false);
+
+  const toggleDialog = useCallback(() => {
+    setOpen((prev) => !prev);
+  }, []);
+
+  const shortcutConfig = useMemo(
+    () => ({
+      key: 'cmd+/',
+      description: 'Toggle shortcuts dialog',
+      scope: 'Global',
+      callback: toggleDialog,
+    }),
+    [toggleDialog],
+  );
+
+  useHotkeys('shortcuts-dialog', shortcutConfig);
 
   // TODO: detect OS
   // const isMac = /(Mac|iPhone|iPod|iPad)/i.test(navigator?.platform);
@@ -31,9 +44,9 @@ export function ShortcutsDialog({ open, onOpenChange }: ShortcutsDialogProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" onClick={() => onOpenChange(true)}>
+        <Button variant="ghost" size="icon" onClick={() => setOpen(true)}>
           <Keyboard className="h-4 w-4" />
           <span className="sr-only">Keyboard shortcuts</span>
         </Button>

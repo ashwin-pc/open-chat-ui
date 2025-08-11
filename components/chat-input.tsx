@@ -3,11 +3,13 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { FileAttachmentList } from './file-attachment-list';
 import { BedrockModelNames, BedrockModelDisplayNames, Attachment } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Input } from './ui/input';
 import { toast } from 'sonner';
+import { useChatContext } from '@/contexts/chat-context';
+import { Tooltip, TooltipTrigger, TooltipContent } from './ui/tooltip';
 
 interface ChatInputProps {
   isImmersive: boolean;
@@ -46,6 +48,7 @@ export function ChatInput({
   selectedModel,
   onModelChange,
 }: ChatInputProps) {
+  const { settings, tokenCounts, actions } = useChatContext();
   const containerClassName = isImmersive
     ? 'fixed inset-0 bg-background/80 backdrop-blur-sm transition-all duration-300 opacity-100 z-50'
     : 'bg-background relative before:absolute before:inset-x-0 before:top-[-20px] before:h-[20px] before:bg-gradient-to-b before:from-transparent before:to-background before:z-10';
@@ -61,20 +64,107 @@ export function ChatInput({
   const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
     const pastedText = e.clipboardData.getData('text');
 
-    if (pastedText.length > TEXT_LENGTH_THRESHOLD) {
+    if (pastedText) {
+      if (pastedText.length > TEXT_LENGTH_THRESHOLD && settings.largeTextPasteDetection) {
+        e.preventDefault();
+        setPastedContent(pastedText);
+        setShowPasteDialog(true);
+      }
+      return;
+    }
+
+    const pastedFiles = Array.from(e.clipboardData.items)
+      .filter((item) => item.kind === 'file')
+      .map((item) => item.getAsFile())
+      .filter((file) => file !== null) as File[];
+
+    if (pastedFiles.length > 0) {
       e.preventDefault();
-      setPastedContent(pastedText);
-      setShowPasteDialog(true);
+      const filesEvent = {
+        target: {
+          files: pastedFiles,
+        },
+      } as unknown as React.ChangeEvent<HTMLInputElement>;
+      handleFileUpload(filesEvent);
     }
   };
 
+  const MODEL_STORAGE_KEY = 'selectedBedrockModel';
+
+  const saveModelSelection = (model: BedrockModelNames) => {
+    localStorage.setItem(MODEL_STORAGE_KEY, model);
+  };
+
+  const loadModelSelection = (): BedrockModelNames | null => {
+    return localStorage.getItem(MODEL_STORAGE_KEY) as BedrockModelNames | null;
+  };
+
   useEffect(() => {
+    const storedModel = loadModelSelection();
+    if (storedModel && storedModel !== selectedModel) {
+      onModelChange(storedModel);
+    }
     const timeout = setTimeout(() => {
       textareaRef.current?.focus();
     }, 100);
 
     return () => clearTimeout(timeout);
   }, [textareaRef]);
+
+  useEffect(() => {
+    // Only run once on component mount
+    const urlParams = new URLSearchParams(window.location.search);
+    const initialMessage = urlParams.get('q');
+
+    if (initialMessage) {
+      // Set the input value
+      setInput(initialMessage);
+
+      // Use setTimeout to ensure the component is fully mounted
+      const timer = setTimeout(() => {
+        // Call the existing handleSend function
+        handleSend();
+
+        // Clean up the URL by removing the 'q' parameter
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('q');
+        window.history.replaceState({}, '', newUrl.toString());
+      }, 100); // Short delay to ensure everything is ready
+
+      return () => clearTimeout(timer);
+    }
+  }, [handleSend, setInput]);
+
+  // Debounced token calculation
+  const debounceTimeoutRef = useRef<NodeJS.Timeout>();
+
+  const debouncedCalculateTokens = useCallback(() => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    debounceTimeoutRef.current = setTimeout(() => {
+      actions.calculateTokens(input, attachments);
+    }, 300); // 300ms debounce
+  }, [input, attachments, actions]);
+
+  // Only calculate tokens when the setting is enabled
+  useEffect(() => {
+    if (settings.showTokenCounter) {
+      debouncedCalculateTokens();
+    }
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, [debouncedCalculateTokens, settings.showTokenCounter]);
+
+  // Calculate immediately when attachments change (only if setting enabled)
+  useEffect(() => {
+    if (settings.showTokenCounter) {
+      actions.calculateTokens(input, attachments);
+    }
+  }, [attachments.length, actions, input, attachments, settings.showTokenCounter]);
 
   return (
     <div className={containerClassName}>
@@ -87,17 +177,53 @@ export function ChatInput({
         {/* Controls - always visible */}
         <div className="flex justify-between items-center mb-2">
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="h-8 w-8">
-              <Paperclip className="h-4 w-4" />
-            </Button>
-            <Select value={selectedModel} onValueChange={(value: BedrockModelNames) => onModelChange(value)}>
-              <SelectTrigger className="w-[200px] h-8">
-                <SelectValue placeholder="Select model">{BedrockModelDisplayNames[selectedModel]}</SelectValue>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={() => fileInputRef.current?.click()} className="h-8 w-8">
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs whitespace-pre-line">
+                <span className="font-semibold">Attach files</span>
+                <br />
+                <span>
+                  Common types: txt, md, csv, json, code, images, ipynb, and more.
+                  <br />
+                  <a
+                    href="https://code.amazon.com/packages/DiyaChatbotUI/blobs/heads/mainline/--/src/open-ui/lib/utils/file.ts#L8"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline text-xs text-muted-foreground"
+                  >
+                    See full supported file list
+                  </a>
+                </span>
+              </TooltipContent>
+            </Tooltip>
+            <Select
+              value={selectedModel}
+              onValueChange={(value: BedrockModelNames) => {
+                onModelChange(value);
+                saveModelSelection(value);
+              }}
+            >
+              <SelectTrigger className="h-8 max-w-[150px] md:max-w-[280px]">
+                <SelectValue placeholder="Select model" className="truncate">
+                  {/* Extract main name before parenthesis for mobile display */}
+                  <span className="md:hidden">{BedrockModelDisplayNames[selectedModel].split('(')[0].trim()}</span>
+                  {/* Show full name on larger screens */}
+                  <span className="hidden md:inline">{BedrockModelDisplayNames[selectedModel]}</span>
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(BedrockModelDisplayNames).map(([model, displayName]) => (
-                  <SelectItem key={model} value={model}>
-                    {displayName}
+                  <SelectItem key={model} value={model} className="flex flex-col items-start">
+                    <span className="font-medium">{displayName.split('(')[0].trim()}</span>
+                    {displayName.includes('(') && (
+                      <span className="ml-2 text-xs text-muted-foreground">
+                        {displayName.match(/\(([^)]+)\)/)?.[1]}
+                      </span>
+                    )}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -109,6 +235,17 @@ export function ChatInput({
           </Button>
         </div>
 
+        {/* Token Counter - only show if setting is enabled */}
+        {settings.showTokenCounter && (
+          <div className="text-xs text-muted-foreground mb-2 flex justify-between items-center">
+            <div className="space-x-4">
+              <span>Conversation: {tokenCounts.conversationTokens.toLocaleString()}</span>
+              <span>Current: {tokenCounts.currentInputTokens.toLocaleString()}</span>
+              <span className="font-medium">Total: {tokenCounts.totalTokens.toLocaleString()}</span>
+            </div>
+          </div>
+        )}
+
         {/* Main content area */}
         <div className="relative flex-grow flex flex-col min-h-0">
           {/* Textarea container */}
@@ -119,9 +256,24 @@ export function ChatInput({
               onChange={(e) => setInput(e.target.value)}
               onPaste={handlePaste}
               onKeyDown={(e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !isPolling) {
-                  e.preventDefault();
-                  handleSend();
+                if (settings.cmdToSend) {
+                  // Only send on Cmd/Ctrl + Enter when cmdToSend is true
+                  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !isPolling) {
+                    e.preventDefault();
+                    handleSend();
+                    if (isImmersive) {
+                      toggleImmersive();
+                    }
+                  }
+                } else {
+                  // Only send on Enter when cmdToSend is false, block Cmd + Enter
+                  if (!e.metaKey && !e.ctrlKey && e.key === 'Enter' && !e.shiftKey && !isPolling) {
+                    e.preventDefault();
+                    handleSend();
+                    if (isImmersive) {
+                      toggleImmersive();
+                    }
+                  }
                 }
               }}
               placeholder={
@@ -136,29 +288,32 @@ export function ChatInput({
               } min-h-[60px] overflow-y-auto`}
               rows={isImmersive ? undefined : 1}
               style={!isImmersive ? { maxHeight: '20vh' } : undefined}
-              disabled={isPolling}
             />
 
             {/* Send/Edit/Abort button */}
             <div className="absolute right-2 bottom-2 flex space-x-2">
-              {editingMessageId && (
+              {editingMessageId !== null && (
                 <Button variant="ghost" size="icon" onClick={handleCancelEdit} className="h-8 w-8">
                   <X className="h-4 w-4" />
                 </Button>
               )}
               <Button
-                onClick={isPolling ? handleAbort : handleSend}
+                onClick={() => {
+                  if (isPolling) {
+                    handleAbort();
+                  } else {
+                    handleSend();
+                    if (isImmersive) {
+                      toggleImmersive();
+                    }
+                  }
+                }}
                 size="icon"
                 className="h-8 w-8"
                 variant={isPolling ? 'destructive' : 'default'}
+                data-testid={isPolling ? 'abort-button' : 'send-button'}
               >
-                {isPolling ? (
-                  <X className="h-4 w-4" />
-                ) : editingMessageId ? (
-                  <Edit className="h-4 w-4" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
+                {isPolling ? <X className="h-4 w-4" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
           </div>
@@ -191,7 +346,28 @@ export function ChatInput({
             <Button
               variant="secondary"
               onClick={() => {
-                setInput((prev) => prev + pastedContent);
+                if (textareaRef.current) {
+                  const textarea = textareaRef.current;
+                  const start = textarea.selectionStart;
+                  const end = textarea.selectionEnd;
+
+                  // Use the current input value and selection
+                  const before = textarea.value.substring(0, start);
+                  const after = textarea.value.substring(end);
+
+                  // Update input using the current cursor position
+                  setInput(before + pastedContent + after);
+
+                  // Focus and set cursor position on next tick
+                  requestAnimationFrame(() => {
+                    textarea.focus();
+                    const newCursorPosition = start + pastedContent.length;
+                    textarea.setSelectionRange(newCursorPosition, newCursorPosition);
+                  });
+                } else {
+                  // Fallback to append if textarea ref is not available
+                  setInput((prev) => prev + pastedContent);
+                }
                 setShowPasteDialog(false);
                 toast.success('Content pasted as text');
               }}

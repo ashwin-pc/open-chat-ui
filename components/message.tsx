@@ -1,54 +1,82 @@
-import { Copy, Edit, GitBranch, RotateCcw } from 'lucide-react';
-import { useCallback } from 'react';
-import { Paperclip } from 'lucide-react';
+import { Copy, Edit, GitBranch, RotateCcw, Eye, EyeOff } from 'lucide-react';
+import { memo, useCallback, useState } from 'react';
 import { Avatar, AvatarFallback } from './ui/avatar';
 import { Button } from './ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from './ui/context-menu';
 import { toast } from 'sonner';
 import ReactMarkdown, { Components } from 'react-markdown';
-import { Roles } from '@/lib/types';
+import remarkBreaks from 'remark-breaks';
+import { Attachment, Roles } from '@/lib/types';
 import { CodeBlock } from './code-block';
+import { ArtifactButton } from '@/components/artifact-button';
+import { cleanStreamingTextAsMessage } from '@/components/artifacts/artifact-parser';
+import { Artifact } from '@/components/artifacts/types';
+import { useSidebar } from '@/components/ui/sidebar';
+import { useChatContext } from '@/contexts/chat-context';
+import { TextFilePreview } from '@/components/text-file-preview';
+import { isFileImage } from '@/lib/utils/file';
 
 const components: Partial<Components> = {
-  code({ className, children, ...props }) {
+  code({ className, children }) {
     const match = /language-(\w+)/.exec(className || '');
-    return match ? (
-      <CodeBlock language={match[1]} value={String(children).replace(/\n$/, '')} />
-    ) : (
-      <code className={className} {...props}>
-        {children}
-      </code>
-    );
+    const content = String(children).replace(/\n$/, '');
+
+    const isCodeBlock = match || content.includes('\n');
+
+    if (!isCodeBlock) {
+      return <code className={className}>{content}</code>;
+    }
+
+    return <CodeBlock language={match?.[1] || 'text'} value={content} />;
   },
   pre({ children }) {
     return <>{children}</>;
   },
 };
 
+// Memoized markdown component
+const MemoizedMarkdown = memo(function MemoizedMarkdown({ text }: { text: string }) {
+  return (
+    <ReactMarkdown remarkPlugins={[remarkBreaks]} components={components}>
+      {text}
+    </ReactMarkdown>
+  );
+});
+
 interface MessageProps {
   message: {
     text: string;
     sender: string;
-    attachments?: { name: string }[];
+    thinking?: string;
+    partialThinking?: string;
+    attachments?: Attachment[];
+    artifacts?: Artifact[];
   };
   index: number;
   editingMessageId: number | null;
   onRestart: (index: number) => void;
   onEdit: (index: number) => void;
   onBranch: (index: number) => void;
+  isPartial?: boolean;
 }
 
-export function Message({ message, index, editingMessageId, onRestart, onEdit, onBranch }: MessageProps) {
-  const isAfterEditPoint = editingMessageId !== null && index > editingMessageId;
-  const isHuman = message.sender === Roles.HUMAN;
-
-  const copyToClipboard = useCallback(async () => {
-    await navigator.clipboard.writeText(message.text);
-    toast.success('Copied to clipboard');
-  }, [message.text]);
-
-  const ActionButtons = () => (
+// Memoized action buttons component
+const ActionButtons = memo(function ActionButtons({
+  isHuman,
+  onEdit,
+  onRestart,
+  onBranch,
+  copyToClipboard,
+  index,
+}: {
+  isHuman: boolean;
+  onEdit: (index: number) => void;
+  onRestart: (index: number) => void;
+  onBranch: (index: number) => void;
+  copyToClipboard: () => void;
+  index: number;
+}) {
+  return (
     <div className="absolute -bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
       <div className="flex bg-background/95 rounded-lg shadow-sm border border-border/50">
         {isHuman ? (
@@ -95,28 +123,82 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
       </div>
     </div>
   );
+});
+
+export const Message = memo(function Message({
+  message,
+  index,
+  editingMessageId,
+  onRestart,
+  onEdit,
+  onBranch,
+  isPartial,
+}: MessageProps) {
+  const { actions } = useChatContext();
+  const { setOpen } = useSidebar();
+  const handleShowArtifact = (artifact: Artifact) => {
+    actions.setCurrentArtifact(artifact);
+    setOpen(false);
+  };
+
+  const displayText = cleanStreamingTextAsMessage(message.text);
+  const messageArtifacts = message.artifacts || [];
+  const isAfterEditPoint = editingMessageId !== null && index > editingMessageId;
+  const isHuman = message.sender === Roles.HUMAN;
+
+  const copyToClipboard = useCallback(async () => {
+    await navigator.clipboard.writeText(message.text);
+    toast.success('Copied to clipboard');
+  }, [message.text]);
+
+  const handleEdit = useCallback(() => onEdit(index), [onEdit, index]);
+  const handleRestart = useCallback(() => onRestart(index), [onRestart, index]);
+  const handleBranch = useCallback(() => onBranch(index), [onBranch, index]);
+  const [showThinking, setShowThinking] = useState(true);
 
   return (
     <ContextMenu>
       <ContextMenuTrigger>
-        <div
-          className={`flex mb-4 ${isHuman ? 'justify-end' : 'justify-start'} 
+        <article
+          className={`flex mb-4 ${isHuman ? 'justify-end' : 'justify-start'}
             ${isAfterEditPoint ? 'opacity-50' : ''}`}
+          data-role-type={isHuman ? 'human' : 'bot'}
         >
           <div
-            className={`flex flex-col items-${isHuman ? 'end' : 'start'} relative group 
+            className={`flex flex-col max-w-full items-${isHuman ? 'end' : 'start'} relative group
               ${isHuman ? 'sm:items-end' : 'sm:items-start'}`}
           >
             <Avatar
-              className={`h-6 w-6 sm:h-8 sm:w-8 mb-2 
+              className={`h-6 w-6 sm:h-8 sm:w-8 mb-2
               ${isHuman ? 'self-end' : 'self-start'}`}
             >
               <AvatarFallback>{isHuman ? <UserAvatar /> : <BotAvatar />}</AvatarFallback>
             </Avatar>
-            <div className={`rounded-lg ${isHuman ? 'bg-muted p-3' : 'bg-transparent pl-3'}`}>
+            {!!message?.attachments?.length && (
+              <div className={`flex flex-wrap gap-2 mb-2`}>
+                {message?.attachments?.map((attachment) => {
+                  if (isFileImage(attachment.name)) {
+                    return (
+                      <img
+                        className="max-h-[200px] object-cover rounded-lg shadow-sm"
+                        key={attachment.id}
+                        src={attachment.content}
+                        alt={attachment.name}
+                        style={{
+                          backgroundColor: '#f8f9fa',
+                          border: '1px solid #e9ecef',
+                        }}
+                      />
+                    );
+                  }
+                  return <TextFilePreview key={attachment.id} filename={attachment.name} />;
+                })}
+              </div>
+            )}
+            <div className={`rounded-lg max-w-full ${isHuman ? 'bg-muted p-3' : 'bg-accentuated p-3'}`}>
               <div
                 className={`
-                  prose max-w-none
+                  prose max-w-full break-words break-all
                   prose-headings:mb-2 prose-headings:mt-4 prose-headings:font-semibold
                   prose-p:my-1 prose-p:leading-relaxed
                   prose-a:text-primary hover:prose-a:opacity-80
@@ -124,32 +206,55 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
                   prose-img:rounded-lg
                   dark:prose-invert`}
               >
-                <ReactMarkdown components={components}>{message.text}</ReactMarkdown>
+                {(message.thinking || message.partialThinking) && !isHuman && (
+                  <div className="border-t border-border/30">
+                    {/* Display thinking content when toggled */}
+                    {showThinking && (
+                      <div className="p-2 bg-muted/50 rounded text-sm text-muted-foreground">
+                        <MemoizedMarkdown text={message.thinking ? message.thinking : message.partialThinking || ''} />
+                      </div>
+                    )}
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowThinking(!showThinking)}
+                      className="text-xs text-muted-foreground hover:text-foreground mt-2 flex items-center"
+                    >
+                      {showThinking ? (
+                        <>
+                          <EyeOff className="h-3 w-3 mr-1" />
+                          Hide thinking
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-3 w-3 mr-1" />
+                          Show thinking
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+
+                <MemoizedMarkdown text={displayText} />
+
+                {isPartial && (
+                  <div className="h-4 w-4 absolute top-2 left-2" data-testid="typing-indicator">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                  </div>
+                )}
               </div>
-              {message.attachments && message.attachments.length > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div className="flex items-center mt-1 text-xs text-muted-foreground cursor-pointer">
-                      <Paperclip className="h-3 w-3 mr-1" />
-                      <span>
-                        {message.attachments.length} attachment
-                        {message.attachments.length > 1 ? 's' : ''}
-                      </span>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top">
-                    <ul className="text-xs">
-                      {message.attachments.map((attachment, idx) => (
-                        <li key={idx}>{attachment.name}</li>
-                      ))}
-                    </ul>
-                  </TooltipContent>
-                </Tooltip>
-              )}
             </div>
-            <ActionButtons />
+            <ActionButtons
+              isHuman={isHuman}
+              onEdit={handleEdit}
+              onRestart={handleRestart}
+              onBranch={handleBranch}
+              copyToClipboard={copyToClipboard}
+              index={index}
+            />
           </div>
-        </div>
+        </article>
       </ContextMenuTrigger>
 
       <ContextMenuContent>
@@ -174,12 +279,34 @@ export function Message({ message, index, editingMessageId, onRestart, onEdit, o
               <Copy className="mr-2 h-4 w-4" />
               Copy to clipboard
             </ContextMenuItem>
+            {message.thinking && (
+              <ContextMenuItem onClick={() => setShowThinking(!showThinking)}>
+                {showThinking ? (
+                  <>
+                    <EyeOff className="mr-2 h-4 w-4" />
+                    Hide thinking
+                  </>
+                ) : (
+                  <>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Show thinking
+                  </>
+                )}
+              </ContextMenuItem>
+            )}
           </>
         )}
       </ContextMenuContent>
+      {messageArtifacts.length > 0 && (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {messageArtifacts.map((artifact: Artifact, idx: number) => (
+            <ArtifactButton key={idx} artifact={artifact} onShowArtifact={handleShowArtifact} />
+          ))}
+        </div>
+      )}
     </ContextMenu>
   );
-}
+});
 
 export const BotAvatar = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" className="h-full w-full">

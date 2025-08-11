@@ -1,9 +1,27 @@
-import { useState, useRef } from 'react';
-import { Attachment, BedrockModelNames, ChatApiInterface, Message, Roles } from '@/lib/types';
+import { useState, useRef, useCallback } from 'react';
+import {
+  Attachment,
+  BedrockModelNames,
+  ChatApiInterface,
+  ChatThread,
+  Message,
+  Roles,
+  CreativityLevel,
+  CREATIVITY_PARAMETERS,
+} from '@/lib/types';
 import { formatAttachmentMessage, formatAttachments } from '@/lib/utils/file';
+import { useChatContext } from '@/contexts/chat-context';
+import { anthropicDefaultArtifactPrompt } from '../../prompts/anthropic-default-artifact-prompt';
+import { systemPrompts } from '../../prompts';
+import { db } from '../lib/db';
+import { generateConversationTitle } from '../../utils/title-generation';
+import { showErrorToast, TokenInfo } from '../lib/error-utils';
+import { NetworkError, APIError } from '../lib/errors';
+import { extractThinking, extractRealAnswer, hasThinkTag } from '../../utils/thinkingUtil';
+import { parseArtifact } from '@/components/artifacts/artifact-parser';
+import { toast } from 'sonner';
 
 interface UseChatApiProps {
-  currentThreadId: string;
   apiClient: ChatApiInterface;
   onUpdateMessages: (messages: Message[]) => void;
 }
@@ -11,13 +29,41 @@ interface UseChatApiProps {
 export interface PartialResponse {
   threadId: string;
   text: string;
+  thinking?: string;
 }
 
-export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: UseChatApiProps) {
+export function useChatApi({ apiClient, onUpdateMessages }: UseChatApiProps) {
+  const { currentSystemPrompt, currentThreadId, creativityLevel, actions, settings, tokenCounts, currentArtifact } =
+    useChatContext();
   const [isPolling, setIsPolling] = useState(false);
   const [partialResponse, setPartialResponse] = useState<PartialResponse>();
   const timeoutRef = useRef<NodeJS.Timeout>();
   const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([]);
+
+  const handleError = useCallback(
+    (error: unknown) => {
+      // Get conversation tokens from current context - no need to recalculate
+      const conversationTokens = tokenCounts.conversationTokens;
+
+      // Simple token breakdown for error report
+      const tokenBreakdown = `## Token Usage Report
+
+**Conversation Tokens**: ${conversationTokens.toLocaleString()}
+- All messages in this thread (including attachments and images)
+
+*Note: This shows tokens used in the conversation when the error occurred.*`;
+
+      const tokenInfo: TokenInfo = {
+        conversationTokens,
+        currentInputTokens: 0, // Not relevant for error context
+        totalTokens: conversationTokens,
+        tokenBreakdown,
+      };
+
+      showErrorToast(error, currentThreadId, tokenInfo);
+    },
+    [currentThreadId, tokenCounts.conversationTokens],
+  );
 
   const pollForResponse = async (conversationId: string, updatedTime: number, currentMessages: Message[]) => {
     // Clear any existing timeout
@@ -26,142 +72,327 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
     }
 
     setIsPolling(true);
-    const { status, latestResponse } = await apiClient.getLatestResponse(conversationId, updatedTime);
+    try {
+      const response = await apiClient.getLatestResponse(conversationId, updatedTime);
+      if (!response) {
+        throw new APIError('Failed to get response from server');
+      }
 
-    if (latestResponse) {
-      setPartialResponse({
-        threadId: conversationId,
-        text: latestResponse,
-      });
-    }
+      const { status, latestResponse } = response;
 
-    if (status === 'PENDING') {
-      timeoutRef.current = setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 100);
-    } else if (status === 'COMPLETE') {
-      const botResponse: Message = {
-        text: latestResponse,
-        sender: Roles.ASSISTANT,
-      };
+      if (latestResponse !== undefined) {
+        // Parse artifacts from response using unified parser
+        const parsed = parseArtifact(latestResponse);
 
-      const updatedMessages = [...currentMessages, botResponse];
-      onUpdateMessages(updatedMessages);
+        let displayText = parsed.cleanMessage || (latestResponse === '' ? '✨ Generating...' : latestResponse);
+        let partialThinking = undefined;
 
+        if (hasThinkTag(displayText)) {
+          partialThinking = extractThinking(displayText);
+          displayText = extractRealAnswer(displayText);
+        }
+
+        // Auto-open artifact panel when first artifact is detected
+        if (parsed.hasStreamingArtifacts && !currentArtifact) {
+          actions.setCurrentArtifact(parsed.artifacts[0]); // Already has isStreaming flag
+        }
+
+        // Update existing streaming artifact with new content
+        if (parsed.artifacts.length > 0 && currentArtifact?.isStreaming) {
+          actions.setCurrentArtifact(parsed.artifacts[0]); // Already has isStreaming flag
+        }
+
+        setPartialResponse({
+          threadId: conversationId,
+          text: displayText,
+          thinking: partialThinking,
+        });
+      }
+
+      if (status === 'PENDING') {
+        timeoutRef.current = setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 1000);
+      } else if (status === 'COMPLETE') {
+        // Parse final response using unified parser
+        const finalParsed = parseArtifact(latestResponse || '');
+
+        let responseText = finalParsed.cleanMessage || latestResponse || '';
+        let thinking = undefined;
+
+        // Process thinking tags if present
+        if (hasThinkTag(responseText)) {
+          thinking = extractThinking(responseText);
+          responseText = extractRealAnswer(responseText);
+        }
+
+        const botResponse: Message = {
+          text: responseText, // Use cleaned response text without thinking tags
+          sender: Roles.ASSISTANT,
+          thinking: thinking,
+          artifacts: finalParsed.artifacts.length > 0 ? finalParsed.artifacts : undefined,
+        };
+
+        const updatedMessages = [...currentMessages, botResponse];
+        onUpdateMessages(updatedMessages);
+
+        // Finalize streaming artifact by removing isStreaming flag and ensuring final content
+        // Always update if we have a complete artifact, regardless of current state
+        if (finalParsed.artifacts.length > 0) {
+          const finalArtifact = {
+            ...finalParsed.artifacts[0],
+            isStreaming: false,
+          };
+          actions.setCurrentArtifact(finalArtifact);
+        }
+
+        // Generate title only after we have the complete assistant response
+        // Check if this is the first message in the thread (messageHistory.length was 0)
+        if (currentMessages.length === 1 && currentMessages[0].sender === Roles.HUMAN && latestResponse !== '') {
+          generateThreadTitle(
+            currentMessages[0].text,
+            latestResponse,
+            conversationId,
+            BedrockModelNames.CLAUDE_V3_5_HAIKU,
+          );
+        }
+
+        setPartialResponse(undefined);
+        setIsPolling(false);
+      }
+    } catch (error) {
+      // Create a new error with actions
+      const errorWithActions = error instanceof Error ? new NetworkError(error.message) : error;
+
+      // Add actions array with multiple options
+      (errorWithActions as any).actions = [
+        {
+          label: 'Keep checking',
+          action: () => {
+            // Restart polling with the same parameters
+            setIsPolling(true);
+            setPartialResponse({
+              threadId: conversationId,
+              text: 'Retrying...',
+            });
+            setTimeout(() => pollForResponse(conversationId, updatedTime, currentMessages), 1000);
+          },
+          variant: 'secondary', // Use secondary styling
+        },
+        {
+          label: 'Abort',
+          action: async () => {
+            try {
+              setIsPolling(false);
+              setPartialResponse(undefined);
+              if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+              }
+              await apiClient.abortConversation(conversationId);
+              toast.success('Conversation aborted. You can now retry sending your message.');
+            } catch (abortError) {
+              toast.error('Failed to abort conversation. Please try again.');
+            }
+          },
+          variant: 'outline', // Use outline styling
+        },
+      ];
+
+      handleError(errorWithActions);
       setPartialResponse(undefined);
       setIsPolling(false);
     }
   };
 
-  const handleNewMessage = async (input: string, currentMessages: Message[], model: BedrockModelNames) => {
+  const createConversationAndPoll = (
+    messageToSend: string,
+    messageHistory: Message[],
+    updatedMessages: Message[],
+    model: BedrockModelNames = BedrockModelNames.CLAUDE_V3_5_SONNET,
+    systemContext: string = currentSystemPrompt.text,
+  ) => {
+    const conversationTime = Date.now();
+    const modelInferenceParams =
+      CREATIVITY_PARAMETERS[creativityLevel] || CREATIVITY_PARAMETERS[CreativityLevel.PRECISE];
+
+    setIsPolling(true);
+    setPartialResponse({
+      threadId: currentThreadId.toString(),
+      text: '🤔 Thinking...',
+    });
+    const artifactPrompt =
+      systemPrompts.find((prompt) => prompt.name === 'anthropic-artifact-default') || anthropicDefaultArtifactPrompt;
+
+    if (settings.useArtifacts) {
+      systemContext = artifactPrompt.text + systemContext;
+    }
+
+    apiClient.createConversation(
+      messageToSend,
+      messageHistory.map((message) => ({
+        text: formatAttachmentMessage(message),
+        sender: message.sender,
+      })),
+      currentThreadId.toString(),
+      conversationTime,
+      model,
+      systemContext,
+      (error) => {
+        handleError(error);
+
+        setPartialResponse({
+          threadId: currentThreadId,
+          text: 'I will keep thinking, but you can abort this conversation.',
+        });
+      },
+      modelInferenceParams,
+    );
+
+    // Start polling for the response
+    setTimeout(() => {
+      pollForResponse(currentThreadId.toString(), conversationTime, updatedMessages);
+    }, 1000);
+  };
+
+  const generateThreadTitle = async (
+    userMessage: string,
+    assistantMessage: string,
+    threadId: string,
+    model: BedrockModelNames,
+  ) => {
+    try {
+      const generatedTitle = await generateConversationTitle(apiClient, userMessage, assistantMessage);
+
+      // Update the thread summary with the new title
+      const summary = await db.threadSummaries.get(threadId);
+      if (summary) {
+        summary.name = generatedTitle;
+        summary.lastUpdated = new Date();
+        await db.threadSummaries.put(summary);
+
+        actions.renameThread(threadId, generatedTitle);
+      }
+    } catch (error) {
+      console.error('Failed to generate title:', error);
+      // No need to show an error toast here as it's not critical
+    }
+  };
+
+  const handleNewMessage = async (input: string, chatThread: ChatThread) => {
+    const currentBranch = chatThread.branches.find((b) => b.id === chatThread.currentBranchId);
+    if (!currentBranch) {
+      handleError('Could not find current branch');
+      return;
+    }
+
     const userMessage: Message = {
       text: input,
       sender: Roles.HUMAN,
-      attachments: pendingAttachments, // Store serialized attachments
+      attachments: pendingAttachments,
     };
 
-    // Prepare message to send to the API
     let messageToSend = input;
     if (pendingAttachments.length > 0) {
       const attachmentContent = formatAttachments(pendingAttachments);
       messageToSend = attachmentContent + input;
     }
 
-    const messageHistoryToSend = currentMessages.map((message) => {
-      return {
-        text: formatAttachmentMessage(message),
-        sender: message.sender,
-      };
-    });
-
-    // Send the message to the API
-    apiClient.createConversation(
-      messageToSend,
-      messageHistoryToSend,
-      currentThreadId.toString(),
-      Date.now(),
-      model,
-      '',
-      (error) => console.error(error),
-    );
-
-    const updatedMessages = [...currentMessages, userMessage];
+    const updatedMessages = [...currentBranch.messages, userMessage];
     onUpdateMessages(updatedMessages);
-
-    // Clear pending files after sending
     setPendingAttachments([]);
 
-    // Start polling for the response
-    setTimeout(() => {
-      pollForResponse(currentThreadId.toString(), Date.now(), updatedMessages);
-    }, 1000);
+    try {
+      createConversationAndPoll(
+        messageToSend,
+        currentBranch.messages,
+        updatedMessages,
+        currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
+      );
+    } catch (error) {
+      handleError(error);
+    }
   };
 
   /**
    * Handle the event when a message has been edited by the user
    * @param input new message
-   * @param currentMessages Current messages
+   * @param chatThread Chat thread
    * @param editIndex Position of the message to edit
+   * @param attachments Current attachments to save with the message
    */
-  const handleEditMessage = async (input: string, currentMessages: Message[], editIndex: number) => {
-    debugger;
-    // When editing, restore files from the original message
-    const originalMessage = currentMessages[editIndex];
+  const handleEditMessage = async (
+    input: string,
+    chatThread: ChatThread,
+    editIndex: number,
+    attachments: Attachment[],
+  ) => {
+    const currentBranch = chatThread.branches.find((b) => b.id === chatThread.currentBranchId);
+    if (!currentBranch) {
+      handleError('Could not find current branch');
+      return;
+    }
 
+    const originalMessage = currentBranch.messages[editIndex];
     const newMessage: Message = {
       ...originalMessage,
       text: input,
+      attachments: attachments,
     };
 
-    // Formsat attachments
-    const messageToSend = formatAttachmentMessage(newMessage);
-    const messageHistoryToSend = currentMessages.map((message) => {
-      return {
-        text: formatAttachmentMessage(message),
-        sender: message.sender,
-      };
-    });
-
-    // Keep messages up to the edit point and add the edited message
-    const updatedMessages = [...currentMessages.slice(0, editIndex), newMessage];
+    const updatedMessages = [...currentBranch.messages.slice(0, editIndex), newMessage];
     onUpdateMessages(updatedMessages);
 
     // Clear pending files after sending
     setPendingAttachments([]);
 
-    // Get bot response for the edited message
-    const botResponse = await apiClient.sendMessage(messageToSend, messageHistoryToSend);
-    const newBotMessage: Message = {
-      text: botResponse.latestResponse || "I'm a mock response to your edited message.",
-      sender: Roles.ASSISTANT,
-    };
-    onUpdateMessages([...updatedMessages, newBotMessage]);
+    try {
+      const messageToSend = formatAttachmentMessage(newMessage);
+      createConversationAndPoll(
+        messageToSend,
+        updatedMessages.slice(0, -1),
+        updatedMessages,
+        currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
+      );
+    } catch (error) {
+      handleError(error);
+    }
   };
 
-  const handleRestartFromMessage = async (currentMessages: Message[], restartIndex: number) => {
-    const newMessages = currentMessages.slice(0, restartIndex + 1);
+  const handleRestartFromMessage = async (chatThread: ChatThread, restartIndex: number) => {
+    const currentBranch = chatThread.branches.find((b) => b.id === chatThread.currentBranchId);
+    if (!currentBranch) {
+      handleError('Could not find current branch');
+      return;
+    }
+
+    const newMessages = currentBranch.messages.slice(0, restartIndex + 1);
     onUpdateMessages(newMessages);
 
     const lastMessage = newMessages[newMessages.length - 1];
     if (lastMessage.sender === Roles.HUMAN) {
-      apiClient.createConversation(
-        lastMessage.text,
-        newMessages,
-        currentThreadId.toString(),
-        Date.now(),
-        BedrockModelNames.CLAUDE_V3_5_SONNET,
-        '',
-        (error) => console.error(error),
-      );
-      pollForResponse(currentThreadId.toString(), Date.now(), newMessages);
+      try {
+        const messageToSend = formatAttachmentMessage(lastMessage);
+        createConversationAndPoll(
+          messageToSend,
+          newMessages.slice(0, -1),
+          newMessages,
+          currentBranch.model || BedrockModelNames.CLAUDE_V3_5_SONNET_V2,
+        );
+      } catch (error) {
+        handleError(error);
+      }
     }
   };
 
   const handleAbort = async () => {
+    setIsPolling(false);
+    setPartialResponse(undefined);
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    await apiClient.abortConversation(currentThreadId.toString());
-    setIsPolling(false);
-    setPartialResponse(undefined);
+    try {
+      await apiClient.abortConversation(currentThreadId.toString());
+    } catch (error) {
+      handleError(error);
+    }
   };
 
   return {
@@ -173,5 +404,6 @@ export function useChatApi({ currentThreadId, apiClient, onUpdateMessages }: Use
     handleAbort,
     pendingAttachments,
     setPendingAttachments,
+    generateThreadTitle,
   };
 }

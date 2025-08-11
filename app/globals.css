@@ -26,6 +26,8 @@ body {
     --secondary-foreground: 24 9.8% 10%;
     --muted: 60 4.8% 95.9%;
     --muted-foreground: 25 5.3% 44.7%;
+    --accentuated: 270 29% 90%;
+    --accentuated-foreground: 270 20% 95%;
     --accent: 60 4.8% 95.9%;
     --accent-foreground: 24 9.8% 10%;
     --destructive: 0 84.2% 60.2%;
@@ -61,6 +63,8 @@ body {
     --secondary-foreground: 60 9.1% 97.8%;
     --muted: 12 6.5% 15.1%;
     --muted-foreground: 24 5.4% 63.9%;
+    --accentuated: 270 55% 6%;
+    --accentuated-foreground: 270 20% 95%;
     --accent: 12 6.5% 15.1%;
     --accent-foreground: 60 9.1% 97.8%;
     --destructive: 0 62.8% 30.6%;
@@ -81,6 +85,17 @@ body {
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    ::-webkit-scrollbar-thumb {
+      background: hsl(var(--muted-foreground));
+      border-radius: var(--radius);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: hsl(var(--muted));
+    }
+    ::-webkit-scrollbar-track {
+      background: hsl(var(--background));
+    }
+    scrollbar-color: hsl(var(--muted-foreground)) hsl(var(--background));
   }
 }
 
@@ -94,8 +109,8 @@ body {
 }
 
 .loader {
-  --path: #2F3545;
-  --dot: #5628EE;
+  --path: #2f3545;
+  --dot: #5628ee;
   --duration: 3s;
   width: 44px;
   height: 44px;
@@ -165,4 +180,8 @@ body {
   100% {
     transform: translate(-10px, -18px);
   }
+}
+
+.language-text {
+  white-space: pre-wrap !important;
 }

@@ -34,6 +34,10 @@ const config: Config = {
           DEFAULT: 'hsl(var(--muted))',
           foreground: 'hsl(var(--muted-foreground))',
         },
+        accentuated: {
+          DEFAULT: 'hsl(var(--accentuated))',
+          foreground: 'hsl(var(--accentuated-foreground))',
+        },
         accent: {
           DEFAULT: 'hsl(var(--accent))',
           foreground: 'hsl(var(--accent-foreground))',
@@ -82,6 +86,25 @@ const config: Config = {
       },
       animation: {
         'fade-in': 'fade-in 0.5s ease-out',
+      },
+      typography: {
+        DEFAULT: {
+          css: {
+            'code::before': {
+              content: '""',
+            },
+            'code::after': {
+              content: '""',
+            },
+            'code:not(pre code)': {
+              backgroundColor: 'hsl(var(--muted))',
+              padding: '0.2em 0.4em',
+              borderRadius: '0.3em',
+              fontWeight: '400',
+              fontSize: '0.875em',
+            },
+          },
+        },
       },
     },
   },

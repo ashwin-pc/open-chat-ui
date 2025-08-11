@@ -16,7 +16,7 @@ export function BranchSelector({ currentBranchId, branches, onBranchChange }: Br
         <SelectValue>
           <div className="flex items-center space-x-2">
             <GitBranch className="h-4 w-4" />
-            <span className="truncate">{branches.find((b) => b.id === currentBranchId)?.name}</span>
+            <span className="hidden md:inline truncate">{branches.find((b) => b.id === currentBranchId)?.name}</span>
           </div>
         </SelectValue>
       </SelectTrigger>
