@@ -5,6 +5,7 @@ import { ChatInput } from './chat-input';
 import { useChatContext } from '@/contexts/chat-context';
 import { BedrockModelNames, CreativityLevel } from '@/lib/types';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { NoopAnalyticsProvider } from '@/lib/analytics/providers/noop-provider';
 
 // Mock the chat context
 jest.mock('@/contexts/chat-context');
@@ -109,6 +110,7 @@ describe('ChatInput Token Counter', () => {
       systemPrompts: [],
       defaultSystemPromptId: '',
       currentSystemPrompt: { id: '', name: '', text: '' },
+      analyticsProvider: new NoopAnalyticsProvider(),
     });
   });
 

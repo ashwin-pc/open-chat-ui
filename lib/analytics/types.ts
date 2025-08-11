@@ -1,6 +1,7 @@
 export interface AnalyticsEvent {
   name: string;
   attributes?: Record<string, string | number | boolean>;
+  metrics?: Record<string, number>;
 }
 
 export interface AnalyticsProvider {
