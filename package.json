@@ -33,7 +33,7 @@
     "dexie": "^4.0.10",
     "dexie-react-hooks": "^1.1.7",
     "gpt-tokenizer": "^2.2.3",
-    "next": "14.2.16",
+    "next": "^14.2.30",
     "next-themes": "^0.4.3",
     "react-syntax-highlighter": "^15.6.1",
     "sonner": "^2.0.1",
